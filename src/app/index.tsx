@@ -45,17 +45,7 @@ export default function HomeScreen() {
         ) : (
           // Si no está logueado -> Muestra el formulario de inicio de sesión
           <View style={styles.loginContainer}>
-            <View style={styles.brandingHeader}>
-              <Text style={styles.brandEmoji}>🏋️</Text>
-              <Text style={[styles.brandTitle, { color: colors.text }]}>
-                Gym Project
-              </Text>
-              <Text
-                style={[styles.brandTagline, { color: colors.textSecondary }]}
-              >
-                Gestión de Rutinas, Catálogo e Historial de Marcas
-              </Text>
-            </View>
+            <View style={styles.brandingHeader}></View>
             <LoginForm />
           </View>
         )}
