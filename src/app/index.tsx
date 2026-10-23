@@ -1,12 +1,11 @@
 import { LoginForm } from "@/components/auth/LoginForm";
-import { UserProfileCard } from "@/components/auth/UserProfileCard";
+import { GymDashboard } from "@/components/dashboard/GymDashboard";
 import { Colors, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   useColorScheme,
@@ -17,19 +16,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function HomeScreen() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === "dark" ? "dark" : "light"];
-  const { token, user, isLoading, isAuthenticating } = useAuth();
+  const { user, isLoading } = useAuth();
 
+  // 1. Mientras verifica si hay token/sesión guardada
   if (isLoading) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color="#2731c9" />
+        <ActivityIndicator size="large" color="#ff6b00" />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-          Loading session...
+          Cargando sesión...
         </Text>
       </View>
     );
   }
 
+  // 2. Renderizado según estado de autenticación
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -38,54 +39,26 @@ export default function HomeScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.keyboardView}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {token && (
+        {user ? (
+          // Si el usuario está logueado -> Muestra el Dashboard completo
+          <GymDashboard />
+        ) : (
+          // Si no está logueado -> Muestra el formulario de inicio de sesión
+          <View style={styles.loginContainer}>
             <View style={styles.brandingHeader}>
               <Text style={styles.brandEmoji}>🏋️</Text>
               <Text style={[styles.brandTitle, { color: colors.text }]}>
-                Gym Proyect
+                Gym Project
               </Text>
               <Text
                 style={[styles.brandTagline, { color: colors.textSecondary }]}
               >
-                Routine Management, Machine Catalog, and Progression
+                Gestión de Rutinas, Catálogo e Historial de Marcas
               </Text>
             </View>
-          )}
-
-          {user ? (
-            <View style={styles.loggedInContainer}>
-              <UserProfileCard />
-
-              <View
-                style={[
-                  styles.nextStepsCard,
-                  { backgroundColor: colors.backgroundElement },
-                ]}
-              >
-                <Text style={[styles.nextStepsTitle, { color: colors.text }]}>
-                  🚀 Session Connected to Django API
-                </Text>
-                <Text
-                  style={[
-                    styles.nextStepsText,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Your authentication with JWT tokens is working. The next steps
-                  will be to load this user's routines and the machine catalog
-                  on the following screens.
-                </Text>
-              </View>
-            </View>
-          ) : (
             <LoginForm />
-          )}
-        </ScrollView>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -98,12 +71,6 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
-  scrollContent: {
-    paddingVertical: Spacing.four,
-    paddingHorizontal: Spacing.two,
-    alignItems: "center",
-    flexGrow: 1,
-  },
   centered: {
     flex: 1,
     justifyContent: "center",
@@ -112,6 +79,11 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: Spacing.two,
     fontSize: 14,
+  },
+  loginContainer: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: Spacing.three,
   },
   brandingHeader: {
     alignItems: "center",
@@ -130,26 +102,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
     textAlign: "center",
-  },
-  loggedInContainer: {
-    width: "100%",
-    alignItems: "center",
-    marginTop: Spacing.two,
-  },
-  nextStepsCard: {
-    borderRadius: 14,
-    padding: Spacing.three,
-    marginTop: Spacing.three,
-    maxWidth: 420,
-    width: "100%",
-  },
-  nextStepsTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: Spacing.one,
-  },
-  nextStepsText: {
-    fontSize: 13,
-    lineHeight: 18,
   },
 });
