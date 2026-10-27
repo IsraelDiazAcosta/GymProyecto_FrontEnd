@@ -377,8 +377,14 @@ export const GymDashboard: React.FC = () => {
               colors={colors}
               routines={routines}
               trackingRoutineId={trackingRoutineId}
+              trackingExerciseId={trackingExerciseId}
               marcaHistory={marcaHistory}
+              exercises={currentRoutineExercises}
               onSelectRoutine={handleRoutineChangeInTracking}
+              onSelectExercise={(exerciseId) => {
+                setTrackingExerciseId(exerciseId);
+                loadProgressionHistory(exerciseId);
+  }}
             />
 
             {/* Crear Rutina */}
