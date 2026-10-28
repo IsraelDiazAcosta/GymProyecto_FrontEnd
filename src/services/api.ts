@@ -105,6 +105,7 @@ export interface RoutineDay {
 export interface Routine {
   id: string;
   title: string;
+  focus: string;
   description?: string;
   days_count?: number;
   days: RoutineDay[];
@@ -217,14 +218,19 @@ export const api = {
   },
 
   async createRoutine(
-    title: string,
-    description: string = "Rutina personalizada",
-  ): Promise<Routine> {
-    return request<Routine>("/routines/routines/", {
-      method: "POST",
-      body: JSON.stringify({ title, description }),
-    });
-  },
+  title: string,
+  focus: string,
+  description: string = "Rutina personalizada",
+): Promise<Routine> {
+  return request<Routine>("/routines/routines/", {
+    method: "POST",
+    body: JSON.stringify({
+      title,
+      focus,
+      description,
+    }),
+  });
+},
 
   async addExerciseToRoutine(
     routineId: string,

@@ -55,6 +55,7 @@ export const GymDashboard: React.FC = () => {
 
   // Estados de Rutinas
   const [newRoutineTitle, setNewRoutineTitle] = useState("");
+  const [newRoutineFocus, setNewRoutineFocus] =useState("fullbody");
   const [selectedRoutineForAdd, setSelectedRoutineForAdd] = useState<
     string | null
   >(null);
@@ -169,7 +170,7 @@ export const GymDashboard: React.FC = () => {
       );
     try {
       setLoading(true);
-      await api.createRoutine(newRoutineTitle.trim());
+      await api.createRoutine(newRoutineTitle.trim(),newRoutineFocus);
       setNewRoutineTitle("");
       const updated = await api.getRoutines();
       setRoutines(updated);
@@ -184,6 +185,20 @@ export const GymDashboard: React.FC = () => {
   const handleAddExerciseToRoutine = async (routineId: string) => {
     if (!selectedExToAdd)
       return Alert.alert("Error", "Selecciona un ejercicio");
+    const routine = routines.find((r) => r.id === routineId);
+
+const existingExercises = getExercisesOfRoutine(routine);
+
+const alreadyExists = existingExercises.some(
+  (ex) => ex.id === selectedExToAdd
+);
+
+if (alreadyExists) {
+  return Alert.alert(
+    "Ejercicio duplicado",
+    "Este ejercicio ya existe en la rutina seleccionada."
+  );
+}
     try {
       setLoading(true);
       await api.addExerciseToRoutine(routineId, {
@@ -388,37 +403,93 @@ export const GymDashboard: React.FC = () => {
             />
 
             {/* Crear Rutina */}
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: colors.backgroundElement },
-              ]}
-            >
-              <Text style={[styles.cardTitle, { color: colors.text }]}>
-                ➕ Nueva Rutina
-              </Text>
-              <View style={styles.inlineRow}>
-                <TextInput
-                  style={[styles.input, { color: colors.text, flex: 1 }]}
-                  placeholder="Ej: Lunes-Pecho, Pierna Pesada"
-                  placeholderTextColor={colors.textSecondary}
-                  value={newRoutineTitle}
-                  onChangeText={setNewRoutineTitle}
-                />
-                <TouchableOpacity
-                  style={styles.smallPrimaryBtn}
-                  onPress={handleCreateRoutine}
-                >
-                  <Text style={styles.btnTextWhite}>Crear</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            
+<View
+  style={[
+    styles.card,
+    { backgroundColor: colors.backgroundElement },
+  ]}
+>
+  <Text style={[styles.cardTitle, { color: colors.text }]}>
+    ➕ Nueva Rutina
+  </Text>
+
+  <Text
+    style={{
+      color: colors.textSecondary,
+      marginTop: 8,
+      marginBottom: 4,
+      fontSize: 12,
+    }}
+  >
+    Grupo muscular principal:
+  </Text>
+
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    style={{ marginBottom: 10 }}
+  >
+    {[
+      { value: "pecho", label: "Pecho" },
+      { value: "espalda", label: "Espalda" },
+      { value: "pierna", label: "Pierna" },
+      { value: "hombro", label: "Hombro" },
+      { value: "brazo", label: "Brazo" },
+      { value: "core", label: "Core" },
+      { value: "fullbody", label: "Full Body" },
+    ].map((option) => (
+      <TouchableOpacity
+        key={option.value}
+        style={[
+          styles.chip,
+          newRoutineFocus === option.value &&
+            styles.chipActive,
+        ]}
+        onPress={() =>
+          setNewRoutineFocus(option.value)
+        }
+      >
+        <Text
+          style={[
+            styles.chipText,
+            newRoutineFocus === option.value &&
+              styles.chipTextActive,
+          ]}
+        >
+          {option.label}
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </ScrollView>
+
+  <View style={styles.inlineRow}>
+    <TextInput
+      style={[styles.input, { color: colors.text, flex: 1 }]}
+      placeholder="Ej: Lunes-Pecho, Pierna Pesada"
+      placeholderTextColor={colors.textSecondary}
+      value={newRoutineTitle}
+      onChangeText={setNewRoutineTitle}
+    />
+
+    <TouchableOpacity
+      style={styles.smallPrimaryBtn}
+      onPress={handleCreateRoutine}
+    >
+      <Text style={styles.btnTextWhite}>Crear</Text>
+    </TouchableOpacity>
+  </View>
+</View>
 
             {/* Lista de Rutinas */}
             {routines.map((routine) => {
               const routineExercises = getExercisesOfRoutine(routine);
               const isAdding = selectedRoutineForAdd === routine.id;
-
+              const filteredExercises = exercises.filter((ex) => {
+                if (!routine.focus || routine.focus === "fullbody") {
+              return true;}
+              const bodyPart =ex.muscles?.[0]?.body_part?.toLowerCase();
+                return bodyPart === routine.focus.toLowerCase();});
               return (
                 <View
                   key={routine.id}
@@ -427,19 +498,22 @@ export const GymDashboard: React.FC = () => {
                     { backgroundColor: colors.backgroundElement },
                   ]}
                 >
-                  <View style={styles.routineHeader}>
-                    <Text style={[styles.routineTitle, { color: colors.text }]}>
-                      📋 {routine.title}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.routineSubtitle,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {routineExercises.length} ejercicio(s)
-                    </Text>
-                  </View>
+                 <View style={styles.routineHeader}>
+                  <Text style={[styles.routineTitle, { color: colors.text }]}>
+                    📋 {routine.title}
+                  </Text>
+
+                 
+
+                  <Text
+                    style={[
+                      styles.routineSubtitle,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {routineExercises.length} ejercicio(s)
+                  </Text>
+                </View>
 
                   {/* Ejercicios agregados */}
                   {routineExercises.length > 0 ? (
@@ -467,12 +541,13 @@ export const GymDashboard: React.FC = () => {
                       <Text style={styles.addExerciseBoxTitle}>
                         Selecciona ejercicio del catálogo:
                       </Text>
+                      
                       <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         style={{ marginVertical: 6 }}
                       >
-                        {exercises.map((ex) => (
+                        {filteredExercises.map((ex) => (
                           <TouchableOpacity
                             key={ex.id}
                             style={[
@@ -482,13 +557,13 @@ export const GymDashboard: React.FC = () => {
                             onPress={() => setSelectedExToAdd(ex.id)}
                           >
                             <Text
-                              style={[
-                                styles.chipText,
-                                selectedExToAdd === ex.id &&
-                                  styles.chipTextActive,
-                              ]}
-                            >
+                              style={[styles.chipText,selectedExToAdd === ex.id &&
+                                styles.chipTextActive,]}>
                               {ex.name}
+                              {" "}
+                              (
+                              {ex.muscles?.[0]?.body_part || "Sin músculo"}
+                              )
                             </Text>
                           </TouchableOpacity>
                         ))}
