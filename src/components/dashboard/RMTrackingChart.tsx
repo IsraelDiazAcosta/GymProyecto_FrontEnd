@@ -1,12 +1,14 @@
 import { ProgressionItem, Routine } from "@/services/api";
-import React from "react";
+import React, { useState } from "react";
 import {
+    LayoutRectangle,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import Svg, { Polyline } from "react-native-svg";
 
 
 interface RMTrackingChartProps {
@@ -57,6 +59,24 @@ const minValue = chartData.length
   ? Math.min(...chartData)
   : 0;
 
+  // Posiciones medidas de cada columna y de cada punto, para unirlos con la línea
+  const [columnLayouts, setColumnLayouts] = useState<
+    Record<number, LayoutRectangle>
+  >({});
+  const [dotLayouts, setDotLayouts] = useState<Record<number, LayoutRectangle>>(
+    {},
+  );
+
+  const visibleHistory = marcaHistory.slice(-6);
+  const linePoints = visibleHistory
+    .map((_, index) => {
+      const col = columnLayouts[index];
+      const dot = dotLayouts[index];
+      if (!col || !dot) return null;
+      return `${col.x + dot.x + dot.width / 2},${col.y + dot.y + dot.height / 2}`;
+    })
+    .filter((point): point is string => point !== null);
+
   return (
     <View style={[styles.card, { backgroundColor: colors.backgroundElement }]}>
       <View style={styles.chartHeader}>
@@ -67,7 +87,7 @@ const minValue = chartData.length
 
     <Text
       style={{
-        color: "#ff6b00",
+        color: "#10b981",
         fontWeight: "700",
         fontSize: 12,
         marginTop: 4,
@@ -163,7 +183,21 @@ const minValue = chartData.length
           <View style={styles.chartVisualBox}>
             
             <View style={styles.pointsRow}>
-              {marcaHistory.slice(-6).map((item, index) => {
+              {linePoints.length === visibleHistory.length &&
+                linePoints.length > 1 && (
+                  <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+                    <Polyline
+                      points={linePoints.join(" ")}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      strokeOpacity={0.6}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                    />
+                  </Svg>
+                )}
+              {visibleHistory.map((item, index) => {
                 const oneRm =
                   item.reps > 0 && item.reps < 37
                     ? parseFloat(
@@ -175,9 +209,22 @@ const minValue = chartData.length
                 const pointOffset = Math.max(0,Math.min(chartHeight,normalized * chartHeight)); 
 
                 return (
-                  <View key={index} style={[styles.pointColumn,{marginBottom: pointOffset,},]}>
+                  <View
+                    key={index}
+                    style={[styles.pointColumn, { marginBottom: pointOffset }]}
+                    onLayout={(e) => {
+                      const layout = e.nativeEvent.layout;
+                      setColumnLayouts((prev) => ({ ...prev, [index]: layout }));
+                    }}
+                  >
                     <Text style={styles.pointValueText}>{oneRm}kg</Text>
-                    <View style={styles.pointDot} />
+                    <View
+                      style={styles.pointDot}
+                      onLayout={(e) => {
+                        const layout = e.nativeEvent.layout;
+                        setDotLayouts((prev) => ({ ...prev, [index]: layout }));
+                      }}
+                    />
                     <Text style={styles.pointDateText}>
                       {new Date(item.logged_at).toLocaleDateString(undefined, {
                         month: "short",
@@ -250,7 +297,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   chipActive: {
-    backgroundColor: "#ff6b00",
+    backgroundColor: "#10b981",
   },
   chipText: {
     fontSize: 12,
@@ -264,7 +311,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   chartVisualBox: {
-    backgroundColor: "rgba(255, 107, 0, 0.05)",
+    backgroundColor: "rgba(227, 252, 211, 0.05)",
     borderRadius: 12,
     padding: 12,
     alignItems: "center",
@@ -284,14 +331,14 @@ const styles = StyleSheet.create({
   pointValueText: {
     fontSize: 8,
     fontWeight: "700",
-    color: "#ff6b00",
+    color: "#10b981",
     marginBottom: 4,
   },
   pointDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#ff6b00",
+    backgroundColor: "#10b981",
     marginVertical: 4,
   },
   pointDateText: {
