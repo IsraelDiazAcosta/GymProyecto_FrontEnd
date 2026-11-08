@@ -1,6 +1,6 @@
 import { AppButton } from "@/components/ui/AppButton";
 import { AppInput } from "@/components/ui/AppInput";
-import { Equipment } from "@/services/api";
+import { Equipment, MuscleGroup } from "@/services/api";
 import React, { useState } from "react";
 import {
   Modal,
@@ -25,11 +25,14 @@ interface AddExerciseModalProps {
   equipmentList: Equipment[];
   selectedEquipment: number | null;
   setSelectedEquipment: (id: number | null) => void;
+  muscleList: MuscleGroup[];
+  selectedMuscle: number | null;
+  setSelectedMuscle: (id: number | null) => void;
   onSubmit: () => void;
   onClose: () => void;
 }
 
-// MODAL ADMIN: AGREGAR EJERCICIO CON SELECTOR DE MÁQUINA
+// MODAL ADMIN: AGREGAR EJERCICIO CON SELECTOR DE MÁQUINA Y GRUPO MUSCULAR
 export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
   colors,
   visible,
@@ -42,14 +45,20 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
   equipmentList,
   selectedEquipment,
   setSelectedEquipment,
+  muscleList,
+  selectedMuscle,
+  setSelectedMuscle,
   onSubmit,
   onClose,
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [muscleDropdownOpen, setMuscleDropdownOpen] = useState(false);
 
   const currentEquipmentObj = equipmentList.find(
     (e) => e.id === selectedEquipment,
   );
+
+  const currentMuscleObj = muscleList.find((m) => m.id === selectedMuscle);
 
   return (
     <Modal
@@ -72,11 +81,170 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
           >
             {/* Nombre del Ejercicio */}
             <AppInput
-              label="Nombre del Ejercicio"
+              label="Nombre del Ejercicio *"
               placeholder="Ej: Press Inclinado con Mancuernas"
               value={newExName}
               onChangeText={setNewExName}
             />
+
+            {/* Selector Desplegable de Grupo Muscular (BD) */}
+            <View style={modalStyles.dropdownContainer}>
+              <Text
+                style={[
+                  modalStyles.fieldLabel,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Grupo Muscular Principal:
+              </Text>
+
+              <TouchableOpacity
+                style={[
+                  modalStyles.dropdownTrigger,
+                  {
+                    backgroundColor: "rgba(150, 150, 150, 0.12)",
+                    borderColor: currentMuscleObj
+                      ? "#10b981"
+                      : muscleDropdownOpen
+                        ? "#10b981"
+                        : "rgba(150, 150, 150, 0.25)",
+                  },
+                ]}
+                onPress={() => {
+                  setMuscleDropdownOpen(!muscleDropdownOpen);
+                  if (dropdownOpen) setDropdownOpen(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[
+                        modalStyles.dropdownSelectedText,
+                        {
+                          color: currentMuscleObj
+                            ? colors.text
+                            : colors.textSecondary,
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {currentMuscleObj
+                        ? currentMuscleObj.name
+                        : "Selecciona el grupo muscular"}
+                    </Text>
+                    {currentMuscleObj && (
+                      <Text
+                        style={[
+                          modalStyles.dropdownSubtext,
+                          { color: "#10b981" },
+                        ]}
+                      >
+                        Zona anatómica: {currentMuscleObj.body_part}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+
+                {currentMuscleObj ? (
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setSelectedMuscle(null);
+                    }}
+                    style={modalStyles.clearBtn}
+                  >
+                    <Text style={{ color: "#e11d48", fontWeight: "bold" }}>
+                      ✕
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                    {muscleDropdownOpen ? "▲" : "▼"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Lista desplegable de Músculos */}
+              {muscleDropdownOpen && (
+                <View
+                  style={[
+                    modalStyles.dropdownList,
+                    {
+                      backgroundColor: colors.backgroundElement,
+                      borderColor: "rgba(150, 150, 150, 0.25)",
+                    },
+                  ]}
+                >
+                  <ScrollView
+                    nestedScrollEnabled
+                    style={{ maxHeight: 200 }}
+                    showsVerticalScrollIndicator={true}
+                  >
+                    {muscleList.map((m) => {
+                      const isSelected = selectedMuscle === m.id;
+                      return (
+                        <TouchableOpacity
+                          key={m.id}
+                          style={[
+                            modalStyles.dropdownOption,
+                            isSelected && modalStyles.dropdownOptionActive,
+                          ]}
+                          onPress={() => {
+                            setSelectedMuscle(m.id);
+                            setMuscleDropdownOpen(false);
+                          }}
+                        >
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Text
+                              style={[
+                                modalStyles.optionTitle,
+                                {
+                                  color: isSelected ? "#10b981" : colors.text,
+                                },
+                                isSelected && { fontWeight: "700" },
+                              ]}
+                            >
+                              {m.name}
+                            </Text>
+                            {isSelected && (
+                              <Text
+                                style={{
+                                  color: "#10b981",
+                                  fontWeight: "800",
+                                }}
+                              >
+                                ✓
+                              </Text>
+                            )}
+                          </View>
+                          <Text
+                            style={[
+                              modalStyles.optionSubtitle,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            Zona: {m.body_part}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
 
             {/* Selector Desplegable de Máquinas de la BD */}
             <View style={modalStyles.dropdownContainer}>
@@ -109,9 +277,6 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ fontSize: 16, marginRight: 8 }}>
-                    {currentEquipmentObj ? "⚙️" : "🏋️"}
-                  </Text>
                   <View style={{ flex: 1 }}>
                     <Text
                       style={[

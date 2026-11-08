@@ -1,21 +1,22 @@
 import { ProgressionItem, Routine } from "@/services/api";
 import React, { useState } from "react";
 import {
-    LayoutRectangle,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  LayoutRectangle,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Svg, { Polyline } from "react-native-svg";
-
 
 interface RMTrackingChartProps {
   colors: {
     backgroundElement: string;
     text: string;
     textSecondary: string;
+    background?: string;
+    backgroundSelected?: string;
   };
   routines: Routine[];
 
@@ -43,21 +44,17 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
   onSelectRoutine,
   onSelectExercise,
 }) => {
-  const chartData = marcaHistory.slice(-6).map((item) =>
-  item.reps > 0 && item.reps < 37
-    ? parseFloat(
-        (item.weight * (36 / (37 - item.reps))).toFixed(1)
-      )
-    : item.weight
-);
+  const chartData = marcaHistory
+    .slice(-6)
+    .map((item) =>
+      item.reps > 0 && item.reps < 37
+        ? parseFloat((item.weight * (36 / (37 - item.reps))).toFixed(1))
+        : item.weight,
+    );
 
-const maxValue = chartData.length
-  ? Math.max(...chartData)
-  : 0;
+  const maxValue = chartData.length ? Math.max(...chartData) : 0;
 
-const minValue = chartData.length
-  ? Math.min(...chartData)
-  : 0;
+  const minValue = chartData.length ? Math.min(...chartData) : 0;
 
   // Posiciones medidas de cada columna y de cada punto, para unirlos con la línea
   const [columnLayouts, setColumnLayouts] = useState<
@@ -80,41 +77,37 @@ const minValue = chartData.length
   return (
     <View style={[styles.card, { backgroundColor: colors.backgroundElement }]}>
       <View style={styles.chartHeader}>
-  <View>
-    <Text style={[styles.cardTitle, { color: colors.text }]}>
-      📊 Tu Progreso de 1RM
-    </Text>
+        <View>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>
+            📊 Tu Progreso de 1RM
+          </Text>
 
-    <Text
-      style={{
-        color: "#10b981",
-        fontWeight: "700",
-        fontSize: 12,
-        marginTop: 4,
-      }}
-    >
-      Ejercicio:
-      {" "}
-      {exercises.find(
-        (e) => e.id === trackingExerciseId,
-      )?.name || "Ninguno"}
-    </Text>
-  </View>
+          <Text
+            style={{
+              color: "#10b981",
+              fontWeight: "700",
+              fontSize: 12,
+              marginTop: 4,
+            }}
+          >
+            Ejercicio:{" "}
+            {exercises.find((e) => e.id === trackingExerciseId)?.name ||
+              "Ninguno"}
+          </Text>
+        </View>
 
-  <Text
-  style={[
-    styles.chartSub,
-    {
-      color: colors.textSecondary,
-      marginTop: 4,
-    },
-  ]}
->
-  Histórico de fuerza
-</Text>
-
-</View>
-
+        <Text
+          style={[
+            styles.chartSub,
+            {
+              color: colors.textSecondary,
+              marginTop: 4,
+            },
+          ]}
+        >
+          Histórico de fuerza
+        </Text>
+      </View>
 
       {/* Selectores de Rutina */}
       <View style={styles.chartFilters}>
@@ -145,43 +138,48 @@ const minValue = chartData.length
         </ScrollView>
       </View>
       {/* Selectores de Ejercicio */}
-{exercises.length > 0 && (
-  <View style={styles.chartFilters}>
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      style={{ marginVertical: 6 }}
-    >
-      {exercises.map((ex) => (
-        <TouchableOpacity
-          key={ex.id}
-          style={[
-            styles.chip,
-            trackingExerciseId === ex.id &&
-              styles.chipActive,
-          ]}
-          onPress={() => onSelectExercise(ex.id)}
-        >
-          <Text
-            style={[
-              styles.chipText,
-              trackingExerciseId === ex.id &&
-                styles.chipTextActive,
-            ]}
+      {exercises.length > 0 && (
+        <View style={styles.chartFilters}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginVertical: 6 }}
           >
-            🏋️ {ex.name}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  </View>
-)}
+            {exercises.map((ex) => (
+              <TouchableOpacity
+                key={ex.id}
+                style={[
+                  styles.chip,
+                  trackingExerciseId === ex.id && styles.chipActive,
+                ]}
+                onPress={() => onSelectExercise(ex.id)}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    trackingExerciseId === ex.id && styles.chipTextActive,
+                  ]}
+                >
+                  🏋️ {ex.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Puntos de 1RM */}
       {marcaHistory.length > 0 ? (
         <View style={styles.chartContainer}>
-          <View style={styles.chartVisualBox}>
-            
+          <View
+            style={[
+              styles.chartVisualBox,
+              {
+                backgroundColor:
+                  colors.backgroundSelected || colors.backgroundElement,
+              },
+            ]}
+          >
             <View style={styles.pointsRow}>
               {linePoints.length === visibleHistory.length &&
                 linePoints.length > 1 && (
@@ -204,9 +202,15 @@ const minValue = chartData.length
                         (item.weight * (36 / (37 - item.reps))).toFixed(1),
                       )
                     : item.weight;
-                const normalized =maxValue === minValue? 0.5: (oneRm - minValue) / (maxValue - minValue);
+                const normalized =
+                  maxValue === minValue
+                    ? 0.5
+                    : (oneRm - minValue) / (maxValue - minValue);
                 const chartHeight = 50;
-                const pointOffset = Math.max(0,Math.min(chartHeight,normalized * chartHeight)); 
+                const pointOffset = Math.max(
+                  0,
+                  Math.min(chartHeight, normalized * chartHeight),
+                );
 
                 return (
                   <View
@@ -214,7 +218,10 @@ const minValue = chartData.length
                     style={[styles.pointColumn, { marginBottom: pointOffset }]}
                     onLayout={(e) => {
                       const layout = e.nativeEvent.layout;
-                      setColumnLayouts((prev) => ({ ...prev, [index]: layout }));
+                      setColumnLayouts((prev) => ({
+                        ...prev,
+                        [index]: layout,
+                      }));
                     }}
                   >
                     <Text style={styles.pointValueText}>{oneRm}kg</Text>
@@ -246,7 +253,7 @@ const minValue = chartData.length
               },
             ]}
           >
-            💡 Mostrando los últimos registros de tu 1RM estimado.
+            Mostrando los últimos registros de tu 1RM estimado.
           </Text>
         </View>
       ) : (
@@ -311,7 +318,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   chartVisualBox: {
-    backgroundColor: "rgba(227, 252, 211, 0.05)",
     borderRadius: 12,
     padding: 12,
     alignItems: "center",

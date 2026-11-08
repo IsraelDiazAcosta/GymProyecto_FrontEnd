@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 import { storage } from "./storage";
 
-export const DEV_PC_IP = "192.168.0.7";
+export const DEV_PC_IP = "192.168.0.22";
 export const API_BASE_URL = Platform.select({
   web: "http://127.0.0.1:8000/api/v1",
   android: `http://${DEV_PC_IP}:8000/api/v1`,
@@ -271,6 +271,10 @@ export const api = {
     title: string,
     focus: string,
     description: string = "Rutina personalizada",
+    exercise_ids?: string[],
+    sets_count?: number,
+    min_reps?: number,
+    max_reps?: number,
   ): Promise<Routine> {
     return request<Routine>("/routines/routines/", {
       method: "POST",
@@ -278,6 +282,10 @@ export const api = {
         title,
         focus,
         description,
+        exercise_ids,
+        sets_count,
+        min_reps,
+        max_reps,
       }),
     });
   },
@@ -307,7 +315,8 @@ export const api = {
   async addExerciseToRoutine(
     routineId: string,
     payload: {
-      exercise_id: string;
+      exercise_id?: string;
+      exercise_ids?: string[];
       sets_count: number;
       min_reps: number;
       max_reps: number;

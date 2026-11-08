@@ -22,6 +22,8 @@ interface RoutineCardProps {
   isAdding: boolean;
   selectedExToAdd: string;
   setSelectedExToAdd: (id: string) => void;
+  selectedExsToAdd?: string[];
+  setSelectedExsToAdd?: (ids: string[]) => void;
   setsCount: string;
   setSetsCount: (value: string) => void;
   minReps: string;
@@ -78,6 +80,8 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
   isAdding,
   selectedExToAdd,
   setSelectedExToAdd,
+  selectedExsToAdd,
+  setSelectedExsToAdd,
   setsCount,
   setSetsCount,
   minReps,
@@ -96,10 +100,21 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
     isExerciseCompatibleWithFocus(ex, routine.focus)
   );
 
-  const rawSelected = exercises.find((ex) => ex.id === selectedExToAdd);
-  const isValidSelected =
-    rawSelected && isExerciseCompatibleWithFocus(rawSelected, routine.focus);
-  const selectedExercise = isValidSelected ? rawSelected : null;
+  const currentSelectedIds =
+    selectedExsToAdd !== undefined
+      ? selectedExsToAdd
+      : selectedExToAdd
+      ? [selectedExToAdd]
+      : [];
+
+  const selectedExercisesList = exercises.filter(
+    (ex) =>
+      currentSelectedIds.includes(ex.id) &&
+      isExerciseCompatibleWithFocus(ex, routine.focus)
+  );
+
+  const selectedExercise =
+    selectedExercisesList.length === 1 ? selectedExercisesList[0] : null;
 
   const handleStartAddingWithModal = () => {
     onStartAdding();
@@ -216,7 +231,9 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
           ) : (
             <>
               <Text style={[cardStyles.sectionLabel, { color: colors.text }]}>
-                Selecciona ejercicio de {focusLabel}:
+                {selectedExercisesList.length > 1
+                  ? `Ejercicios seleccionados (${selectedExercisesList.length}):`
+                  : `Selecciona ejercicio(s) de ${focusLabel}:`}
               </Text>
 
               {/* Card desplegable / seleccionable */}
@@ -224,16 +241,64 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                 style={[
                   cardStyles.selectedCard,
                   {
-                    borderColor: selectedExercise
-                      ? "#10b981"
-                      : "rgba(150, 150, 150, 0.3)",
+                    borderColor:
+                      selectedExercisesList.length > 0
+                        ? "#10b981"
+                        : "rgba(150, 150, 150, 0.3)",
                     backgroundColor: colors.background,
                   },
                 ]}
                 onPress={() => setIsModalOpen(true)}
                 activeOpacity={0.8}
               >
-                {selectedExercise ? (
+                {selectedExercisesList.length > 1 ? (
+                  <View style={{ padding: 8 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#10b981",
+                          fontWeight: "800",
+                          fontSize: 14,
+                        }}
+                      >
+                        ✓ {selectedExercisesList.length} ejercicios seleccionados
+                      </Text>
+                      <View style={cardStyles.changeBadge}>
+                        <Text style={cardStyles.changeBadgeText}>Modificar ▾</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                      {selectedExercisesList.map((ex) => (
+                        <View
+                          key={ex.id}
+                          style={{
+                            backgroundColor: "rgba(16, 185, 129, 0.12)",
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                            borderRadius: 6,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: colors.text,
+                              fontSize: 12,
+                              fontWeight: "600",
+                            }}
+                          >
+                            {ex.name}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ) : selectedExercise ? (
                   <View style={cardStyles.selectedContent}>
                     <ExerciseThumbPreview
                       uri={
@@ -282,7 +347,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                         { color: colors.text },
                       ]}
                     >
-                      Toca aquí para seleccionar ejercicio de {focusLabel} ▾
+                      Toca aquí para seleccionar ejercicio(s) de {focusLabel} ▾
                     </Text>
                   </View>
                 )}
@@ -385,13 +450,15 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                 <TouchableOpacity
                   style={[
                     cardStyles.submitBtn,
-                    !selectedExercise && { opacity: 0.5 },
+                    selectedExercisesList.length === 0 && { opacity: 0.5 },
                   ]}
                   onPress={onAddExercise}
-                  disabled={!selectedExercise}
+                  disabled={selectedExercisesList.length === 0}
                 >
                   <Text style={cardStyles.submitBtnText}>
-                    ✓ Añadir a la Rutina
+                    {selectedExercisesList.length > 1
+                      ? `✓ Añadir (${selectedExercisesList.length}) a la Rutina`
+                      : "✓ Añadir a la Rutina"}
                   </Text>
                 </TouchableOpacity>
 
@@ -423,7 +490,16 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
         exercises={exercises}
         routineFocus={routine.focus}
         selectedExerciseId={selectedExToAdd}
-        onSelect={(exerciseId) => setSelectedExToAdd(exerciseId)}
+        selectedExerciseIds={currentSelectedIds}
+        multiSelect={true}
+        onSelect={(exerciseId) => {
+          setSelectedExToAdd(exerciseId);
+          setSelectedExsToAdd?.([exerciseId]);
+        }}
+        onConfirmSelection={(ids) => {
+          setSelectedExsToAdd?.(ids);
+          if (ids.length > 0) setSelectedExToAdd(ids[0]);
+        }}
         onClose={() => setIsModalOpen(false)}
       />
     </TouchableOpacity>

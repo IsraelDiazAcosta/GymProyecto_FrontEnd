@@ -19,7 +19,7 @@ export const Colors = {
     text: "#ffffff",
     background: "#0a0a0a",
     backgroundElement: "#1f1f20",
-    backgroundSelected: "#2E3135",
+    backgroundSelected: "#353738",
     textSecondary: "#B0B4BA",
   },
 } as const;

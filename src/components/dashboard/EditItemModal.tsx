@@ -1,6 +1,6 @@
 import { AppButton } from "@/components/ui/AppButton";
 import { AppInput } from "@/components/ui/AppInput";
-import { Equipment, Exercise, Routine } from "@/services/api";
+import { Equipment, Exercise, MuscleGroup, Routine } from "@/services/api";
 import React, { useEffect, useState } from "react";
 import {
   Modal,
@@ -12,11 +12,11 @@ import {
   Vibration,
   View,
 } from "react-native";
+import { EQUIPMENT_TYPES } from "./AddEquipmentModal";
 import {
   getExerciseMuscleLabel,
   isExerciseCompatibleWithFocus,
 } from "./muscleValidation";
-import { EQUIPMENT_TYPES } from "./AddEquipmentModal";
 import { DashboardColors, RoutineExerciseItem } from "./types";
 
 const FOCUS_OPTIONS = [
@@ -38,6 +38,7 @@ interface EditItemModalProps {
     id: string;
     name: string;
     equipment_id: number | null;
+    muscle_id?: number | null;
     instructions: string;
     video_url?: string;
   } | null;
@@ -56,6 +57,7 @@ interface EditItemModalProps {
     setup_guide?: string;
   } | null;
   equipmentList: Equipment[];
+  muscleList?: MuscleGroup[];
   allExercises?: Exercise[];
   onSaveRoutine: (id: string, title: string, focus: string) => Promise<void>;
   onSaveExercise: (
@@ -63,13 +65,14 @@ interface EditItemModalProps {
     name: string,
     equipment_id: number | null,
     instructions: string,
-    video_url?: string
+    video_url?: string,
+    muscle_id?: number | null,
   ) => Promise<void>;
   onSaveMarca?: (
     id: string,
     weight: number,
     reps: number,
-    rpe?: number
+    rpe?: number,
   ) => Promise<void>;
   onSaveEquipment?: (
     id: number,
@@ -79,18 +82,18 @@ interface EditItemModalProps {
       brand?: string;
       description?: string;
       setup_guide?: string;
-    }
+    },
   ) => Promise<void>;
   onRemoveExerciseFromRoutine?: (
     routineExerciseId: string,
-    exerciseName: string
+    exerciseName: string,
   ) => Promise<void>;
   onAddExerciseToRoutine?: (
     routineId: string,
     exerciseId: string,
     setsCount: number,
     minReps: number,
-    maxReps: number
+    maxReps: number,
   ) => Promise<void>;
   onClose: () => void;
 }
@@ -104,6 +107,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   marcaData,
   equipmentData,
   equipmentList,
+  muscleList = [],
   allExercises = [],
   onSaveRoutine,
   onSaveExercise,
@@ -129,9 +133,11 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   // Estados para Ejercicio del Catálogo
   const [exName, setExName] = useState("");
   const [exEquipment, setExEquipment] = useState<number | null>(null);
+  const [exMuscle, setExMuscle] = useState<number | null>(null);
   const [exVideo, setExVideo] = useState("");
   const [exInstructions, setExInstructions] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [muscleDropdownOpen, setMuscleDropdownOpen] = useState(false);
 
   // Estados para Marca / Registro de serie
   const [marcaWeight, setMarcaWeight] = useState("100");
@@ -158,9 +164,11 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
     if (exerciseData && itemType === "exercise") {
       setExName(exerciseData.name);
       setExEquipment(exerciseData.equipment_id);
+      setExMuscle(exerciseData.muscle_id || null);
       setExVideo(exerciseData.video_url || "");
       setExInstructions(exerciseData.instructions || "");
       setDropdownOpen(false);
+      setMuscleDropdownOpen(false);
     }
     if (marcaData && itemType === "marca") {
       setMarcaWeight(String(marcaData.weight));
@@ -168,7 +176,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
       setMarcaRpe(
         marcaData.rpe !== undefined && marcaData.rpe !== null
           ? String(marcaData.rpe)
-          : ""
+          : "",
       );
     }
     if (equipmentData && itemType === "equipment") {
@@ -178,14 +186,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
       setEqSetupGuide(equipmentData.setup_guide || "");
       setEqDescription(equipmentData.description || "");
     }
-  }, [
-    routineData,
-    exerciseData,
-    marcaData,
-    equipmentData,
-    itemType,
-    visible,
-  ]);
+  }, [routineData, exerciseData, marcaData, equipmentData, itemType, visible]);
 
   // Obtener lista de ejercicios actualmente en la rutina
   const assignedExercises: RoutineExerciseItem[] = [];
@@ -212,11 +213,11 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   const availableExercises = allExercises.filter(
     (ex) =>
       !assignedExerciseIds.has(ex.id) &&
-      isExerciseCompatibleWithFocus(ex, routineFocus)
+      isExerciseCompatibleWithFocus(ex, routineFocus),
   );
 
   const selectedExerciseToAdd = allExercises.find(
-    (ex) => ex.id === selectedExToAddId
+    (ex) => ex.id === selectedExToAddId,
   );
 
   const handleSave = async () => {
@@ -230,7 +231,8 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           exName.trim(),
           exEquipment,
           exInstructions,
-          exVideo.trim() || undefined
+          exVideo.trim() || undefined,
+          exMuscle,
         );
       } else if (itemType === "marca" && marcaData) {
         const w = parseFloat(marcaWeight) || 0;
@@ -254,7 +256,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 
   const handleRemoveExercise = async (
     routineExerciseId: string,
-    exName: string
+    exName: string,
   ) => {
     if (!routineExerciseId) return;
     try {
@@ -280,7 +282,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
         selectedExToAddId,
         parseInt(newSets) || 3,
         parseInt(newMinReps) || 8,
-        parseInt(newMaxReps) || 12
+        parseInt(newMaxReps) || 12,
       );
       setSelectedExToAddId("");
       setIsAddingExercise(false);
@@ -291,6 +293,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   };
 
   const selectedEquipmentObj = equipmentList.find((e) => e.id === exEquipment);
+  const selectedMuscleObj = muscleList.find((m) => m.id === exMuscle);
 
   return (
     <Modal
@@ -300,22 +303,22 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={editStyles.overlay}>
-        <View
-          style={[editStyles.card, { backgroundColor: colors.background }]}
-        >
+        <View style={[editStyles.card, { backgroundColor: colors.background }]}>
           {/* Header */}
           <View style={editStyles.headerRow}>
             <View style={{ flex: 1 }}>
               <Text style={[editStyles.title, { color: colors.text }]}>
                 {itemType === "routine"
-                  ? "✏️ Editar Rutina"
+                  ? "Editar Rutina"
                   : itemType === "marca"
-                    ? "✏️ Editar Marca"
+                    ? "Editar Marca"
                     : itemType === "equipment"
-                      ? "✏️ Editar Máquina / Equipo"
-                      : "✏️ Editar Ejercicio"}
+                      ? "Editar Máquina / Equipo"
+                      : "Editar Ejercicio"}
               </Text>
-              <Text style={[editStyles.subtitle, { color: colors.textSecondary }]}>
+              <Text
+                style={[editStyles.subtitle, { color: colors.textSecondary }]}
+              >
                 {itemType === "routine"
                   ? "Modifica nombre, grupo muscular y administra sus ejercicios"
                   : itemType === "marca"
@@ -427,7 +430,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 
                 {/* Cálculo en vivo de 1RM */}
                 {Boolean(
-                  parseFloat(marcaWeight) > 0 && parseInt(marcaReps) > 0
+                  parseFloat(marcaWeight) > 0 && parseInt(marcaReps) > 0,
                 ) && (
                   <View
                     style={{
@@ -519,7 +522,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
                         { color: colors.text },
                       ]}
                     >
-                      🏋️ Ejercicios ({assignedExercises.length})
+                      Ejercicios seleccionados ({assignedExercises.length})
                     </Text>
 
                     <TouchableOpacity
@@ -539,7 +542,8 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
                       <Text
                         style={[
                           editStyles.toggleAddExBtnText,
-                          isAddingExercise && editStyles.toggleAddExBtnTextActive,
+                          isAddingExercise &&
+                            editStyles.toggleAddExBtnTextActive,
                         ]}
                       >
                         {isAddingExercise ? "✕ Cerrar" : "+ Añadir"}
@@ -817,18 +821,16 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
                             onPress={() =>
                               handleRemoveExercise(
                                 ex.routineExerciseId || "",
-                                ex.name
+                                ex.name,
                               )
                             }
-                            disabled={
-                              actionLoadingId === ex.routineExerciseId
-                            }
+                            disabled={actionLoadingId === ex.routineExerciseId}
                             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                           >
                             <Text style={editStyles.removeExBtnText}>
                               {actionLoadingId === ex.routineExerciseId
                                 ? "..."
-                                : "🗑️ Quitar"}
+                                : "X"}
                             </Text>
                           </TouchableOpacity>
                         </View>
@@ -917,6 +919,97 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
                   onChangeText={setExName}
                 />
 
+                {/* Selector de Grupo Muscular (BD) */}
+                <View style={editStyles.dropdownSection}>
+                  <Text
+                    style={[
+                      editStyles.fieldLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Grupo Muscular Principal (BD) *:
+                  </Text>
+
+                  <TouchableOpacity
+                    style={[
+                      editStyles.dropdownTrigger,
+                      {
+                        backgroundColor: "rgba(150, 150, 150, 0.12)",
+                        borderColor: selectedMuscleObj
+                          ? "#10b981"
+                          : muscleDropdownOpen
+                            ? "#10b981"
+                            : "rgba(150, 150, 150, 0.25)",
+                      },
+                    ]}
+                    onPress={() => {
+                      setMuscleDropdownOpen(!muscleDropdownOpen);
+                      if (dropdownOpen) setDropdownOpen(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[
+                          editStyles.dropdownSelectedText,
+                          {
+                            color: selectedMuscleObj
+                              ? colors.text
+                              : colors.textSecondary,
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {selectedMuscleObj
+                          ? `${selectedMuscleObj.name} (${selectedMuscleObj.body_part})`
+                          : "Selecciona el grupo muscular"}
+                      </Text>
+                    </View>
+                    <Text style={{ color: colors.textSecondary }}>
+                      {muscleDropdownOpen ? "▲" : "▼"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {muscleDropdownOpen && (
+                    <View
+                      style={[
+                        editStyles.dropdownList,
+                        { backgroundColor: colors.backgroundElement },
+                      ]}
+                    >
+                      <ScrollView
+                        nestedScrollEnabled
+                        style={{ maxHeight: 180 }}
+                      >
+                        {muscleList.map((m) => (
+                          <TouchableOpacity
+                            key={m.id}
+                            style={[
+                              editStyles.dropdownOption,
+                              exMuscle === m.id &&
+                                editStyles.dropdownOptionActive,
+                            ]}
+                            onPress={() => {
+                              setExMuscle(m.id);
+                              setMuscleDropdownOpen(false);
+                            }}
+                          >
+                            <Text
+                              style={{
+                                color:
+                                  exMuscle === m.id ? "#10b981" : colors.text,
+                                fontWeight: exMuscle === m.id ? "700" : "500",
+                              }}
+                            >
+                              {m.name} ({m.body_part})
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+
                 {/* Selector de Máquina */}
                 <View style={editStyles.dropdownSection}>
                   <Text
@@ -941,9 +1034,6 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
                     onPress={() => setDropdownOpen(!dropdownOpen)}
                     activeOpacity={0.7}
                   >
-                    <Text style={{ fontSize: 16, marginRight: 8 }}>
-                      {selectedEquipmentObj ? "⚙️" : "🏋️"}
-                    </Text>
                     <View style={{ flex: 1 }}>
                       <Text
                         style={[
@@ -1005,7 +1095,9 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
                             <Text
                               style={{
                                 color:
-                                  exEquipment === eq.id ? "#10b981" : colors.text,
+                                  exEquipment === eq.id
+                                    ? "#10b981"
+                                    : colors.text,
                                 fontWeight:
                                   exEquipment === eq.id ? "700" : "500",
                               }}
@@ -1043,10 +1135,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
             disabled={saving}
           />
 
-          <TouchableOpacity
-            onPress={onClose}
-            style={editStyles.cancelButton}
-          >
+          <TouchableOpacity onPress={onClose} style={editStyles.cancelButton}>
             <Text style={{ color: "#888" }}>Cancelar</Text>
           </TouchableOpacity>
         </View>

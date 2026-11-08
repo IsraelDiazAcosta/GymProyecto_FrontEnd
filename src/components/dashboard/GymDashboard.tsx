@@ -1,26 +1,26 @@
 import {
-    AnimatedToast,
-    ToastMessage,
-    ToastType,
+  AnimatedToast,
+  ToastMessage,
+  ToastType,
 } from "@/components/ui/AnimatedToast";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import {
-    api,
-    Equipment,
-    Exercise,
-    MuscleGroup,
-    ProgressionItem,
-    Routine,
+  api,
+  Equipment,
+  Exercise,
+  MuscleGroup,
+  ProgressionItem,
+  Routine,
 } from "@/services/api";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    ScrollView,
-    Text,
-    useColorScheme,
-    Vibration,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  useColorScheme,
+  Vibration,
+  View,
 } from "react-native";
 import { AddEquipmentModal } from "./AddEquipmentModal";
 import { AddExerciseModal } from "./AddExerciseModal";
@@ -37,10 +37,11 @@ import { MarcaHistoryList } from "./MarcaHistoryList";
 import { ProfileSection } from "./ProfileSection";
 import RMTrackingChart from "./RMTrackingChart";
 import { RoutineCard } from "./RoutineCard";
+import { SelectExerciseModal } from "./SelectExerciseModal";
 import { styles } from "./dashboardStyles";
 import {
-    getExerciseMuscleLabel,
-    isExerciseCompatibleWithFocus,
+  getExerciseMuscleLabel,
+  isExerciseCompatibleWithFocus,
 } from "./muscleValidation";
 import { RoutineExerciseItem, TabType } from "./types";
 
@@ -83,10 +84,15 @@ export const GymDashboard: React.FC = () => {
   // Estados de Rutinas
   const [newRoutineTitle, setNewRoutineTitle] = useState("");
   const [newRoutineFocus, setNewRoutineFocus] = useState("fullbody");
+  const [newRoutineExerciseIds, setNewRoutineExerciseIds] = useState<string[]>(
+    [],
+  );
+  const [showNewRoutineModal, setShowNewRoutineModal] = useState(false);
   const [selectedRoutineForAdd, setSelectedRoutineForAdd] = useState<
     string | null
   >(null);
   const [selectedExToAdd, setSelectedExToAdd] = useState<string>("");
+  const [selectedExsToAdd, setSelectedExsToAdd] = useState<string[]>([]);
   const [setsCount, setSetsCount] = useState("3");
   const [minReps, setMinReps] = useState("8");
   const [maxReps, setMaxReps] = useState("12");
@@ -193,10 +199,16 @@ export const GymDashboard: React.FC = () => {
         "Nombre Requerido ⚠️",
         "Ingresa el nombre del ejercicio.",
       );
+    if (!newExMuscle)
+      return showToast(
+        "warning",
+        "Grupo Muscular Requerido ⚠️",
+        "Selecciona el grupo muscular correspondiente al ejercicio.",
+      );
     try {
       setLoading(true);
       await api.createExercise({
-        name: newExName,
+        name: newExName.trim(),
         instructions: newExInstructions || "Ejecución estándar.",
         video_url: newExVideo,
         equipment_id: newExEquipment,
@@ -205,7 +217,7 @@ export const GymDashboard: React.FC = () => {
       showToast(
         "success",
         "¡Ejercicio Publicado! 🏆",
-        `"${newExName}" se agregó al catálogo oficial.`,
+        `"${newExName.trim()}" se guardó en la base de datos con su grupo muscular.`,
       );
       setShowAddExerciseModal(false);
       setNewExName("");
@@ -230,17 +242,35 @@ export const GymDashboard: React.FC = () => {
         "Nombre Requerido ⚠️",
         "Ingresa el nombre de la rutina (ej. Lunes-Pecho).",
       );
+
+    // Filtrar solo los ejercicios que sean compatibles con el enfoque actual
+    const validExerciseIds = newRoutineExerciseIds.filter((id) => {
+      const ex = exercises.find((e) => e.id === id);
+      return ex ? isExerciseCompatibleWithFocus(ex, newRoutineFocus) : false;
+    });
+
     try {
       setLoading(true);
-      await api.createRoutine(newRoutineTitle.trim(), newRoutineFocus);
+      await api.createRoutine(
+        newRoutineTitle.trim(),
+        newRoutineFocus,
+        "Rutina personalizada",
+        validExerciseIds,
+        parseInt(setsCount) || 3,
+        parseInt(minReps) || 8,
+        parseInt(maxReps) || 12,
+      );
       const createdTitle = newRoutineTitle.trim();
       setNewRoutineTitle("");
+      setNewRoutineExerciseIds([]);
       const updated = await api.getRoutines();
       setRoutines(updated);
       showToast(
         "success",
         "¡Rutina Creada! 🚀",
-        `"${createdTitle}" se creó y guardó correctamente.`,
+        validExerciseIds.length > 0
+          ? `"${createdTitle}" ${validExerciseIds.length} ejercicio(s) añadidos.`
+          : `"${createdTitle}" se creó y guardó correctamente.`,
       );
     } catch (e: any) {
       showToast("error", "Error al crear rutina ⚠️", e.message);
@@ -250,66 +280,84 @@ export const GymDashboard: React.FC = () => {
   };
 
   const handleAddExerciseToRoutine = async (routineId: string) => {
-    if (!selectedExToAdd)
+    const idsToProcess =
+      selectedExsToAdd.length > 0
+        ? selectedExsToAdd
+        : selectedExToAdd
+          ? [selectedExToAdd]
+          : [];
+
+    if (idsToProcess.length === 0)
       return showToast(
         "warning",
-        "Selecciona Ejercicio ⚠️",
-        "Elige un ejercicio antes de añadir.",
+        "Porfavor seleccione un ejercicio",
+        "Elige al menos un ejercicio antes de añadir.",
       );
     const routine = routines.find((r) => r.id === routineId);
     if (!routine) return;
 
-    const selectedEx = exercises.find((ex) => ex.id === selectedExToAdd);
-    if (!selectedEx) {
-      return showToast(
-        "error",
-        "Error ⚠️",
-        "El ejercicio seleccionado no es válido.",
-      );
-    }
-
-    // 1. VALIDACIÓN MUSCULAR ESTRICTA
-    if (routine.focus && routine.focus.toLowerCase() !== "fullbody") {
-      if (!isExerciseCompatibleWithFocus(selectedEx, routine.focus)) {
-        return showToast(
-          "error",
-          "Grupo Muscular Incompatible 🚫",
-          `No se permite añadir ejercicios de "${getExerciseMuscleLabel(selectedEx)}" a una rutina de "${routine.focus.toUpperCase()}".`,
-        );
-      }
-    }
-
-    // 2. VALIDACIÓN DE EJERCICIO DUPLICADO
     const existingExercises = getExercisesOfRoutine(routine);
-    const alreadyExists = existingExercises.some(
-      (ex) => ex.id === selectedExToAdd,
-    );
+    const existingIds = new Set(existingExercises.map((ex) => ex.id));
 
-    if (alreadyExists) {
+    const validExerciseIds: string[] = [];
+    for (const exId of idsToProcess) {
+      const selectedEx = exercises.find((ex) => ex.id === exId);
+      if (!selectedEx) continue;
+
+      // 1. VALIDACIÓN MUSCULAR ESTRICTA
+      if (routine.focus && routine.focus.toLowerCase() !== "fullbody") {
+        if (!isExerciseCompatibleWithFocus(selectedEx, routine.focus)) {
+          return showToast(
+            "error",
+            "Grupo muscular incompatible",
+            `No se permite añadir ejercicios de "${getExerciseMuscleLabel(selectedEx)}" a una rutina de "${routine.focus.toUpperCase()}".`,
+          );
+        }
+      }
+
+      // 2. VALIDACIÓN DE EJERCICIO DUPLICADO
+      if (existingIds.has(exId)) {
+        if (idsToProcess.length === 1) {
+          return showToast(
+            "warning",
+            "Ejercicio duplicado",
+            "Este ejercicio ya existe en la rutina seleccionada.",
+          );
+        }
+        continue; // Omitir duplicado si se añadieron varios a la vez
+      }
+
+      validExerciseIds.push(exId);
+    }
+
+    if (validExerciseIds.length === 0) {
       return showToast(
         "warning",
-        "Ejercicio Duplicado ⚡",
-        "Este ejercicio ya existe en la rutina seleccionada.",
+        "Ejercicios ya agregados",
+        "Los ejercicios seleccionados ya están en la rutina.",
       );
     }
+
     try {
       setLoading(true);
       await api.addExerciseToRoutine(routineId, {
-        exercise_id: selectedExToAdd,
+        exercise_ids: validExerciseIds,
         sets_count: parseInt(setsCount) || 3,
         min_reps: parseInt(minReps) || 8,
         max_reps: parseInt(maxReps) || 12,
       });
       setSelectedRoutineForAdd(null);
+      setSelectedExToAdd("");
+      setSelectedExsToAdd([]);
       const updated = await api.getRoutines();
       setRoutines(updated);
       showToast(
         "success",
-        "¡Ejercicio Añadido! ✅",
-        "Se configuró y guardó en tu rutina.",
+        "¡Ejercicios Añadidos! ",
+        `Se agregaron ${validExerciseIds.length} ejercicio(s) a tu rutina.`,
       );
     } catch (e: any) {
-      showToast("error", "Error al añadir ejercicio ⚠️", e.message);
+      showToast("error", "Error al añadir ejercicio", e.message);
     } finally {
       setLoading(false);
     }
@@ -364,7 +412,7 @@ export const GymDashboard: React.FC = () => {
     if (!trackingExerciseId)
       return showToast(
         "warning",
-        "Selecciona Ejercicio ⚠️",
+        "Selecciona Ejercicio",
         "Elige un ejercicio de tu rutina antes de registrar marca.",
       );
     const w = parseFloat(marcaWeight);
@@ -374,7 +422,7 @@ export const GymDashboard: React.FC = () => {
     if (isNaN(w) || isNaN(r))
       return showToast(
         "warning",
-        "Datos Inválidos ⚠️",
+        "Datos Inválidos",
         "Ingresa peso y repeticiones válidos.",
       );
 
@@ -386,7 +434,7 @@ export const GymDashboard: React.FC = () => {
       );
       showToast(
         "success",
-        "¡Marca Registrada! 📈",
+        "¡Marca Registrada!",
         `${w}kg x ${r} reps (1RM est: ${res.estimated_1rm}kg)`,
       );
       await loadProgressionHistory(trackingExerciseId);
@@ -404,7 +452,7 @@ export const GymDashboard: React.FC = () => {
       setAdminUsers(users);
       setShowAdminUsers(true);
     } catch (e: any) {
-      showToast("error", "Error al cargar usuarios ⚠️", e.message);
+      showToast("error", "Error al cargar usuarios", e.message);
     } finally {
       setLoading(false);
     }
@@ -474,11 +522,11 @@ export const GymDashboard: React.FC = () => {
       await loadProgressionHistory(trackingExerciseId);
       showToast(
         "success",
-        "¡Marca Actualizada! 📈",
+        "¡Marca Actualizada!",
         `Se actualizó el registro a ${weight}kg × ${reps} reps.`,
       );
     } catch (e: any) {
-      showToast("error", "Error al actualizar marca ⚠️", e.message);
+      showToast("error", "Error al actualizar marca", e.message);
     } finally {
       setLoading(false);
     }
@@ -496,11 +544,11 @@ export const GymDashboard: React.FC = () => {
       setRoutines(updated);
       showToast(
         "success",
-        "¡Rutina Actualizada! ✏️",
+        "¡Rutina Actualizada!",
         `Se guardaron los cambios en "${title}".`,
       );
     } catch (e: any) {
-      showToast("error", "Error al actualizar rutina ⚠️", e.message);
+      showToast("error", "Error al actualizar rutina", e.message);
     } finally {
       setLoading(false);
     }
@@ -528,11 +576,11 @@ export const GymDashboard: React.FC = () => {
       }
       showToast(
         "success",
-        "Ejercicio Removido 🗑️",
+        "Ejercicio Removido",
         `Se quitó "${exerciseName}" de la rutina.`,
       );
     } catch (e: any) {
-      showToast("error", "Error al quitar ejercicio ⚠️", e.message);
+      showToast("error", "Error al quitar ejercicio", e.message);
     } finally {
       setLoading(false);
     }
@@ -567,11 +615,11 @@ export const GymDashboard: React.FC = () => {
       const ex = exercises.find((e) => e.id === exerciseId);
       showToast(
         "success",
-        "¡Ejercicio Añadido! ✅",
+        "¡Ejercicio Añadido!",
         `"${ex?.name || "Ejercicio"}" asignado a la rutina.`,
       );
     } catch (e: any) {
-      showToast("error", "Error al añadir ejercicio ⚠️", e.message);
+      showToast("error", "Error al añadir ejercicio", e.message);
     } finally {
       setLoading(false);
     }
@@ -583,6 +631,7 @@ export const GymDashboard: React.FC = () => {
     equipment_id: number | null,
     instructions: string,
     video_url?: string,
+    muscle_id?: number | null,
   ) => {
     try {
       setLoading(true);
@@ -591,16 +640,17 @@ export const GymDashboard: React.FC = () => {
         equipment_id,
         instructions,
         video_url,
+        muscle_id,
       });
       const updated = await api.getExercises();
       setExercises(updated);
       showToast(
         "success",
-        "¡Ejercicio Actualizado! ✏️",
+        "¡Ejercicio Actualizado!",
         `Se guardaron los cambios en "${name}".`,
       );
     } catch (e: any) {
-      showToast("error", "Error al actualizar ejercicio ⚠️", e.message);
+      showToast("error", "Error al actualizar ejercicio", e.message);
     } finally {
       setLoading(false);
     }
@@ -621,10 +671,10 @@ export const GymDashboard: React.FC = () => {
       showToast(
         "success",
         "¡Equipo Registrado! ⚙️",
-        `"${data.name}" se guardó en la base de datos.`
+        `"${data.name}" se guardó en la base de datos.`,
       );
     } catch (e: any) {
-      showToast("error", "Error al registrar equipo ⚠️", e.message);
+      showToast("error", "Error al registrar equipo", e.message);
       throw e;
     } finally {
       setLoading(false);
@@ -639,7 +689,7 @@ export const GymDashboard: React.FC = () => {
       brand?: string;
       setup_guide?: string;
       description?: string;
-    }
+    },
   ) => {
     try {
       setLoading(true);
@@ -648,11 +698,11 @@ export const GymDashboard: React.FC = () => {
       setEquipmentList(updated);
       showToast(
         "success",
-        "¡Equipo Actualizado! ⚙️",
-        `Se guardaron los cambios en "${data.name}".`
+        "¡Equipo Actualizado!",
+        `Se guardaron los cambios en "${data.name}".`,
       );
     } catch (e: any) {
-      showToast("error", "Error al actualizar equipo ⚠️", e.message);
+      showToast("error", "Error al actualizar equipo", e.message);
     } finally {
       setLoading(false);
     }
@@ -671,7 +721,7 @@ export const GymDashboard: React.FC = () => {
         }
         showToast(
           "success",
-          "¡Rutina Eliminada! 🗑️",
+          "¡Rutina Eliminada!",
           `"${deleteConfirmItem.title}" fue borrada de la BD.`,
         );
       } else if (deleteConfirmItem.type === "marca") {
@@ -679,7 +729,7 @@ export const GymDashboard: React.FC = () => {
         await loadProgressionHistory(trackingExerciseId);
         showToast(
           "success",
-          "¡Marca Eliminada! 🗑️",
+          "¡Marca Eliminada! ",
           `El registro "${deleteConfirmItem.title}" fue borrado de la BD.`,
         );
       } else if (deleteConfirmItem.type === "equipment") {
@@ -688,8 +738,8 @@ export const GymDashboard: React.FC = () => {
         setEquipmentList(updated);
         showToast(
           "success",
-          "¡Equipo Eliminado! 🗑️",
-          `"${deleteConfirmItem.title}" fue borrado de la BD.`
+          "¡Equipo Eliminado!",
+          `"${deleteConfirmItem.title}" fue borrado de la BD.`,
         );
       } else {
         await api.deleteExercise(deleteConfirmItem.id);
@@ -697,12 +747,12 @@ export const GymDashboard: React.FC = () => {
         setExercises(updated);
         showToast(
           "success",
-          "¡Ejercicio Eliminado! 🗑️",
+          "¡Ejercicio Eliminado!",
           `"${deleteConfirmItem.title}" fue borrado de la BD.`,
         );
       }
     } catch (e: any) {
-      showToast("error", "Error al eliminar de la BD ⚠️", e.message);
+      showToast("error", "Error al eliminar", e.message);
     } finally {
       setLoading(false);
     }
@@ -751,6 +801,15 @@ export const GymDashboard: React.FC = () => {
               setNewRoutineTitle={setNewRoutineTitle}
               newRoutineFocus={newRoutineFocus}
               setNewRoutineFocus={setNewRoutineFocus}
+              selectedExercises={exercises.filter(
+                (ex) =>
+                  newRoutineExerciseIds.includes(ex.id) &&
+                  isExerciseCompatibleWithFocus(ex, newRoutineFocus),
+              )}
+              onOpenSelectExercises={() => setShowNewRoutineModal(true)}
+              onRemoveExercise={(id) =>
+                setNewRoutineExerciseIds((prev) => prev.filter((x) => x !== id))
+              }
               onCreate={handleCreateRoutine}
             />
 
@@ -764,6 +823,8 @@ export const GymDashboard: React.FC = () => {
                 isAdding={selectedRoutineForAdd === routine.id}
                 selectedExToAdd={selectedExToAdd}
                 setSelectedExToAdd={setSelectedExToAdd}
+                selectedExsToAdd={selectedExsToAdd}
+                setSelectedExsToAdd={setSelectedExsToAdd}
                 setsCount={setsCount}
                 setSetsCount={setSetsCount}
                 minReps={minReps}
@@ -776,8 +837,15 @@ export const GymDashboard: React.FC = () => {
                     isExerciseCompatibleWithFocus(ex, routine.focus),
                   );
                   setSelectedExToAdd(firstCompatible ? firstCompatible.id : "");
+                  setSelectedExsToAdd(
+                    firstCompatible ? [firstCompatible.id] : [],
+                  );
                 }}
-                onCancelAdding={() => setSelectedRoutineForAdd(null)}
+                onCancelAdding={() => {
+                  setSelectedRoutineForAdd(null);
+                  setSelectedExsToAdd([]);
+                  setSelectedExToAdd("");
+                }}
                 onAddExercise={() => handleAddExerciseToRoutine(routine.id)}
                 onOptionsPress={() => handleOpenRoutineOptions(routine)}
               />
@@ -873,6 +941,18 @@ export const GymDashboard: React.FC = () => {
         onClose={() => setModalExerciseVisible(false)}
       />
 
+      {/* Modal para seleccionar múltiples ejercicios al crear nueva rutina */}
+      <SelectExerciseModal
+        visible={showNewRoutineModal}
+        colors={colors}
+        exercises={exercises}
+        routineFocus={newRoutineFocus}
+        selectedExerciseIds={newRoutineExerciseIds}
+        multiSelect={true}
+        onConfirmSelection={(ids) => setNewRoutineExerciseIds(ids)}
+        onClose={() => setShowNewRoutineModal(false)}
+      />
+
       <AddExerciseModal
         colors={colors}
         visible={showAddExerciseModal}
@@ -885,6 +965,9 @@ export const GymDashboard: React.FC = () => {
         equipmentList={equipmentList}
         selectedEquipment={newExEquipment}
         setSelectedEquipment={setNewExEquipment}
+        muscleList={muscleList}
+        selectedMuscle={newExMuscle}
+        setSelectedMuscle={setNewExMuscle}
         onSubmit={handleCreateExercise}
         onClose={() => setShowAddExerciseModal(false)}
       />
@@ -942,6 +1025,9 @@ export const GymDashboard: React.FC = () => {
                   editModalItem.data.media?.[0]?.external_url ||
                   editModalItem.data.video_url ||
                   "",
+                muscle_id:
+                  editModalItem.data.muscles?.[0]?.muscle ||
+                  null,
               }
             : null
         }
@@ -959,6 +1045,7 @@ export const GymDashboard: React.FC = () => {
           editModalItem?.type === "equipment" ? editModalItem.data : null
         }
         equipmentList={equipmentList}
+        muscleList={muscleList}
         allExercises={exercises}
         onSaveRoutine={handleSaveRoutineEdit}
         onSaveExercise={handleSaveExerciseEdit}

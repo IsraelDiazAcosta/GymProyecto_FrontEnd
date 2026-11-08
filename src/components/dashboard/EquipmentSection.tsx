@@ -67,7 +67,8 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
         item.brand.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesType =
-      selectedTypeFilter === "all" || item.equipment_type === selectedTypeFilter;
+      selectedTypeFilter === "all" ||
+      item.equipment_type === selectedTypeFilter;
 
     return matchesSearch && matchesType;
   });
@@ -132,7 +133,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
 
         {EQUIPMENT_TYPES.map((type) => {
           const count = equipmentList.filter(
-            (e) => e.equipment_type === type.value
+            (e) => e.equipment_type === type.value,
           ).length;
           return (
             <TouchableOpacity
@@ -194,15 +195,16 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                     style={[eqStyles.eqBrand, { color: colors.textSecondary }]}
                     numberOfLines={1}
                   >
-                    🏢 {eq.brand || "Marca Genérica"}
+                    {eq.brand || "Marca Genérica"}
                   </Text>
 
                   {/* Badge de tipo de equipamiento */}
                   <View style={eqStyles.typeBadge}>
                     <Text style={eqStyles.typeBadgeText}>
                       {eq.equipment_type_display ||
-                        EQUIPMENT_TYPES.find((t) => t.value === eq.equipment_type)
-                          ?.label ||
+                        EQUIPMENT_TYPES.find(
+                          (t) => t.value === eq.equipment_type,
+                        )?.label ||
                         eq.equipment_type}
                     </Text>
                   </View>
@@ -229,9 +231,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
               {/* Guía de ajuste o notas técnicas si están presentes */}
               {Boolean(eq.setup_guide) && (
                 <View style={eqStyles.setupGuideBox}>
-                  <Text style={eqStyles.setupGuideLabel}>
-                    🔧 Guía de ajuste:
-                  </Text>
+                  <Text style={eqStyles.setupGuideLabel}>Guía de ajuste:</Text>
                   <Text
                     style={[
                       eqStyles.setupGuideText,

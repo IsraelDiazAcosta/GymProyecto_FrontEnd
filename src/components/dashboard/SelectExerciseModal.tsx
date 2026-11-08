@@ -1,5 +1,5 @@
 import { Exercise } from "@/services/api";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Image,
@@ -18,8 +18,11 @@ interface SelectExerciseModalProps {
   colors: DashboardColors;
   exercises: Exercise[];
   routineFocus?: string;
-  selectedExerciseId: string;
-  onSelect: (exerciseId: string) => void;
+  selectedExerciseId?: string;
+  selectedExerciseIds?: string[];
+  multiSelect?: boolean;
+  onSelect?: (exerciseId: string) => void;
+  onConfirmSelection?: (selectedIds: string[]) => void;
   onClose: () => void;
 }
 
@@ -80,10 +83,27 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
   exercises,
   routineFocus,
   selectedExerciseId,
+  selectedExerciseIds,
+  multiSelect = false,
   onSelect,
+  onConfirmSelection,
   onClose,
 }) => {
   const [searchText, setSearchText] = useState("");
+  const [tempSelectedIds, setTempSelectedIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (visible) {
+      if (selectedExerciseIds && selectedExerciseIds.length > 0) {
+        setTempSelectedIds([...selectedExerciseIds]);
+      } else if (selectedExerciseId) {
+        setTempSelectedIds([selectedExerciseId]);
+      } else {
+        setTempSelectedIds([]);
+      }
+      setSearchText("");
+    }
+  }, [visible, selectedExerciseId, selectedExerciseIds]);
 
   // Filtrado ESTRICTO por el grupo muscular de la rutina
   const filteredList = useMemo(() => {
@@ -106,6 +126,40 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
     });
   }, [exercises, routineFocus, searchText]);
 
+  const toggleSelect = (id: string) => {
+    if (tempSelectedIds.includes(id)) {
+      setTempSelectedIds(tempSelectedIds.filter((item) => item !== id));
+    } else {
+      setTempSelectedIds([...tempSelectedIds, id]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    const allFilteredIds = filteredList.map((e) => e.id);
+    const allSelected = allFilteredIds.every((id) =>
+      tempSelectedIds.includes(id),
+    );
+    if (allSelected) {
+      setTempSelectedIds(
+        tempSelectedIds.filter((id) => !allFilteredIds.includes(id)),
+      );
+    } else {
+      const combined = Array.from(
+        new Set([...tempSelectedIds, ...allFilteredIds]),
+      );
+      setTempSelectedIds(combined);
+    }
+  };
+
+  const handleConfirm = () => {
+    if (multiSelect && onConfirmSelection) {
+      onConfirmSelection(tempSelectedIds);
+    } else if (onSelect && tempSelectedIds.length > 0) {
+      onSelect(tempSelectedIds[0]);
+    }
+    onClose();
+  };
+
   const focusLabel =
     routineFocus && routineFocus !== "fullbody"
       ? routineFocus.toUpperCase()
@@ -126,15 +180,28 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
           <View style={modalStyles.headerRow}>
             <View style={{ flex: 1 }}>
               <Text style={[modalStyles.title, { color: colors.text }]}>
-                Seleccionar Ejercicio
+                {multiSelect
+                  ? "Seleccionar Ejercicios"
+                  : "Seleccionar Ejercicio"}
               </Text>
               <Text
-                style={[
-                  modalStyles.subtitle,
-                  { color: colors.textSecondary },
-                ]}
+                style={[modalStyles.subtitle, { color: colors.textSecondary }]}
               >
-                Grupo muscular: <Text style={{ color: "#10b981", fontWeight: "800" }}>{focusLabel}</Text>
+                Grupo muscular:{" "}
+                <Text style={{ color: "#10b981", fontWeight: "800" }}>
+                  {focusLabel}
+                </Text>
+                {multiSelect && (
+                  <Text
+                    style={{ color: colors.textSecondary, fontWeight: "600" }}
+                  >
+                    {" • "}
+                    <Text style={{ color: "#10b981", fontWeight: "800" }}>
+                      {tempSelectedIds.length}
+                    </Text>{" "}
+                    seleccionado(s)
+                  </Text>
+                )}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={modalStyles.closeBtn}>
@@ -149,20 +216,53 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Buscador de texto */}
-          <TextInput
-            style={[
-              modalStyles.searchInput,
-              {
-                color: colors.text,
-                backgroundColor: "rgba(150, 150, 150, 0.12)",
-              },
-            ]}
-            placeholder={`🔍 Buscar ejercicio de ${focusLabel.toLowerCase()}...`}
-            placeholderTextColor={colors.textSecondary}
-            value={searchText}
-            onChangeText={setSearchText}
-          />
+          {/* Buscador de texto y botón seleccionar todos */}
+          <View style={{ marginBottom: 10 }}>
+            <TextInput
+              style={[
+                modalStyles.searchInput,
+                {
+                  color: colors.text,
+                  backgroundColor: "rgba(150, 150, 150, 0.12)",
+                },
+              ]}
+              placeholder={`Buscar ejercicio de ${focusLabel.toLowerCase()}...`}
+              placeholderTextColor={colors.textSecondary}
+              value={searchText}
+              onChangeText={setSearchText}
+            />
+
+            {multiSelect && filteredList.length > 0 && (
+              <View style={modalStyles.multiSelectActions}>
+                <TouchableOpacity
+                  onPress={handleSelectAll}
+                  style={modalStyles.selectActionBtn}
+                >
+                  <Text style={modalStyles.selectActionText}>
+                    {filteredList.every((e) => tempSelectedIds.includes(e.id))
+                      ? "Deseleccionar todos"
+                      : "Seleccionar todos"}
+                  </Text>
+                </TouchableOpacity>
+
+                {tempSelectedIds.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setTempSelectedIds([])}
+                    style={modalStyles.selectActionBtn}
+                  >
+                    <Text
+                      style={[
+                        modalStyles.selectActionText,
+                        { color: "#ef4444" },
+                      ]}
+                    >
+                      Limpiar selección
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
 
           {/* Lista de ejercicios o Pantalla Vacía amigable */}
           {filteredList.length === 0 ? (
@@ -183,7 +283,8 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
                 <Text style={{ fontWeight: "700", color: "#10b981" }}>
                   {focusLabel}
                 </Text>
-                . Agrega uno nuevo desde el apartado de Catálogo para poder asignarlo a esta rutina.
+                . Agrega uno nuevo desde el apartado de Catálogo para poder
+                asignarlo a esta rutina.
               </Text>
 
               <TouchableOpacity
@@ -198,9 +299,13 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
               data={filteredList}
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingVertical: 6 }}
+              contentContainerStyle={{ paddingVertical: 4 }}
               renderItem={({ item }) => {
-                const isSelected = selectedExerciseId === item.id;
+                const isSelected = multiSelect
+                  ? tempSelectedIds.includes(item.id)
+                  : selectedExerciseId === item.id ||
+                    tempSelectedIds.includes(item.id);
+
                 const imageUrl =
                   item.thumbnail ||
                   item.media?.[0]?.thumbnail ||
@@ -220,9 +325,14 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
                       isSelected && modalStyles.itemCardSelected,
                     ]}
                     onPress={() => {
-                      onSelect(item.id);
-                      onClose();
+                      if (multiSelect) {
+                        toggleSelect(item.id);
+                      } else {
+                        onSelect?.(item.id);
+                        onClose();
+                      }
                     }}
+                    activeOpacity={0.75}
                   >
                     {/* Imagen / Placeholder Empty */}
                     <ExerciseThumbnail
@@ -278,6 +388,26 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
             />
           )}
 
+          {/* Footer en modo multiselect */}
+          {multiSelect && (
+            <View style={modalStyles.footerRow}>
+              <TouchableOpacity
+                style={[
+                  modalStyles.confirmMultiBtn,
+                  tempSelectedIds.length === 0 && { opacity: 0.6 },
+                ]}
+                onPress={handleConfirm}
+                disabled={tempSelectedIds.length === 0}
+              >
+                <Text style={modalStyles.confirmMultiBtnText}>
+                  {tempSelectedIds.length > 0
+                    ? `✓ Añadir Selección (${tempSelectedIds.length})`
+                    : "Selecciona al menos 1"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Botón de cerrar */}
           <TouchableOpacity style={modalStyles.cancelBtn} onPress={onClose}>
             <Text
@@ -285,9 +415,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
                 modalStyles.cancelBtnText,
                 { color: colors.textSecondary },
               ]}
-            >
-              Cancelar
-            </Text>
+            ></Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -305,7 +433,7 @@ const modalStyles = StyleSheet.create({
   card: {
     borderRadius: 20,
     padding: 18,
-    maxHeight: "85%",
+    maxHeight: "88%",
     elevation: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -316,7 +444,7 @@ const modalStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   title: {
     fontSize: 20,
@@ -337,9 +465,24 @@ const modalStyles = StyleSheet.create({
   searchInput: {
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingVertical: 10,
     fontSize: 15,
-    marginBottom: 12,
+  },
+  multiSelectActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  selectActionBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  selectActionText: {
+    color: "#10b981",
+    fontSize: 13,
+    fontWeight: "700",
   },
   itemCard: {
     flexDirection: "row",
@@ -401,6 +544,24 @@ const modalStyles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
   },
+  footerRow: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(150, 150, 150, 0.15)",
+  },
+  confirmMultiBtn: {
+    backgroundColor: "#10b981",
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmMultiBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
   emptyStateContainer: {
     paddingVertical: 28,
     paddingHorizontal: 16,
@@ -432,12 +593,12 @@ const modalStyles = StyleSheet.create({
     fontWeight: "700",
   },
   cancelBtn: {
-    marginTop: 8,
-    paddingVertical: 10,
+    marginTop: 6,
+    paddingVertical: 8,
     alignItems: "center",
   },
   cancelBtnText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
   },
 });
