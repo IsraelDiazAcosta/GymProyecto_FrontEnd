@@ -1,31 +1,48 @@
-import { AppButton } from "@/components/ui/AppButton";
-import { AppInput } from "@/components/ui/AppInput";
-import { Colors, Spacing } from "@/constants/theme";
+import {
+    AnimatedToast,
+    ToastMessage,
+    ToastType,
+} from "@/components/ui/AnimatedToast";
+import { Colors } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import {
-  api,
-  Equipment,
-  Exercise,
-  MuscleGroup,
-  ProgressionItem,
-  Routine,
+    api,
+    Equipment,
+    Exercise,
+    MuscleGroup,
+    ProgressionItem,
+    Routine,
 } from "@/services/api";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  useColorScheme,
-  View,
+    ActivityIndicator,
+    ScrollView,
+    Text,
+    useColorScheme,
+    Vibration,
+    View,
 } from "react-native";
+import { AddEquipmentModal } from "./AddEquipmentModal";
+import { AddExerciseModal } from "./AddExerciseModal";
+import { CatalogSection } from "./CatalogSection";
+import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
+import { CreateRoutineCard } from "./CreateRoutineCard";
+import { DashboardTabBar } from "./DashboardTabBar";
+import { EditItemModal } from "./EditItemModal";
+import { EquipmentSection } from "./EquipmentSection";
+import { ExerciseDetailModal } from "./ExerciseDetailModal";
+import { ItemActionSheet } from "./ItemActionSheet";
+import { MarcaFormCard } from "./MarcaFormCard";
+import { MarcaHistoryList } from "./MarcaHistoryList";
+import { ProfileSection } from "./ProfileSection";
 import RMTrackingChart from "./RMTrackingChart";
-
-type TabType = "catalog" | "routines" | "tracking" | "profile";
+import { RoutineCard } from "./RoutineCard";
+import { styles } from "./dashboardStyles";
+import {
+    getExerciseMuscleLabel,
+    isExerciseCompatibleWithFocus,
+} from "./muscleValidation";
+import { RoutineExerciseItem, TabType } from "./types";
 
 export const GymDashboard: React.FC = () => {
   const scheme = useColorScheme();
@@ -34,6 +51,16 @@ export const GymDashboard: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<TabType>("routines");
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  const showToast = (type: ToastType, title: string, message?: string) => {
+    setToast({
+      id: `${Date.now()}-${Math.random()}`,
+      type,
+      title,
+      message,
+    });
+  };
 
   // Datos globales
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -55,6 +82,7 @@ export const GymDashboard: React.FC = () => {
 
   // Estados de Rutinas
   const [newRoutineTitle, setNewRoutineTitle] = useState("");
+  const [newRoutineFocus, setNewRoutineFocus] = useState("fullbody");
   const [selectedRoutineForAdd, setSelectedRoutineForAdd] = useState<
     string | null
   >(null);
@@ -73,9 +101,29 @@ export const GymDashboard: React.FC = () => {
   const [savingMarca, setSavingMarca] = useState(false);
   const [lastSavedSummary, setLastSavedSummary] = useState<string | null>(null);
 
-  // Estados de Admin
+  // Estados de Admin y Equipos
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [showAdminUsers, setShowAdminUsers] = useState(false);
+  const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
+
+  // Estados para Acciones Interactivas de BD (Long-Press / Select)
+  const [actionSheetItem, setActionSheetItem] = useState<{
+    type: "routine" | "exercise" | "marca" | "equipment";
+    title: string;
+    subtitle?: string;
+    data: any;
+  } | null>(null);
+
+  const [editModalItem, setEditModalItem] = useState<{
+    type: "routine" | "exercise" | "marca" | "equipment";
+    data: any;
+  } | null>(null);
+
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState<{
+    type: "routine" | "exercise" | "marca" | "equipment";
+    id: string;
+    title: string;
+  } | null>(null);
 
   useEffect(() => {
     loadInitialData();
@@ -84,12 +132,16 @@ export const GymDashboard: React.FC = () => {
   const loadInitialData = async () => {
     setLoading(true);
     try {
-      const [exList, rList] = await Promise.all([
+      const [exList, rList, eqList, muList] = await Promise.all([
         api.getExercises(),
         api.getRoutines(),
+        api.getEquipment().catch(() => []),
+        api.getMuscles().catch(() => []),
       ]);
       setExercises(exList);
       setRoutines(rList);
+      if (eqList.length > 0) setEquipmentList(eqList);
+      if (muList.length > 0) setMuscleList(muList);
 
       if (rList.length > 0) {
         setTrackingRoutineId(rList[0].id);
@@ -100,7 +152,7 @@ export const GymDashboard: React.FC = () => {
         }
       }
     } catch (e: any) {
-      Alert.alert("Error de conexión", e.message);
+      showToast("error", "Error de conexión ⚠️", e.message);
     } finally {
       setLoading(false);
     }
@@ -128,7 +180,7 @@ export const GymDashboard: React.FC = () => {
       setSelectedExercise(detail);
       setModalExerciseVisible(true);
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      showToast("error", "Error al cargar ejercicio ⚠️", e.message);
     } finally {
       setLoading(false);
     }
@@ -136,7 +188,11 @@ export const GymDashboard: React.FC = () => {
 
   const handleCreateExercise = async () => {
     if (!newExName.trim())
-      return Alert.alert("Error", "Ingresa el nombre del ejercicio");
+      return showToast(
+        "warning",
+        "Nombre Requerido ⚠️",
+        "Ingresa el nombre del ejercicio.",
+      );
     try {
       setLoading(true);
       await api.createExercise({
@@ -146,15 +202,21 @@ export const GymDashboard: React.FC = () => {
         equipment_id: newExEquipment,
         muscle_id: newExMuscle,
       });
-      Alert.alert("¡Éxito!", "Ejercicio agregado al catálogo oficial");
+      showToast(
+        "success",
+        "¡Ejercicio Publicado! 🏆",
+        `"${newExName}" se agregó al catálogo oficial.`,
+      );
       setShowAddExerciseModal(false);
       setNewExName("");
       setNewExInstructions("");
       setNewExVideo("");
+      setNewExEquipment(null);
+      setNewExMuscle(null);
       const updated = await api.getExercises();
       setExercises(updated);
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      showToast("error", "Error al publicar ejercicio ⚠️", e.message);
     } finally {
       setLoading(false);
     }
@@ -163,19 +225,25 @@ export const GymDashboard: React.FC = () => {
   // --- RUTINAS ---
   const handleCreateRoutine = async () => {
     if (!newRoutineTitle.trim())
-      return Alert.alert(
-        "Error",
-        "Ingresa el nombre de la rutina (ej. Lunes-Pecho)",
+      return showToast(
+        "warning",
+        "Nombre Requerido ⚠️",
+        "Ingresa el nombre de la rutina (ej. Lunes-Pecho).",
       );
     try {
       setLoading(true);
-      await api.createRoutine(newRoutineTitle.trim());
+      await api.createRoutine(newRoutineTitle.trim(), newRoutineFocus);
+      const createdTitle = newRoutineTitle.trim();
       setNewRoutineTitle("");
       const updated = await api.getRoutines();
       setRoutines(updated);
-      Alert.alert("¡Creada!", "Rutina creada correctamente");
+      showToast(
+        "success",
+        "¡Rutina Creada! 🚀",
+        `"${createdTitle}" se creó y guardó correctamente.`,
+      );
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      showToast("error", "Error al crear rutina ⚠️", e.message);
     } finally {
       setLoading(false);
     }
@@ -183,7 +251,47 @@ export const GymDashboard: React.FC = () => {
 
   const handleAddExerciseToRoutine = async (routineId: string) => {
     if (!selectedExToAdd)
-      return Alert.alert("Error", "Selecciona un ejercicio");
+      return showToast(
+        "warning",
+        "Selecciona Ejercicio ⚠️",
+        "Elige un ejercicio antes de añadir.",
+      );
+    const routine = routines.find((r) => r.id === routineId);
+    if (!routine) return;
+
+    const selectedEx = exercises.find((ex) => ex.id === selectedExToAdd);
+    if (!selectedEx) {
+      return showToast(
+        "error",
+        "Error ⚠️",
+        "El ejercicio seleccionado no es válido.",
+      );
+    }
+
+    // 1. VALIDACIÓN MUSCULAR ESTRICTA
+    if (routine.focus && routine.focus.toLowerCase() !== "fullbody") {
+      if (!isExerciseCompatibleWithFocus(selectedEx, routine.focus)) {
+        return showToast(
+          "error",
+          "Grupo Muscular Incompatible 🚫",
+          `No se permite añadir ejercicios de "${getExerciseMuscleLabel(selectedEx)}" a una rutina de "${routine.focus.toUpperCase()}".`,
+        );
+      }
+    }
+
+    // 2. VALIDACIÓN DE EJERCICIO DUPLICADO
+    const existingExercises = getExercisesOfRoutine(routine);
+    const alreadyExists = existingExercises.some(
+      (ex) => ex.id === selectedExToAdd,
+    );
+
+    if (alreadyExists) {
+      return showToast(
+        "warning",
+        "Ejercicio Duplicado ⚡",
+        "Este ejercicio ya existe en la rutina seleccionada.",
+      );
+    }
     try {
       setLoading(true);
       await api.addExerciseToRoutine(routineId, {
@@ -195,20 +303,34 @@ export const GymDashboard: React.FC = () => {
       setSelectedRoutineForAdd(null);
       const updated = await api.getRoutines();
       setRoutines(updated);
-      Alert.alert("¡Agregado!", "Ejercicio añadido a tu rutina");
+      showToast(
+        "success",
+        "¡Ejercicio Añadido! ✅",
+        "Se configuró y guardó en tu rutina.",
+      );
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      showToast("error", "Error al añadir ejercicio ⚠️", e.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const getExercisesOfRoutine = (routine?: Routine) => {
+  const getExercisesOfRoutine = (routine?: Routine): RoutineExerciseItem[] => {
     if (!routine || !routine.days) return [];
-    const list: { id: string; name: string }[] = [];
+    const list: RoutineExerciseItem[] = [];
     routine.days.forEach((d) => {
       d.exercises?.forEach((e) => {
-        list.push({ id: e.exercise, name: e.exercise_detail.name });
+        const setsCount = e.target_sets?.length || 3;
+        const firstSet = e.target_sets?.[0];
+        list.push({
+          id: e.exercise,
+          name: e.exercise_detail?.name || "Ejercicio",
+          routineExerciseId: e.id,
+          equipmentName: e.exercise_detail?.equipment_name,
+          setsCount,
+          minReps: firstSet?.min_reps || 8,
+          maxReps: firstSet?.max_reps || 12,
+        });
       });
     });
     return list;
@@ -240,13 +362,21 @@ export const GymDashboard: React.FC = () => {
 
   const handleSaveMarca = async () => {
     if (!trackingExerciseId)
-      return Alert.alert("Error", "Selecciona un ejercicio de tu rutina");
+      return showToast(
+        "warning",
+        "Selecciona Ejercicio ⚠️",
+        "Elige un ejercicio de tu rutina antes de registrar marca.",
+      );
     const w = parseFloat(marcaWeight);
     const r = parseInt(marcaReps);
     const rpe = parseFloat(marcaRpe) || undefined;
 
     if (isNaN(w) || isNaN(r))
-      return Alert.alert("Error", "Ingresa peso y reps válidos");
+      return showToast(
+        "warning",
+        "Datos Inválidos ⚠️",
+        "Ingresa peso y repeticiones válidos.",
+      );
 
     try {
       setSavingMarca(true);
@@ -254,9 +384,14 @@ export const GymDashboard: React.FC = () => {
       setLastSavedSummary(
         `✓ Guardado: ${w}kg x ${r} reps (1RM estimado: ${res.estimated_1rm}kg)`,
       );
+      showToast(
+        "success",
+        "¡Marca Registrada! 📈",
+        `${w}kg x ${r} reps (1RM est: ${res.estimated_1rm}kg)`,
+      );
       await loadProgressionHistory(trackingExerciseId);
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      showToast("error", "Error al guardar marca ⚠️", e.message);
     } finally {
       setSavingMarca(false);
     }
@@ -269,7 +404,305 @@ export const GymDashboard: React.FC = () => {
       setAdminUsers(users);
       setShowAdminUsers(true);
     } catch (e: any) {
-      Alert.alert("Error", e.message);
+      showToast("error", "Error al cargar usuarios ⚠️", e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- ACCIONES DE BD: EDITAR Y ELIMINAR (LONG-PRESS / SELECT) ---
+  const handleOpenRoutineOptions = (routine: Routine) => {
+    try {
+      Vibration.vibrate(50);
+    } catch (e) {}
+    setActionSheetItem({
+      type: "routine",
+      title: routine.title,
+      subtitle: `Enfoque: ${(routine.focus || "fullbody").toUpperCase()} • ${routine.days?.[0]?.exercises?.length || 0} ejercicio(s)`,
+      data: routine,
+    });
+  };
+
+  const handleOpenExerciseOptions = (exercise: Exercise) => {
+    try {
+      Vibration.vibrate(50);
+    } catch (e) {}
+    setActionSheetItem({
+      type: "exercise",
+      title: exercise.name,
+      subtitle: `Máquina: ${exercise.equipment_name || "Sin máquina"} • ${exercise.primary_muscle || "General"}`,
+      data: exercise,
+    });
+  };
+
+  const handleOpenMarcaOptions = (item: ProgressionItem) => {
+    try {
+      Vibration.vibrate(50);
+    } catch (e) {}
+    const dateStr = item.logged_at
+      ? new Date(item.logged_at).toLocaleDateString()
+      : "Reciente";
+    setActionSheetItem({
+      type: "marca",
+      title: `${item.weight} kg × ${item.reps} reps`,
+      subtitle: `Fecha: ${dateStr}${item.rpe ? ` • RPE ${item.rpe}` : ""}`,
+      data: item,
+    });
+  };
+
+  const handleOpenEquipmentOptions = (eq: Equipment) => {
+    try {
+      Vibration.vibrate(50);
+    } catch (e) {}
+    setActionSheetItem({
+      type: "equipment",
+      title: eq.name,
+      subtitle: `${eq.equipment_type ? eq.equipment_type.replace("_", " ").toUpperCase() : "EQUIPO"} • ${eq.brand || "Genérica"}`,
+      data: eq,
+    });
+  };
+
+  const handleSaveMarcaEdit = async (
+    id: string,
+    weight: number,
+    reps: number,
+    rpe?: number,
+  ) => {
+    try {
+      setLoading(true);
+      await api.updateMarca(id, { weight, reps, rpe });
+      await loadProgressionHistory(trackingExerciseId);
+      showToast(
+        "success",
+        "¡Marca Actualizada! 📈",
+        `Se actualizó el registro a ${weight}kg × ${reps} reps.`,
+      );
+    } catch (e: any) {
+      showToast("error", "Error al actualizar marca ⚠️", e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveRoutineEdit = async (
+    id: string,
+    title: string,
+    focus: string,
+  ) => {
+    try {
+      setLoading(true);
+      await api.updateRoutine(id, { title, focus });
+      const updated = await api.getRoutines();
+      setRoutines(updated);
+      showToast(
+        "success",
+        "¡Rutina Actualizada! ✏️",
+        `Se guardaron los cambios en "${title}".`,
+      );
+    } catch (e: any) {
+      showToast("error", "Error al actualizar rutina ⚠️", e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveExerciseFromRoutine = async (
+    routineExerciseId: string,
+    exerciseName: string,
+  ) => {
+    try {
+      setLoading(true);
+      await api.removeExerciseFromRoutine(routineExerciseId);
+      const updated = await api.getRoutines();
+      setRoutines(updated);
+      if (editModalItem && editModalItem.type === "routine") {
+        const updatedRoutine = updated.find(
+          (r) => r.id === editModalItem.data.id,
+        );
+        if (updatedRoutine) {
+          setEditModalItem({
+            ...editModalItem,
+            data: updatedRoutine,
+          });
+        }
+      }
+      showToast(
+        "success",
+        "Ejercicio Removido 🗑️",
+        `Se quitó "${exerciseName}" de la rutina.`,
+      );
+    } catch (e: any) {
+      showToast("error", "Error al quitar ejercicio ⚠️", e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddExerciseToRoutineInEdit = async (
+    routineId: string,
+    exerciseId: string,
+    setsCount: number,
+    minReps: number,
+    maxReps: number,
+  ) => {
+    try {
+      setLoading(true);
+      await api.addExerciseToRoutine(routineId, {
+        exercise_id: exerciseId,
+        sets_count: setsCount,
+        min_reps: minReps,
+        max_reps: maxReps,
+      });
+      const updated = await api.getRoutines();
+      setRoutines(updated);
+      if (editModalItem && editModalItem.type === "routine") {
+        const updatedRoutine = updated.find((r) => r.id === routineId);
+        if (updatedRoutine) {
+          setEditModalItem({
+            ...editModalItem,
+            data: updatedRoutine,
+          });
+        }
+      }
+      const ex = exercises.find((e) => e.id === exerciseId);
+      showToast(
+        "success",
+        "¡Ejercicio Añadido! ✅",
+        `"${ex?.name || "Ejercicio"}" asignado a la rutina.`,
+      );
+    } catch (e: any) {
+      showToast("error", "Error al añadir ejercicio ⚠️", e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveExerciseEdit = async (
+    id: string,
+    name: string,
+    equipment_id: number | null,
+    instructions: string,
+    video_url?: string,
+  ) => {
+    try {
+      setLoading(true);
+      await api.updateExercise(id, {
+        name,
+        equipment_id,
+        instructions,
+        video_url,
+      });
+      const updated = await api.getExercises();
+      setExercises(updated);
+      showToast(
+        "success",
+        "¡Ejercicio Actualizado! ✏️",
+        `Se guardaron los cambios en "${name}".`,
+      );
+    } catch (e: any) {
+      showToast("error", "Error al actualizar ejercicio ⚠️", e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateEquipment = async (data: {
+    name: string;
+    equipment_type: string;
+    brand?: string;
+    setup_guide?: string;
+    description?: string;
+  }) => {
+    try {
+      setLoading(true);
+      await api.createEquipment(data);
+      const updated = await api.getEquipment();
+      setEquipmentList(updated);
+      showToast(
+        "success",
+        "¡Equipo Registrado! ⚙️",
+        `"${data.name}" se guardó en la base de datos.`
+      );
+    } catch (e: any) {
+      showToast("error", "Error al registrar equipo ⚠️", e.message);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveEquipmentEdit = async (
+    id: number,
+    data: {
+      name: string;
+      equipment_type: string;
+      brand?: string;
+      setup_guide?: string;
+      description?: string;
+    }
+  ) => {
+    try {
+      setLoading(true);
+      await api.updateEquipment(id, data);
+      const updated = await api.getEquipment();
+      setEquipmentList(updated);
+      showToast(
+        "success",
+        "¡Equipo Actualizado! ⚙️",
+        `Se guardaron los cambios en "${data.name}".`
+      );
+    } catch (e: any) {
+      showToast("error", "Error al actualizar equipo ⚠️", e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmItem) return;
+    try {
+      setLoading(true);
+      if (deleteConfirmItem.type === "routine") {
+        await api.deleteRoutine(deleteConfirmItem.id);
+        const updated = await api.getRoutines();
+        setRoutines(updated);
+        if (trackingRoutineId === deleteConfirmItem.id) {
+          setTrackingRoutineId(updated[0]?.id || "");
+        }
+        showToast(
+          "success",
+          "¡Rutina Eliminada! 🗑️",
+          `"${deleteConfirmItem.title}" fue borrada de la BD.`,
+        );
+      } else if (deleteConfirmItem.type === "marca") {
+        await api.deleteMarca(deleteConfirmItem.id);
+        await loadProgressionHistory(trackingExerciseId);
+        showToast(
+          "success",
+          "¡Marca Eliminada! 🗑️",
+          `El registro "${deleteConfirmItem.title}" fue borrado de la BD.`,
+        );
+      } else if (deleteConfirmItem.type === "equipment") {
+        await api.deleteEquipment(parseInt(deleteConfirmItem.id, 10));
+        const updated = await api.getEquipment();
+        setEquipmentList(updated);
+        showToast(
+          "success",
+          "¡Equipo Eliminado! 🗑️",
+          `"${deleteConfirmItem.title}" fue borrado de la BD.`
+        );
+      } else {
+        await api.deleteExercise(deleteConfirmItem.id);
+        const updated = await api.getExercises();
+        setExercises(updated);
+        showToast(
+          "success",
+          "¡Ejercicio Eliminado! 🗑️",
+          `"${deleteConfirmItem.title}" fue borrado de la BD.`,
+        );
+      }
+    } catch (e: any) {
+      showToast("error", "Error al eliminar de la BD ⚠️", e.message);
     } finally {
       setLoading(false);
     }
@@ -280,90 +713,15 @@ export const GymDashboard: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* BARRA DE NAVEGACIÓN SUPERIOR (TABS DEPORTIVAS) */}
-      <View
-        style={[styles.tabBar, { backgroundColor: colors.backgroundElement }]}
-      >
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === "routines" && styles.tabButtonActive,
-          ]}
-          onPress={() => setActiveTab("routines")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "routines" && styles.tabTextActive,
-            ]}
-          >
-            Rutinas
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === "tracking" && styles.tabButtonActive,
-          ]}
-          onPress={() => setActiveTab("tracking")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "tracking" && styles.tabTextActive,
-            ]}
-          >
-            Marcas
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === "catalog" && styles.tabButtonActive,
-          ]}
-          onPress={() => {
-            setActiveTab("catalog");
-            loadCatalogExtras();
-          }}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "catalog" && styles.tabTextActive,
-            ]}
-          >
-            Catálogo
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === "profile" && styles.tabButtonActive,
-          ]}
-          onPress={() => setActiveTab("profile")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "profile" && styles.tabTextActive,
-            ]}
-          >
-            Perfil
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       {loading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator color="#ff6b00" size="small" />
+          <ActivityIndicator color="#10b981" size="small" />
         </View>
       )}
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* ==================== TAB 1: RUTINAS ==================== */}
@@ -377,191 +735,53 @@ export const GymDashboard: React.FC = () => {
               colors={colors}
               routines={routines}
               trackingRoutineId={trackingRoutineId}
+              trackingExerciseId={trackingExerciseId}
               marcaHistory={marcaHistory}
+              exercises={currentRoutineExercises}
               onSelectRoutine={handleRoutineChangeInTracking}
+              onSelectExercise={(exerciseId: string) => {
+                setTrackingExerciseId(exerciseId);
+                loadProgressionHistory(exerciseId);
+              }}
             />
 
-            {/* Crear Rutina */}
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: colors.backgroundElement },
-              ]}
-            >
-              <Text style={[styles.cardTitle, { color: colors.text }]}>
-                ➕ Nueva Rutina
-              </Text>
-              <View style={styles.inlineRow}>
-                <TextInput
-                  style={[styles.input, { color: colors.text, flex: 1 }]}
-                  placeholder="Ej: Lunes-Pecho, Pierna Pesada"
-                  placeholderTextColor={colors.textSecondary}
-                  value={newRoutineTitle}
-                  onChangeText={setNewRoutineTitle}
-                />
-                <TouchableOpacity
-                  style={styles.smallPrimaryBtn}
-                  onPress={handleCreateRoutine}
-                >
-                  <Text style={styles.btnTextWhite}>Crear</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <CreateRoutineCard
+              colors={colors}
+              newRoutineTitle={newRoutineTitle}
+              setNewRoutineTitle={setNewRoutineTitle}
+              newRoutineFocus={newRoutineFocus}
+              setNewRoutineFocus={setNewRoutineFocus}
+              onCreate={handleCreateRoutine}
+            />
 
-            {/* Lista de Rutinas */}
-            {routines.map((routine) => {
-              const routineExercises = getExercisesOfRoutine(routine);
-              const isAdding = selectedRoutineForAdd === routine.id;
-
-              return (
-                <View
-                  key={routine.id}
-                  style={[
-                    styles.card,
-                    { backgroundColor: colors.backgroundElement },
-                  ]}
-                >
-                  <View style={styles.routineHeader}>
-                    <Text style={[styles.routineTitle, { color: colors.text }]}>
-                      📋 {routine.title}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.routineSubtitle,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {routineExercises.length} ejercicio(s)
-                    </Text>
-                  </View>
-
-                  {/* Ejercicios agregados */}
-                  {routineExercises.length > 0 ? (
-                    routineExercises.map((ex, idx) => (
-                      <View key={idx} style={styles.exerciseBadge}>
-                        <Text style={styles.exerciseBadgeText}>
-                          ✓ {ex.name}
-                        </Text>
-                      </View>
-                    ))
-                  ) : (
-                    <Text
-                      style={[
-                        styles.emptyHint,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      (Aún no has agregado ejercicios a esta rutina)
-                    </Text>
-                  )}
-
-                  {/* Botón / Formulario para agregar ejercicio */}
-                  {isAdding ? (
-                    <View style={styles.addExerciseBox}>
-                      <Text style={styles.addExerciseBoxTitle}>
-                        Selecciona ejercicio del catálogo:
-                      </Text>
-                      <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        style={{ marginVertical: 6 }}
-                      >
-                        {exercises.map((ex) => (
-                          <TouchableOpacity
-                            key={ex.id}
-                            style={[
-                              styles.chip,
-                              selectedExToAdd === ex.id && styles.chipActive,
-                            ]}
-                            onPress={() => setSelectedExToAdd(ex.id)}
-                          >
-                            <Text
-                              style={[
-                                styles.chipText,
-                                selectedExToAdd === ex.id &&
-                                  styles.chipTextActive,
-                              ]}
-                            >
-                              {ex.name}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-
-                      <View style={styles.inlineRow}>
-                        <TextInput
-                          style={[
-                            styles.input,
-                            {
-                              width: 70,
-                              textAlign: "center",
-                              color: colors.text,
-                            },
-                          ]}
-                          placeholder="Series"
-                          value={setsCount}
-                          onChangeText={setSetsCount}
-                          keyboardType="numeric"
-                        />
-                        <TextInput
-                          style={[
-                            styles.input,
-                            {
-                              width: 60,
-                              textAlign: "center",
-                              color: colors.text,
-                            },
-                          ]}
-                          placeholder="Min"
-                          value={minReps}
-                          onChangeText={setMinReps}
-                          keyboardType="numeric"
-                        />
-                        <TextInput
-                          style={[
-                            styles.input,
-                            {
-                              width: 60,
-                              textAlign: "center",
-                              color: colors.text,
-                            },
-                          ]}
-                          placeholder="Max"
-                          value={maxReps}
-                          onChangeText={setMaxReps}
-                          keyboardType="numeric"
-                        />
-                        <TouchableOpacity
-                          style={styles.smallPrimaryBtn}
-                          onPress={() => handleAddExerciseToRoutine(routine.id)}
-                        >
-                          <Text style={styles.btnTextWhite}>Añadir</Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      <TouchableOpacity
-                        onPress={() => setSelectedRoutineForAdd(null)}
-                      >
-                        <Text style={styles.cancelText}>Cancelar</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.addBtnOutline}
-                      onPress={() => {
-                        setSelectedRoutineForAdd(routine.id);
-                        if (exercises.length > 0)
-                          setSelectedExToAdd(exercises[0].id);
-                      }}
-                    >
-                      <Text style={styles.addBtnOutlineText}>
-                        + Agregar Ejercicio del Catálogo
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              );
-            })}
+            {routines.map((routine) => (
+              <RoutineCard
+                key={routine.id}
+                colors={colors}
+                routine={routine}
+                routineExercises={getExercisesOfRoutine(routine)}
+                exercises={exercises}
+                isAdding={selectedRoutineForAdd === routine.id}
+                selectedExToAdd={selectedExToAdd}
+                setSelectedExToAdd={setSelectedExToAdd}
+                setsCount={setsCount}
+                setSetsCount={setSetsCount}
+                minReps={minReps}
+                setMinReps={setMinReps}
+                maxReps={maxReps}
+                setMaxReps={setMaxReps}
+                onStartAdding={() => {
+                  setSelectedRoutineForAdd(routine.id);
+                  const firstCompatible = exercises.find((ex) =>
+                    isExerciseCompatibleWithFocus(ex, routine.focus),
+                  );
+                  setSelectedExToAdd(firstCompatible ? firstCompatible.id : "");
+                }}
+                onCancelAdding={() => setSelectedRoutineForAdd(null)}
+                onAddExercise={() => handleAddExerciseToRoutine(routine.id)}
+                onOptionsPress={() => handleOpenRoutineOptions(routine)}
+              />
+            ))}
           </View>
         )}
 
@@ -572,726 +792,195 @@ export const GymDashboard: React.FC = () => {
               Registro de Marcas (Progreso)
             </Text>
 
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: colors.backgroundElement },
-              ]}
-            >
-              {/* Paso 1: Elegir Rutina */}
-              <Text style={styles.stepLabel}>1. Selecciona tu Rutina:</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ marginBottom: 12 }}
-              >
-                {routines.map((r) => (
-                  <TouchableOpacity
-                    key={r.id}
-                    style={[
-                      styles.chip,
-                      trackingRoutineId === r.id && styles.chipActive,
-                    ]}
-                    onPress={() => handleRoutineChangeInTracking(r.id)}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        trackingRoutineId === r.id && styles.chipTextActive,
-                      ]}
-                    >
-                      📋 {r.title}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+            <MarcaFormCard
+              colors={colors}
+              routines={routines}
+              trackingRoutineId={trackingRoutineId}
+              trackingExerciseId={trackingExerciseId}
+              currentRoutineExercises={currentRoutineExercises}
+              onSelectRoutine={handleRoutineChangeInTracking}
+              onSelectExercise={(exerciseId: string) => {
+                setTrackingExerciseId(exerciseId);
+                loadProgressionHistory(exerciseId);
+              }}
+              marcaWeight={marcaWeight}
+              setMarcaWeight={setMarcaWeight}
+              marcaReps={marcaReps}
+              setMarcaReps={setMarcaReps}
+              marcaRpe={marcaRpe}
+              setMarcaRpe={setMarcaRpe}
+              savingMarca={savingMarca}
+              onSave={handleSaveMarca}
+              lastSavedSummary={lastSavedSummary}
+            />
 
-              {/* Paso 2: Elegir Ejercicio de esa Rutina */}
-              <Text style={styles.stepLabel}>2. Ejercicio de esta Rutina:</Text>
-              {currentRoutineExercises.length > 0 ? (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={{ marginBottom: 12 }}
-                >
-                  {currentRoutineExercises.map((ex) => (
-                    <TouchableOpacity
-                      key={ex.id}
-                      style={[
-                        styles.chip,
-                        trackingExerciseId === ex.id && styles.chipActive,
-                      ]}
-                      onPress={() => {
-                        setTrackingExerciseId(ex.id);
-                        loadProgressionHistory(ex.id);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          trackingExerciseId === ex.id && styles.chipTextActive,
-                        ]}
-                      >
-                        🏋️ {ex.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              ) : (
-                <Text
-                  style={[
-                    styles.emptyHint,
-                    { color: "#cf1322", marginBottom: 10 },
-                  ]}
-                >
-                  ⚠️ Esta rutina no tiene ejercicios. Agrégalos en la pestaña
-                  "Rutinas".
-                </Text>
-              )}
-
-              {/* Paso 3: Inputs de Marca */}
-              <View style={styles.inlineRow}>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={[styles.fieldLabel, { color: colors.textSecondary }]}
-                  >
-                    Peso (kg)
-                  </Text>
-                  <TextInput
-                    style={[styles.input, { color: colors.text }]}
-                    keyboardType="numeric"
-                    value={marcaWeight}
-                    onChangeText={setMarcaWeight}
-                  />
-                </View>
-
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={[styles.fieldLabel, { color: colors.textSecondary }]}
-                  >
-                    Reps
-                  </Text>
-                  <TextInput
-                    style={[styles.input, { color: colors.text }]}
-                    keyboardType="numeric"
-                    value={marcaReps}
-                    onChangeText={setMarcaReps}
-                  />
-                </View>
-
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={[styles.fieldLabel, { color: colors.textSecondary }]}
-                  >
-                    RPE
-                  </Text>
-                  <TextInput
-                    style={[styles.input, { color: colors.text }]}
-                    keyboardType="numeric"
-                    value={marcaRpe}
-                    onChangeText={setMarcaRpe}
-                  />
-                </View>
-              </View>
-
-              <AppButton
-                title="💾 Guardar Marca (Serie)"
-                onPress={handleSaveMarca}
-                loading={savingMarca}
-                style={{ marginTop: 12 }}
-              />
-
-              {lastSavedSummary && (
-                <Text style={styles.successSavedText}>{lastSavedSummary}</Text>
-              )}
-            </View>
-
-            {/* Historial en Vivo */}
-            <Text
-              style={[styles.subTitle, { color: colors.text, marginTop: 14 }]}
-            >
-              📈 Historial de Levantamientos:
-            </Text>
-            {marcaHistory.length > 0 ? (
-              marcaHistory.map((item, idx) => {
-                const oneRm =
-                  item.reps > 0 && item.reps < 37
-                    ? (item.weight * (36 / (37 - item.reps))).toFixed(1)
-                    : item.weight;
-                const fecha = new Date(item.logged_at).toLocaleDateString();
-
-                return (
-                  <View
-                    key={idx}
-                    style={[
-                      styles.historyRow,
-                      { backgroundColor: colors.backgroundElement },
-                    ]}
-                  >
-                    <View>
-                      <Text
-                        style={[styles.historyWeight, { color: colors.text }]}
-                      >
-                        {item.weight} kg × {item.reps} reps
-                      </Text>
-                      <Text
-                        style={[
-                          styles.historyDate,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {fecha} {item.rpe ? `| RPE ${item.rpe}` : ""}
-                      </Text>
-                    </View>
-                    <View style={styles.oneRmBadge}>
-                      <Text style={styles.oneRmBadgeText}>1RM: {oneRm} kg</Text>
-                    </View>
-                  </View>
-                );
-              })
-            ) : (
-              <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
-                Aún no hay marcas registradas para este ejercicio.
-              </Text>
-            )}
+            <MarcaHistoryList
+              colors={colors}
+              marcaHistory={marcaHistory}
+              onMarcaOptionsPress={handleOpenMarcaOptions}
+            />
           </View>
         )}
 
         {/* ==================== TAB 3: CATÁLOGO ==================== */}
         {activeTab === "catalog" && (
-          <View style={styles.section}>
-            <View style={styles.headerWithBtn}>
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  { color: colors.text, marginBottom: 0 },
-                ]}
-              >
-                Catálogo de Ejercicios
-              </Text>
-              {user?.is_staff && (
-                <TouchableOpacity
-                  style={styles.adminActionBtn}
-                  onPress={() => setShowAddExerciseModal(true)}
-                >
-                  <Text style={styles.btnTextWhite}>➕ Nuevo (Admin)</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {exercises.map((ex) => (
-              <TouchableOpacity
-                key={ex.id}
-                style={[
-                  styles.exerciseCard,
-                  { backgroundColor: colors.backgroundElement },
-                ]}
-                onPress={() => openExerciseDetail(ex.id)}
-              >
-                <View>
-                  <Text style={[styles.exerciseName, { color: colors.text }]}>
-                    {ex.name}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.exerciseInfo,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Máquina: {ex.equipment_name || "Sin máquina"}
-                  </Text>
-                </View>
-                <View style={styles.verMasBadge}>
-                  <Text style={styles.verMasText}>Ver Detalle / Video ›</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <CatalogSection
+            colors={colors}
+            exercises={exercises}
+            isStaff={user?.is_staff}
+            onOpenAddExercise={() => {
+              loadCatalogExtras();
+              setShowAddExerciseModal(true);
+            }}
+            onOpenExerciseDetail={openExerciseDetail}
+            onExerciseOptionsPress={handleOpenExerciseOptions}
+          />
         )}
 
-        {/* ==================== TAB 4: PERFIL / ADMIN ==================== */}
+        {/* ==================== TAB 4: MÁQUINAS Y EQUIPOS ==================== */}
+        {activeTab === "equipment" && (
+          <EquipmentSection
+            colors={colors}
+            equipmentList={equipmentList}
+            onOpenAddEquipment={() => setShowAddEquipmentModal(true)}
+            onEquipmentOptionsPress={handleOpenEquipmentOptions}
+          />
+        )}
+
+        {/* ==================== TAB 5: PERFIL / ADMIN ==================== */}
         {activeTab === "profile" && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Mi Cuenta
-            </Text>
-
-            <View
-              style={[
-                styles.card,
-                { backgroundColor: colors.backgroundElement },
-              ]}
-            >
-              <Text style={[styles.cardTitle, { color: colors.text }]}>
-                {user?.email}
-              </Text>
-              <Text
-                style={[styles.cardSubtitle, { color: colors.textSecondary }]}
-              >
-                Rol:{" "}
-                {user?.is_staff
-                  ? "🛡️ Administrador del Gimnasio"
-                  : "👤 Atleta Convencional"}
-              </Text>
-
-              {user?.is_staff && (
-                <TouchableOpacity
-                  style={[
-                    styles.adminActionBtn,
-                    { alignSelf: "flex-start", marginVertical: 10 },
-                  ]}
-                  onPress={loadAdminUsers}
-                >
-                  <Text style={styles.btnTextWhite}>
-                    👥 Ver Todos los Usuarios Registrados
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              {showAdminUsers && (
-                <View style={{ marginTop: 8 }}>
-                  <Text style={[styles.stepLabel, { color: colors.text }]}>
-                    Usuarios en la Base de Datos:
-                  </Text>
-                  {adminUsers.map((u, i) => (
-                    <View key={i} style={styles.adminUserItem}>
-                      <Text style={{ fontWeight: "bold" }}>{u.email}</Text>
-                      <Text style={{ fontSize: 12, color: "#666" }}>
-                        Rol: {u.is_staff ? "Admin" : "Usuario"} | Rutinas:{" "}
-                        {u.routines_count}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              <AppButton
-                title="Cerrar Sesión"
-                variant="outline"
-                onPress={logout}
-                style={{ marginTop: 14 }}
-              />
-            </View>
-          </View>
+          <ProfileSection
+            colors={colors}
+            showAdminUsers={showAdminUsers}
+            adminUsers={adminUsers}
+            onLoadAdminUsers={loadAdminUsers}
+          />
         )}
       </ScrollView>
 
-      {/* ==================== MODAL: DETALLE DEL EJERCICIO CON VIDEO ==================== */}
-      <Modal visible={modalExerciseVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: colors.background },
-            ]}
-          >
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
-              {selectedExercise?.name}
-            </Text>
+      {/* Barra de Navegación Inferior (Sustituye a Home y Explore) */}
+      <DashboardTabBar
+        colors={colors}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenCatalog={loadCatalogExtras}
+      />
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text
-                style={[styles.modalLabel, { color: colors.textSecondary }]}
-              >
-                Máquina / Equipo:
-              </Text>
-              <Text style={[styles.modalValue, { color: colors.text }]}>
-                {selectedExercise?.equipment?.name ||
-                  "Peso corporal / Sin máquina"}{" "}
-                ({selectedExercise?.equipment?.brand || "Genérica"})
-              </Text>
+      <ExerciseDetailModal
+        colors={colors}
+        visible={modalExerciseVisible}
+        exercise={selectedExercise}
+        onClose={() => setModalExerciseVisible(false)}
+      />
 
-              <Text
-                style={[
-                  styles.modalLabel,
-                  { color: colors.textSecondary, marginTop: 10 },
-                ]}
-              >
-                Instrucciones Técnicas:
-              </Text>
-              <Text style={[styles.modalValue, { color: colors.text }]}>
-                {selectedExercise?.instructions ||
-                  "Sin instrucciones cargadas."}
-              </Text>
+      <AddExerciseModal
+        colors={colors}
+        visible={showAddExerciseModal}
+        newExName={newExName}
+        setNewExName={setNewExName}
+        newExVideo={newExVideo}
+        setNewExVideo={setNewExVideo}
+        newExInstructions={newExInstructions}
+        setNewExInstructions={setNewExInstructions}
+        equipmentList={equipmentList}
+        selectedEquipment={newExEquipment}
+        setSelectedEquipment={setNewExEquipment}
+        onSubmit={handleCreateExercise}
+        onClose={() => setShowAddExerciseModal(false)}
+      />
 
-              <Text
-                style={[
-                  styles.modalLabel,
-                  { color: colors.textSecondary, marginTop: 10 },
-                ]}
-              >
-                Demostración Multimedia:
-              </Text>
-              {selectedExercise?.media && selectedExercise.media.length > 0 ? (
-                selectedExercise.media.map((m, idx) => (
-                  <View key={idx} style={styles.mediaBox}>
-                    <Text style={{ fontWeight: "bold", color: "#ff6b00" }}>
-                      🎬 {m.title || "Video Demostrativo"}
-                    </Text>
-                    <Text
-                      style={{ fontSize: 12, color: "#0066cc", marginTop: 4 }}
-                    >
-                      {m.external_url || m.file}
-                    </Text>
-                  </View>
-                ))
-              ) : (
-                <Text
-                  style={{ fontStyle: "italic", color: "#888", marginTop: 4 }}
-                >
-                  (Sin video o imagen asociada)
-                </Text>
-              )}
-            </ScrollView>
+      <AddEquipmentModal
+        colors={colors}
+        visible={showAddEquipmentModal}
+        onSubmit={handleCreateEquipment}
+        onClose={() => setShowAddEquipmentModal(false)}
+      />
 
-            <AppButton
-              title="Cerrar"
-              variant="secondary"
-              onPress={() => setModalExerciseVisible(false)}
-              style={{ marginTop: 12 }}
-            />
-          </View>
-        </View>
-      </Modal>
+      {/* Action Sheet al Dejar Presionado / Tocar Select ⋮ */}
+      <ItemActionSheet
+        visible={Boolean(actionSheetItem)}
+        colors={colors}
+        itemType={actionSheetItem?.type || "routine"}
+        itemTitle={actionSheetItem?.title || ""}
+        itemSubtitle={actionSheetItem?.subtitle}
+        onEdit={() => {
+          setEditModalItem(actionSheetItem);
+          setActionSheetItem(null);
+        }}
+        onDelete={() => {
+          if (actionSheetItem) {
+            setDeleteConfirmItem({
+              type: actionSheetItem.type,
+              id: actionSheetItem.data.id,
+              title: actionSheetItem.title,
+            });
+          }
+          setActionSheetItem(null);
+        }}
+        onClose={() => setActionSheetItem(null)}
+      />
 
-      {/* ==================== MODAL ADMIN: AGREGAR EJERCICIO ==================== */}
-      <Modal visible={showAddExerciseModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: colors.background },
-            ]}
-          >
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
-              ➕ Nuevo Ejercicio (Admin)
-            </Text>
+      {/* Modal de Edición en Base de Datos */}
+      <EditItemModal
+        visible={Boolean(editModalItem)}
+        colors={colors}
+        itemType={editModalItem?.type || "routine"}
+        routineData={
+          editModalItem?.type === "routine" ? editModalItem.data : null
+        }
+        exerciseData={
+          editModalItem?.type === "exercise"
+            ? {
+                id: editModalItem.data.id,
+                name: editModalItem.data.name,
+                equipment_id:
+                  editModalItem.data.equipment?.id ||
+                  editModalItem.data.equipment_id ||
+                  null,
+                instructions: editModalItem.data.instructions || "",
+                video_url:
+                  editModalItem.data.media?.[0]?.external_url ||
+                  editModalItem.data.video_url ||
+                  "",
+              }
+            : null
+        }
+        marcaData={
+          editModalItem?.type === "marca"
+            ? {
+                id: editModalItem.data.id,
+                weight: editModalItem.data.weight,
+                reps: editModalItem.data.reps,
+                rpe: editModalItem.data.rpe,
+              }
+            : null
+        }
+        equipmentData={
+          editModalItem?.type === "equipment" ? editModalItem.data : null
+        }
+        equipmentList={equipmentList}
+        allExercises={exercises}
+        onSaveRoutine={handleSaveRoutineEdit}
+        onSaveExercise={handleSaveExerciseEdit}
+        onSaveMarca={handleSaveMarcaEdit}
+        onSaveEquipment={handleSaveEquipmentEdit}
+        onRemoveExerciseFromRoutine={handleRemoveExerciseFromRoutine}
+        onAddExerciseToRoutine={handleAddExerciseToRoutineInEdit}
+        onClose={() => setEditModalItem(null)}
+      />
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <AppInput
-                label="Nombre del Ejercicio"
-                placeholder="Ej: Press Inclinado con Mancuernas"
-                value={newExName}
-                onChangeText={setNewExName}
-              />
+      {/* Modal de Confirmación para Borrar de la BD */}
+      <ConfirmDeleteModal
+        visible={Boolean(deleteConfirmItem)}
+        colors={colors}
+        itemTitle={deleteConfirmItem?.title || ""}
+        itemType={deleteConfirmItem?.type || "routine"}
+        onConfirm={handleConfirmDelete}
+        onClose={() => setDeleteConfirmItem(null)}
+      />
 
-              <AppInput
-                label="URL de Video (YouTube o MP4)"
-                placeholder="https://youtu.be/..."
-                value={newExVideo}
-                onChangeText={setNewExVideo}
-              />
-
-              <AppInput
-                label="Instrucciones"
-                placeholder="Paso a paso de ejecución..."
-                value={newExInstructions}
-                onChangeText={setNewExInstructions}
-                multiline
-              />
-            </ScrollView>
-
-            <AppButton
-              title="Publicar Ejercicio"
-              onPress={handleCreateExercise}
-            />
-            <TouchableOpacity
-              onPress={() => setShowAddExerciseModal(false)}
-              style={{ marginTop: 8, alignItems: "center" }}
-            >
-              <Text style={{ color: "#888" }}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Notificaciones Animadas Flotantes */}
+      <AnimatedToast toast={toast} onDismiss={() => setToast(null)} />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    width: "100%",
-  },
-  tabBar: {
-    flexDirection: "row",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginHorizontal: 12,
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: "center",
-    borderRadius: 8,
-  },
-  tabButtonActive: {
-    backgroundColor: "#ff6b00",
-  },
-  tabText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#888",
-  },
-  tabTextActive: {
-    color: "#ffffff",
-  },
-  scrollContent: {
-    padding: Spacing.three,
-    paddingBottom: 60,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 26,
-    fontWeight: "800",
-    marginBottom: Spacing.two,
-  },
-  subTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    marginBottom: 6,
-  },
-  headerWithBtn: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.two,
-  },
-  card: {
-    borderRadius: 14,
-    padding: Spacing.three,
-    marginBottom: Spacing.three,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  cardSubtitle: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  routineHeader: {
-    marginBottom: 8,
-  },
-  routineTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  routineSubtitle: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  inlineRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 6,
-  },
-  input: {
-    backgroundColor: "rgba(150, 150, 150, 0.15)",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 14,
-  },
-  fieldLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  smallPrimaryBtn: {
-    backgroundColor: "#ff6b00",
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 8,
-  },
-  btnTextWhite: {
-    color: "#ffffff",
-    fontWeight: "700",
-    fontSize: 13,
-  },
-  exerciseBadge: {
-    backgroundColor: "rgba(255, 107, 0, 0.1)",
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginVertical: 2,
-  },
-  exerciseBadgeText: {
-    color: "#ff6b00",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  emptyHint: {
-    fontSize: 12,
-    fontStyle: "italic",
-    marginVertical: 4,
-  },
-  addBtnOutline: {
-    borderWidth: 1,
-    borderColor: "#ff6b00",
-    borderStyle: "dashed",
-    borderRadius: 8,
-    paddingVertical: 7,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  addBtnOutlineText: {
-    color: "#ff6b00",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  addExerciseBox: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(150, 150, 150, 0.2)",
-  },
-  addExerciseBoxTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#ff6b00",
-  },
-  chip: {
-    backgroundColor: "rgba(150, 150, 150, 0.15)",
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 6,
-  },
-  chipActive: {
-    backgroundColor: "#ff6b00",
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#666",
-  },
-  chipTextActive: {
-    color: "#ffffff",
-  },
-  cancelText: {
-    color: "#888",
-    fontSize: 11,
-    textAlign: "center",
-    marginTop: 6,
-  },
-  stepLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    marginBottom: 6,
-    color: "#ff6b00",
-  },
-  successSavedText: {
-    color: "#28a745",
-    fontSize: 13,
-    fontWeight: "700",
-    marginTop: 8,
-    textAlign: "center",
-  },
-  historyRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 6,
-  },
-  historyWeight: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  historyDate: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  oneRmBadge: {
-    backgroundColor: "#ff6b00",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  oneRmBadgeText: {
-    color: "#ffffff",
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  exerciseCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: Spacing.three,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  exerciseName: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  exerciseInfo: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  verMasBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  verMasText: {
-    color: "#ff6b00",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  adminActionBtn: {
-    backgroundColor: "#d46b08",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  adminUserItem: {
-    backgroundColor: "rgba(150,150,150,0.1)",
-    padding: 6,
-    borderRadius: 6,
-    marginVertical: 3,
-  },
-  loadingOverlay: {
-    padding: 4,
-    alignItems: "center",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    padding: 20,
-  },
-  modalContent: {
-    borderRadius: 16,
-    padding: 20,
-    maxHeight: "80%",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    marginBottom: 12,
-  },
-  modalLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-  },
-  modalValue: {
-    fontSize: 14,
-    marginTop: 2,
-    lineHeight: 18,
-  },
-  mediaBox: {
-    backgroundColor: "rgba(255,107,0,0.08)",
-    padding: 8,
-    borderRadius: 8,
-    marginTop: 6,
-  },
-});

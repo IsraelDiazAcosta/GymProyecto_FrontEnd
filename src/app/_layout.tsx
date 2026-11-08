@@ -4,7 +4,6 @@ import { ActivityIndicator, useColorScheme, View } from "react-native";
 
 import HomeScreen from "@/app/index";
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
-import AppTabs from "@/components/app-tabs";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 SplashScreen.preventAutoHideAsync();
@@ -20,13 +19,7 @@ function RootNavigator() {
     );
   }
 
-  // Si no hay usuario autenticado, mostrar solo la pantalla de login sin tabs
-  if (!user) {
-    return <HomeScreen />;
-  }
-
-  // Usuario autenticado: mostrar la navegación con tabs
-  return <AppTabs />;
+  return <HomeScreen />;
 }
 
 export default function RootLayout() {

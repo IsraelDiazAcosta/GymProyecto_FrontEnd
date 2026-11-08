@@ -1,8 +1,7 @@
 import { Platform } from "react-native";
 import { storage } from "./storage";
 
-export const DEV_PC_IP = "192.168.0.11";
-
+export const DEV_PC_IP = "192.168.0.7";
 export const API_BASE_URL = Platform.select({
   web: "http://127.0.0.1:8000/api/v1",
   android: `http://${DEV_PC_IP}:8000/api/v1`,
@@ -31,6 +30,7 @@ export interface Equipment {
   id: number;
   name: string;
   equipment_type: string;
+  equipment_type_display?: string;
   brand: string;
   image?: string;
   description?: string;
@@ -70,6 +70,7 @@ export interface Exercise {
   instructions?: string;
   tips?: string;
   media?: ExerciseMedia[];
+  thumbnail?: string | null;
 }
 
 export interface RoutineSet {
@@ -105,6 +106,7 @@ export interface RoutineDay {
 export interface Routine {
   id: string;
   title: string;
+  focus: string;
   description?: string;
   days_count?: number;
   days: RoutineDay[];
@@ -112,6 +114,7 @@ export interface Routine {
 }
 
 export interface ProgressionItem {
+  id?: string;
   logged_at: string;
   weight: number;
   reps: number;
@@ -198,6 +201,41 @@ export const api = {
     return res.results || res;
   },
 
+  async createEquipment(payload: {
+    name: string;
+    equipment_type: string;
+    brand?: string;
+    description?: string;
+    setup_guide?: string;
+  }): Promise<Equipment> {
+    return request<Equipment>("/catalog/equipment/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async updateEquipment(
+    id: number,
+    payload: {
+      name?: string;
+      equipment_type?: string;
+      brand?: string;
+      description?: string;
+      setup_guide?: string;
+    },
+  ): Promise<Equipment> {
+    return request<Equipment>(`/catalog/equipment/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteEquipment(id: number): Promise<void> {
+    return request<void>(`/catalog/equipment/${id}/`, {
+      method: "DELETE",
+    });
+  },
+
   async getMuscles(): Promise<MuscleGroup[]> {
     const res: any = await request("/catalog/muscles/");
     return res.results || res;
@@ -210,6 +248,19 @@ export const api = {
     });
   },
 
+  async updateExercise(id: string, payload: any): Promise<Exercise> {
+    return request<Exercise>(`/catalog/exercises/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteExercise(id: string): Promise<void> {
+    return request<void>(`/catalog/exercises/${id}/`, {
+      method: "DELETE",
+    });
+  },
+
   // --- RUTINAS ---
   async getRoutines(): Promise<Routine[]> {
     const res: any = await request("/routines/routines/");
@@ -218,11 +269,38 @@ export const api = {
 
   async createRoutine(
     title: string,
+    focus: string,
     description: string = "Rutina personalizada",
   ): Promise<Routine> {
     return request<Routine>("/routines/routines/", {
       method: "POST",
-      body: JSON.stringify({ title, description }),
+      body: JSON.stringify({
+        title,
+        focus,
+        description,
+      }),
+    });
+  },
+
+  async updateRoutine(
+    id: string,
+    payload: { title?: string; focus?: string; description?: string },
+  ): Promise<Routine> {
+    return request<Routine>(`/routines/routines/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteRoutine(id: string): Promise<void> {
+    return request<void>(`/routines/routines/${id}/`, {
+      method: "DELETE",
+    });
+  },
+
+  async removeExerciseFromRoutine(routineExerciseId: string): Promise<void> {
+    return request<void>(`/routines/exercises/${routineExerciseId}/`, {
+      method: "DELETE",
     });
   },
 
@@ -297,5 +375,21 @@ export const api = {
     return request<{ history: ProgressionItem[] }>(
       `/tracking/progression/${exerciseId}/`,
     );
+  },
+
+  async updateMarca(
+    setId: string,
+    payload: { weight?: number; reps?: number; rpe?: number },
+  ): Promise<any> {
+    return request<any>(`/tracking/sets/${setId}/`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteMarca(setId: string): Promise<void> {
+    return request<void>(`/tracking/sets/${setId}/`, {
+      method: "DELETE",
+    });
   },
 };

@@ -1,12 +1,15 @@
 import { ProgressionItem, Routine } from "@/services/api";
-import React from "react";
+import React, { useState } from "react";
 import {
+    LayoutRectangle,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import Svg, { Polyline } from "react-native-svg";
+
 
 interface RMTrackingChartProps {
   colors: {
@@ -15,28 +18,103 @@ interface RMTrackingChartProps {
     textSecondary: string;
   };
   routines: Routine[];
+
   trackingRoutineId: string;
+  trackingExerciseId: string;
+
+  exercises: {
+    id: string;
+    name: string;
+  }[];
+
   marcaHistory: ProgressionItem[];
+
   onSelectRoutine: (routineId: string) => void;
+  onSelectExercise: (exerciseId: string) => void;
 }
 
 export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
   colors,
   routines,
   trackingRoutineId,
+  trackingExerciseId,
+  exercises,
   marcaHistory,
   onSelectRoutine,
+  onSelectExercise,
 }) => {
+  const chartData = marcaHistory.slice(-6).map((item) =>
+  item.reps > 0 && item.reps < 37
+    ? parseFloat(
+        (item.weight * (36 / (37 - item.reps))).toFixed(1)
+      )
+    : item.weight
+);
+
+const maxValue = chartData.length
+  ? Math.max(...chartData)
+  : 0;
+
+const minValue = chartData.length
+  ? Math.min(...chartData)
+  : 0;
+
+  // Posiciones medidas de cada columna y de cada punto, para unirlos con la línea
+  const [columnLayouts, setColumnLayouts] = useState<
+    Record<number, LayoutRectangle>
+  >({});
+  const [dotLayouts, setDotLayouts] = useState<Record<number, LayoutRectangle>>(
+    {},
+  );
+
+  const visibleHistory = marcaHistory.slice(-6);
+  const linePoints = visibleHistory
+    .map((_, index) => {
+      const col = columnLayouts[index];
+      const dot = dotLayouts[index];
+      if (!col || !dot) return null;
+      return `${col.x + dot.x + dot.width / 2},${col.y + dot.y + dot.height / 2}`;
+    })
+    .filter((point): point is string => point !== null);
+
   return (
     <View style={[styles.card, { backgroundColor: colors.backgroundElement }]}>
       <View style={styles.chartHeader}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>
-          📊 Tu Progreso de 1RM
-        </Text>
-        <Text style={[styles.chartSub, { color: colors.textSecondary }]}>
-          Histórico de fuerza
-        </Text>
-      </View>
+  <View>
+    <Text style={[styles.cardTitle, { color: colors.text }]}>
+      📊 Tu Progreso de 1RM
+    </Text>
+
+    <Text
+      style={{
+        color: "#10b981",
+        fontWeight: "700",
+        fontSize: 12,
+        marginTop: 4,
+      }}
+    >
+      Ejercicio:
+      {" "}
+      {exercises.find(
+        (e) => e.id === trackingExerciseId,
+      )?.name || "Ninguno"}
+    </Text>
+  </View>
+
+  <Text
+  style={[
+    styles.chartSub,
+    {
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+  ]}
+>
+  Histórico de fuerza
+</Text>
+
+</View>
+
 
       {/* Selectores de Rutina */}
       <View style={styles.chartFilters}>
@@ -66,24 +144,87 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
           ))}
         </ScrollView>
       </View>
+      {/* Selectores de Ejercicio */}
+{exercises.length > 0 && (
+  <View style={styles.chartFilters}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ marginVertical: 6 }}
+    >
+      {exercises.map((ex) => (
+        <TouchableOpacity
+          key={ex.id}
+          style={[
+            styles.chip,
+            trackingExerciseId === ex.id &&
+              styles.chipActive,
+          ]}
+          onPress={() => onSelectExercise(ex.id)}
+        >
+          <Text
+            style={[
+              styles.chipText,
+              trackingExerciseId === ex.id &&
+                styles.chipTextActive,
+            ]}
+          >
+            🏋️ {ex.name}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  </View>
+)}
 
       {/* Puntos de 1RM */}
       {marcaHistory.length > 0 ? (
         <View style={styles.chartContainer}>
           <View style={styles.chartVisualBox}>
+            
             <View style={styles.pointsRow}>
-              {marcaHistory.slice(-6).map((item, index) => {
+              {linePoints.length === visibleHistory.length &&
+                linePoints.length > 1 && (
+                  <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+                    <Polyline
+                      points={linePoints.join(" ")}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      strokeOpacity={0.6}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                    />
+                  </Svg>
+                )}
+              {visibleHistory.map((item, index) => {
                 const oneRm =
                   item.reps > 0 && item.reps < 37
                     ? parseFloat(
                         (item.weight * (36 / (37 - item.reps))).toFixed(1),
                       )
                     : item.weight;
+                const normalized =maxValue === minValue? 0.5: (oneRm - minValue) / (maxValue - minValue);
+                const chartHeight = 50;
+                const pointOffset = Math.max(0,Math.min(chartHeight,normalized * chartHeight)); 
 
                 return (
-                  <View key={index} style={styles.pointColumn}>
+                  <View
+                    key={index}
+                    style={[styles.pointColumn, { marginBottom: pointOffset }]}
+                    onLayout={(e) => {
+                      const layout = e.nativeEvent.layout;
+                      setColumnLayouts((prev) => ({ ...prev, [index]: layout }));
+                    }}
+                  >
                     <Text style={styles.pointValueText}>{oneRm}kg</Text>
-                    <View style={styles.pointDot} />
+                    <View
+                      style={styles.pointDot}
+                      onLayout={(e) => {
+                        const layout = e.nativeEvent.layout;
+                        setDotLayouts((prev) => ({ ...prev, [index]: layout }));
+                      }}
+                    />
                     <Text style={styles.pointDateText}>
                       {new Date(item.logged_at).toLocaleDateString(undefined, {
                         month: "short",
@@ -135,17 +276,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   cardTitle: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "800",
   },
   chartHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   chartSub: {
-    fontSize: 12,
+    fontSize: 14,
+    marginTop: 2,
   },
   chartFilters: {
     marginBottom: 10,
@@ -153,15 +292,15 @@ const styles = StyleSheet.create({
   chip: {
     backgroundColor: "rgba(150, 150, 150, 0.15)",
     borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     marginRight: 6,
   },
   chipActive: {
-    backgroundColor: "#ff6b00",
+    backgroundColor: "#10b981",
   },
   chipText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "600",
     color: "#666",
   },
@@ -172,7 +311,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   chartVisualBox: {
-    backgroundColor: "rgba(255, 107, 0, 0.05)",
+    backgroundColor: "rgba(227, 252, 211, 0.05)",
     borderRadius: 12,
     padding: 12,
     alignItems: "center",
@@ -183,27 +322,27 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     width: "100%",
     alignItems: "flex-end",
-    height: 70,
+    height: 140,
   },
   pointColumn: {
     alignItems: "center",
     flex: 1,
   },
   pointValueText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#ff6b00",
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#10b981",
     marginBottom: 4,
   },
   pointDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#ff6b00",
+    backgroundColor: "#10b981",
     marginVertical: 4,
   },
   pointDateText: {
-    fontSize: 9,
+    fontSize: 11,
     color: "#888",
     marginTop: 2,
   },
@@ -213,7 +352,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   emptyHint: {
-    fontSize: 12,
+    fontSize: 14,
     fontStyle: "italic",
   },
 });

@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.three,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "700",
     marginBottom: Spacing.one,
   },
   inputContainer: {
@@ -89,23 +89,23 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1.5,
     paddingHorizontal: Spacing.three,
-    height: 50,
+    height: 52,
   },
   input: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     height: "100%",
   },
   eyeButton: {
     paddingLeft: Spacing.two,
   },
   eyeText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
   },
   errorText: {
     color: "#ff4d4f",
-    fontSize: 12,
+    fontSize: 13,
     marginTop: Spacing.one,
   },
 });
