@@ -1,111 +1,138 @@
-import { Colors, Spacing } from "@/constants/theme";
 import React, { useState } from "react";
 import {
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
   TextInputProps,
-  TouchableOpacity,
   useColorScheme,
   View,
 } from "react-native";
 
+import { Colors, Radius, Spacing } from "@/constants/theme";
+import { GymIcon, IconName } from "./GymIcon";
+
 interface AppInputProps extends TextInputProps {
-  label?: string;
-  error?: string | null;
-  isPassword?: boolean;
+  label: string;
+  error?: string;
+  leftIcon?: IconName;
 }
 
-export const AppInput: React.FC<AppInputProps> = ({
+/**
+ * Campo de texto reutilizable con estética "Apex Emerald Gym".
+ * Mantiene una jerarquía nativa estable (collapsable={false} y sin re-renderizado en onFocus)
+ * para evitar que el teclado se cierre automáticamente en Android/iOS.
+ */
+export function AppInput({
   label,
   error,
-  isPassword = false,
   style,
-  ...props
-}) => {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === "dark" ? "dark" : "light"];
-  const [showPassword, setShowPassword] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  leftIcon,
+  secureTextEntry,
+  ...rest
+}: AppInputProps) {
+  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const colors = Colors[scheme];
+  const [hidePassword, setHidePassword] = useState(Boolean(secureTextEntry));
 
   return (
-    <View style={styles.container}>
-      {label && (
-        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
-      )}
-
+    <View style={styles.container} collapsable={false}>
+      <Text style={[styles.label, { color: colors.textSecondary }]}>
+        {label}
+      </Text>
       <View
+        collapsable={false}
         style={[
-          styles.inputContainer,
+          styles.inputWrapper,
           {
-            backgroundColor: colors.backgroundElement,
-            borderColor: error
-              ? "#ff4d4f"
-              : isFocused
-                ? "#9e9fd1"
-                : "transparent",
+            backgroundColor: colors.backgroundElevated,
+            borderColor: error ? colors.danger : colors.border,
           },
         ]}
       >
+        {leftIcon && (
+          <View style={styles.leftIconWrap} pointerEvents="none">
+            <GymIcon name={leftIcon} size={18} color={colors.primary} />
+          </View>
+        )}
         <TextInput
-          style={[styles.input, { color: colors.text }, style]}
           placeholderTextColor={colors.textSecondary}
-          secureTextEntry={isPassword && !showPassword}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          autoCapitalize="none"
-          {...props}
+          secureTextEntry={secureTextEntry ? hidePassword : false}
+          style={[
+            styles.input,
+            {
+              color: colors.text,
+            },
+            style,
+          ]}
+          {...rest}
         />
-
-        {isPassword && (
-          <TouchableOpacity
+        {secureTextEntry && (
+          <Pressable
+            onPress={() => setHidePassword((prev) => !prev)}
             style={styles.eyeButton}
-            onPress={() => setShowPassword((prev) => !prev)}
+            hitSlop={10}
           >
-            <Text style={[styles.eyeText, { color: colors.textSecondary }]}>
-              {showPassword ? "Ocultar" : "Mostrar"}
-            </Text>
-          </TouchableOpacity>
+            <GymIcon
+              name={hidePassword ? "eye" : "eye-off"}
+              size={18}
+              color={colors.textSecondary}
+            />
+          </Pressable>
         )}
       </View>
-
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? (
+        <View style={styles.errorRow}>
+          <GymIcon name="alert-triangle" size={13} color={colors.danger} />
+          <Text style={[styles.errorText, { color: colors.danger }]}>
+            {error}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     marginBottom: Spacing.three,
+    width: "100%",
   },
   label: {
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: "700",
-    marginBottom: Spacing.one,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: 6,
   },
-  inputContainer: {
+  inputWrapper: {
+    minHeight: 50,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 10,
-    borderWidth: 1.5,
-    paddingHorizontal: Spacing.three,
-    height: 52,
+    paddingHorizontal: 14,
+  },
+  leftIconWrap: {
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    height: "100%",
+    fontSize: 15,
+    paddingVertical: 12,
   },
   eyeButton: {
-    paddingLeft: Spacing.two,
+    marginLeft: 8,
+    padding: 4,
   },
-  eyeText: {
-    fontSize: 13,
-    fontWeight: "600",
+  errorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 5,
   },
   errorText: {
-    color: "#ff4d4f",
-    fontSize: 13,
-    marginTop: Spacing.one,
+    fontSize: 12,
+    fontWeight: "600",
   },
 });

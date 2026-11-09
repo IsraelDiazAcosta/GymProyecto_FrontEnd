@@ -6,9 +6,14 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  isInitializing: boolean;
+  isAuthenticated: boolean;
   isAuthenticating: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (
+    emailOrObj: string | { username: string; password: string },
+    password?: string,
+  ) => Promise<boolean>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -38,24 +43,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (savedUser) {
           setUser(savedUser);
         }
-        // Verificar token fresco de fondo
         try {
           const freshUser = await api.getProfile();
           setUser(freshUser);
           await storage.saveUser(freshUser);
         } catch {
-          // Si el token expiró, cerrar sesión
           await logout();
         }
       }
     } catch (e) {
-      console.error("Error to restauring session", e);
+      console.error("Error restoring session", e);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (
+    emailOrObj: string | { username: string; password: string },
+    passwordArg?: string,
+  ): Promise<boolean> => {
+    const email =
+      typeof emailOrObj === "string" ? emailOrObj : emailOrObj.username;
+    const password =
+      typeof emailOrObj === "string" ? passwordArg || "" : emailOrObj.password;
+
     setIsAuthenticating(true);
     setError(null);
     try {
@@ -69,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       return true;
     } catch (err: any) {
-      setError(err.message || "Error to log in");
+      setError(err.message || "Error al iniciar sesión");
       return false;
     } finally {
       setIsAuthenticating(false);
@@ -91,6 +102,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         user,
         token,
         isLoading,
+        isInitializing: isLoading,
+        isAuthenticated: Boolean(user || token),
         isAuthenticating,
         error,
         login,

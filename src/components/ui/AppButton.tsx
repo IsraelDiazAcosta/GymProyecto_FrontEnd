@@ -1,87 +1,167 @@
-import { Spacing } from "@/constants/theme";
-import React from "react";
+import React, { useRef } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
-  TouchableOpacityProps,
+  useColorScheme,
+  View,
+  ViewStyle,
 } from "react-native";
 
-interface AppButtonProps extends TouchableOpacityProps {
+import { Colors, Radius } from "@/constants/theme";
+import { GymIcon, IconName } from "./GymIcon";
+
+type ButtonVariant = "primary" | "secondary" | "outline" | "danger";
+
+interface AppButtonProps {
   title: string;
+  onPress: () => void;
+  variant?: ButtonVariant;
   loading?: boolean;
-  variant?: "primary" | "secondary" | "outline" | "danger";
+  disabled?: boolean;
+  style?: ViewStyle;
+  icon?: IconName;
 }
 
-export const AppButton: React.FC<AppButtonProps> = ({
+/**
+ * Botón reutilizable con estética "Apex Emerald Gym", soporte de iconos vectoriales
+ * y micro-animación de rebote elástico al presionar.
+ */
+export function AppButton({
   title,
-  loading = false,
+  onPress,
   variant = "primary",
-  disabled,
+  loading = false,
+  disabled = false,
   style,
-  ...props
-}) => {
+  icon,
+}: AppButtonProps) {
+  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const colors = Colors[scheme];
   const isDisabled = disabled || loading;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  const getBackgroundColor = () => {
-    if (isDisabled && variant === "primary") return "#0c0547";
+  const handlePressIn = () => {
+    if (isDisabled) return;
+    Animated.spring(scaleAnim, {
+      toValue: 0.97,
+      damping: 15,
+      stiffness: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    if (isDisabled) return;
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      damping: 15,
+      stiffness: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const getVariantStyle = (): ViewStyle => {
     switch (variant) {
       case "primary":
-        return "#604fff";
+        return {
+          backgroundColor: colors.primary,
+          borderColor: colors.primaryLight,
+          borderWidth: 1,
+          shadowColor: colors.primary,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: scheme === "dark" ? 0.35 : 0.22,
+          shadowRadius: 12,
+          elevation: 5,
+        };
       case "secondary":
-        return "#4b5563";
-      case "danger":
-        return "#dc2626";
+        return {
+          backgroundColor: colors.backgroundSelected,
+          borderColor: colors.border,
+          borderWidth: 1,
+        };
       case "outline":
-        return "transparent";
-      default:
-        return "#0c0547";
+        return {
+          backgroundColor: "transparent",
+          borderWidth: 1.5,
+          borderColor: colors.border,
+        };
+      case "danger":
+        return {
+          backgroundColor: colors.danger,
+          borderColor: colors.danger,
+          borderWidth: 1,
+          shadowColor: colors.danger,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.25,
+          shadowRadius: 10,
+          elevation: 4,
+        };
     }
   };
 
-  const getTextColor = () => {
-    if (variant === "outline") return "#200f83";
-    return "#ffffff";
+  const getTextColor = (): string => {
+    switch (variant) {
+      case "primary":
+      case "danger":
+        return "#FFFFFF";
+      case "secondary":
+        return colors.primary;
+      case "outline":
+        return colors.text;
+    }
   };
 
+  const contentColor = getTextColor();
+
   return (
-    <TouchableOpacity
-      style={[
-        styles.button,
-        { backgroundColor: getBackgroundColor() },
-        variant === "outline" && styles.outlineBorder,
-        style,
-      ]}
-      disabled={isDisabled}
-      activeOpacity={0.8}
-      {...props}
-    >
-      {loading ? (
-        <ActivityIndicator color={getTextColor()} size="small" />
-      ) : (
-        <Text style={[styles.text, { color: getTextColor() }]}>{title}</Text>
-      )}
-    </TouchableOpacity>
+    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={isDisabled}
+        style={[
+          styles.button,
+          getVariantStyle(),
+          isDisabled && styles.disabled,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator color={contentColor} size="small" />
+        ) : (
+          <View style={styles.contentRow}>
+            {icon && <GymIcon name={icon} size={18} color={contentColor} />}
+            <Text style={[styles.text, { color: contentColor }]}>{title}</Text>
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   button: {
-    height: 50,
-    borderRadius: 10,
-    justifyContent: "center",
+    height: 52,
+    borderRadius: Radius.md,
     alignItems: "center",
-    paddingHorizontal: Spacing.four,
-    marginVertical: Spacing.one,
+    justifyContent: "center",
+    paddingHorizontal: 20,
   },
-  outlineBorder: {
-    borderWidth: 1.5,
-    borderColor: "#3b32bb",
+  contentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  disabled: {
+    opacity: 0.5,
   },
   text: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "800",
     letterSpacing: 0.3,
   },
 });

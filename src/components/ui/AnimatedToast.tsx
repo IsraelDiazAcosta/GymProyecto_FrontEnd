@@ -1,77 +1,117 @@
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  useColorScheme,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { Colors, Radius } from "@/constants/theme";
+import { GymIcon, IconName } from "./GymIcon";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
-export interface ToastMessage {
-  id: string;
+export interface ToastConfig {
+  visible: boolean;
   type: ToastType;
   title: string;
-  message?: string;
+  message: string;
 }
 
 interface AnimatedToastProps {
-  toast: ToastMessage | null;
-  onDismiss: () => void;
+  toast: ToastConfig;
+  onHide: () => void;
 }
 
-export const AnimatedToast: React.FC<AnimatedToastProps> = ({
-  toast,
-  onDismiss,
-}) => {
-  const insets = useSafeAreaInsets();
-  const translateY = useRef(new Animated.Value(-120)).current;
+const TOAST_THEMES: Record<
+  ToastType,
+  {
+    accent: string;
+    bgDark: string;
+    bgLight: string;
+    icon: IconName;
+  }
+> = {
+  success: {
+    accent: "#10B981",
+    bgDark: "#0D261D",
+    bgLight: "#ECFDF5",
+    icon: "check-circle",
+  },
+  error: {
+    accent: "#F43F5E",
+    bgDark: "#2A1219",
+    bgLight: "#FFF1F2",
+    icon: "x-circle",
+  },
+  warning: {
+    accent: "#F59E0B",
+    bgDark: "#291E0C",
+    bgLight: "#FFFBEB",
+    icon: "alert-triangle",
+  },
+  info: {
+    accent: "#34D399",
+    bgDark: "#10241E",
+    bgLight: "#F0FDF4",
+    icon: "sparkles",
+  },
+};
+
+export function AnimatedToast({ toast, onHide }: AnimatedToastProps) {
+  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const colors = Colors[scheme];
+
+  const translateY = useRef(new Animated.Value(-130)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.92)).current;
+  const progress = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (toast) {
-      // Entrada animada con resorte y fade
+    if (toast.visible) {
+      progress.setValue(1);
+
       Animated.parallel([
         Animated.spring(translateY, {
           toValue: 0,
+          friction: 7,
+          tension: 75,
           useNativeDriver: true,
-          tension: 80,
-          friction: 9,
         }),
         Animated.timing(opacity, {
           toValue: 1,
-          duration: 250,
+          duration: 220,
           useNativeDriver: true,
         }),
         Animated.spring(scale, {
           toValue: 1,
+          friction: 6,
+          tension: 85,
           useNativeDriver: true,
-          tension: 90,
-          friction: 8,
         }),
       ]).start();
 
-      // Desvanecimiento automático después de 3.2 segundos
+      Animated.timing(progress, {
+        toValue: 0,
+        duration: 3800,
+        useNativeDriver: false,
+      }).start();
+
       const timer = setTimeout(() => {
-        handleDismiss();
-      }, 3400);
+        dismissToast();
+      }, 3800);
 
       return () => clearTimeout(timer);
-    } else {
-      translateY.setValue(-120);
-      opacity.setValue(0);
-      scale.setValue(0.92);
     }
-  }, [toast]);
+  }, [toast.visible, toast.title, toast.message]);
 
-  const handleDismiss = () => {
+  const dismissToast = () => {
     Animated.parallel([
       Animated.timing(translateY, {
-        toValue: -120,
-        duration: 250,
+        toValue: -130,
+        duration: 240,
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
@@ -85,154 +125,147 @@ export const AnimatedToast: React.FC<AnimatedToastProps> = ({
         useNativeDriver: true,
       }),
     ]).start(() => {
-      onDismiss();
+      onHide();
     });
   };
 
-  if (!toast) return null;
+  if (!toast.visible) return null;
 
-  const getTheme = () => {
-    switch (toast.type) {
-      case "success":
-        return {
-          icon: "🚀",
-          accentColor: "#10b981",
-          bgColor: "#064e3b",
-          borderColor: "#059669",
-          textColor: "#ecfdf5",
-          subColor: "#a7f3d0",
-        };
-      case "error":
-        return {
-          icon: "⚠️",
-          accentColor: "#f43f5e",
-          bgColor: "#881337",
-          borderColor: "#e11d48",
-          textColor: "#fff1f2",
-          subColor: "#fecdd3",
-        };
-      case "warning":
-        return {
-          icon: "⚡",
-          accentColor: "#f59e0b",
-          bgColor: "#78350f",
-          borderColor: "#d97706",
-          textColor: "#fef3c7",
-          subColor: "#fde68a",
-        };
-      case "info":
-      default:
-        return {
-          icon: "💡",
-          accentColor: "#3b82f6",
-          bgColor: "#1e3a8a",
-          borderColor: "#2563eb",
-          textColor: "#eff6ff",
-          subColor: "#bfdbfe",
-        };
-    }
-  };
-
-  const theme = getTheme();
+  const theme = TOAST_THEMES[toast.type];
+  const progressWidth = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0%", "100%"],
+  });
 
   return (
     <Animated.View
       style={[
-        toastStyles.container,
+        styles.wrapper,
         {
-          top: Math.max(insets.top, 16) + 4,
           opacity,
           transform: [{ translateY }, { scale }],
         },
       ]}
-      pointerEvents="box-none"
     >
-      <TouchableOpacity
+      <Pressable
+        onPress={dismissToast}
         style={[
-          toastStyles.card,
+          styles.container,
           {
-            backgroundColor: theme.bgColor,
-            borderColor: theme.borderColor,
+            backgroundColor: scheme === "dark" ? theme.bgDark : theme.bgLight,
+            borderColor: theme.accent + "55",
           },
         ]}
-        onPress={handleDismiss}
-        activeOpacity={0.9}
       >
-        <View style={toastStyles.leftBar}>
-          <Text style={toastStyles.icon}>{theme.icon}</Text>
-        </View>
+        <View style={styles.contentRow}>
+          <View
+            style={[
+              styles.iconBadge,
+              {
+                backgroundColor: theme.accent + "22",
+                borderColor: theme.accent + "45",
+              },
+            ]}
+          >
+            <GymIcon name={theme.icon} size={20} color={theme.accent} />
+          </View>
 
-        <View style={toastStyles.content}>
-          <Text style={[toastStyles.title, { color: theme.textColor }]}>
-            {toast.title}
-          </Text>
-          {Boolean(toast.message) && (
-            <Text style={[toastStyles.message, { color: theme.subColor }]}>
+          <View style={styles.textColumn}>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {toast.title}
+            </Text>
+            <Text
+              style={[styles.message, { color: colors.textSecondary }]}
+              numberOfLines={3}
+            >
               {toast.message}
             </Text>
-          )}
+          </View>
+
+          <Pressable
+            onPress={dismissToast}
+            style={styles.closeBtn}
+            hitSlop={10}
+          >
+            <GymIcon name="x" size={16} color={colors.textSecondary} />
+          </Pressable>
         </View>
 
-        <TouchableOpacity onPress={handleDismiss} style={toastStyles.closeBtn}>
-          <Text style={[toastStyles.closeText, { color: theme.subColor }]}>
-            ✕
-          </Text>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        <View style={styles.progressTrack}>
+          <Animated.View
+            style={[
+              styles.progressBar,
+              {
+                backgroundColor: theme.accent,
+                width: progressWidth,
+              },
+            ]}
+          />
+        </View>
+      </Pressable>
     </Animated.View>
   );
-};
+}
 
-const toastStyles = StyleSheet.create({
-  container: {
+const styles = StyleSheet.create({
+  wrapper: {
     position: "absolute",
+    top: 52,
     left: 16,
     right: 16,
-    zIndex: 99999,
+    zIndex: 9999,
     alignItems: "center",
   },
-  card: {
+  container: {
     width: "100%",
+    maxWidth: 500,
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 18,
+    elevation: 12,
+  },
+  contentRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
     paddingHorizontal: 14,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    elevation: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
+    paddingVertical: 13,
+    gap: 12,
   },
-  leftBar: {
-    marginRight: 12,
-    justifyContent: "center",
+  iconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
     alignItems: "center",
+    justifyContent: "center",
   },
-  icon: {
-    fontSize: 24,
-  },
-  content: {
+  textColumn: {
     flex: 1,
+    gap: 2,
   },
   title: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "800",
     letterSpacing: 0.2,
   },
   message: {
-    fontSize: 14,
-    marginTop: 2,
+    fontSize: 13,
     lineHeight: 18,
     fontWeight: "500",
   },
   closeBtn: {
-    padding: 6,
-    marginLeft: 8,
+    padding: 4,
   },
-  closeText: {
-    fontSize: 15,
-    fontWeight: "700",
+  progressTrack: {
+    height: 3,
+    width: "100%",
+    backgroundColor: "rgba(128,128,128,0.15)",
+  },
+  progressBar: {
+    height: "100%",
   },
 });

@@ -1,11 +1,9 @@
-import { LoginForm } from "@/components/auth/LoginForm";
-import { GymDashboard } from "@/components/dashboard/GymDashboard";
-import { Colors, Spacing } from "@/constants/theme";
-import { useAuth } from "@/context/AuthContext";
+import React from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   useColorScheme,
@@ -13,84 +11,129 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function HomeScreen() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === "dark" ? "dark" : "light"];
-  const { user, isLoading } = useAuth();
+import { LoginForm } from "@/components/auth/LoginForm";
+import { GymDashboard } from "@/components/dashboard/GymDashboard";
+import { GymIcon } from "@/components/ui/GymIcon";
+import { Colors, Spacing } from "@/constants/theme";
+import { useAuth } from "@/context/AuthContext";
 
-  // 1. Mientras verifica si hay token/sesión guardada
+export default function HomeScreen() {
+  const { user, isLoading } = useAuth();
+  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const colors = Colors[scheme];
+
   if (isLoading) {
     return (
-      <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color="#ff6b00" />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-          Cargando sesión...
-        </Text>
-      </View>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+      >
+        <View style={styles.centerContainer}>
+          <View
+            style={[
+              styles.loaderBadge,
+              {
+                backgroundColor: colors.primaryGlow,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <GymIcon name="dumbbell" size={32} color={colors.primary} />
+          </View>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Sincronizando plataforma deportiva...
+          </Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
-  // 2. Renderizado según estado de autenticación
+  if (user) {
+    return (
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: colors.background }]}
+      >
+        <GymDashboard />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
+        enabled={Platform.OS === "ios"}
         style={styles.keyboardView}
       >
-        {user ? (
-          // Si el usuario está logueado -> Muestra el Dashboard completo
-          <GymDashboard />
-        ) : (
-          // Si no está logueado -> Muestra el formulario de inicio de sesión
-          <View style={styles.loginContainer}>
-            <View style={styles.brandingHeader}></View>
-            <LoginForm />
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="always"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.headerBlock}>
+            <Text style={[styles.kicker, { color: colors.primary }]}>
+              SISTEMA INTELIGENTE DE ENTRENAMIENTO
+            </Text>
+            <Text style={[styles.brandTitle, { color: colors.text }]}>
+              GYM PROYECTO
+            </Text>
           </View>
-        )}
+
+          <LoginForm />
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
   },
   keyboardView: {
     flex: 1,
   },
-  centered: {
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.four,
+  },
+  centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    gap: Spacing.three,
+  },
+  loaderBadge: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
   },
   loadingText: {
-    marginTop: Spacing.two,
     fontSize: 14,
+    fontWeight: "600",
+    marginTop: Spacing.one,
   },
-  loginContainer: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: Spacing.three,
-  },
-  brandingHeader: {
+  headerBlock: {
     alignItems: "center",
-    marginBottom: Spacing.three,
+    marginBottom: Spacing.four,
   },
-  brandEmoji: {
-    fontSize: 48,
+  kicker: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 2,
     marginBottom: 4,
   },
   brandTitle: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "900",
-    letterSpacing: 0.5,
-  },
-  brandTagline: {
-    fontSize: 13,
-    marginTop: 2,
-    textAlign: "center",
+    letterSpacing: 1.2,
   },
 });

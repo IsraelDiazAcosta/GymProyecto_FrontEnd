@@ -1,140 +1,107 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+
+import { GymIcon, IconName } from "@/components/ui/GymIcon";
+import { Radius, Spacing } from "@/constants/theme";
 import { DashboardColors, TabType } from "./types";
 
 interface DashboardTabBarProps {
-  colors: DashboardColors;
   activeTab: TabType;
-  setActiveTab: (tab: TabType) => void;
-  onOpenCatalog: () => void;
+  onSelectTab: (tab: TabType) => void;
+  colors: DashboardColors;
 }
 
-// BARRA DE NAVEGACIÓN INFERIOR (SUBSTITUYE HOME Y EXPLORE)
-export const DashboardTabBar: React.FC<DashboardTabBarProps> = ({
-  colors,
+const TABS: { key: TabType; label: string; icon: IconName }[] = [
+  { key: "routines", label: "Rutinas", icon: "layers" },
+  { key: "tracking", label: "Progreso", icon: "trending-up" },
+  { key: "catalog", label: "Catálogo", icon: "book-open" },
+  { key: "equipment", label: "Máquinas", icon: "cog" },
+  { key: "profile", label: "Perfil", icon: "user" },
+];
+
+/**
+ * Barra de navegación principal con iconos vectoriales y pestaña activa con brillo Esmeralda.
+ */
+export function DashboardTabBar({
   activeTab,
-  setActiveTab,
-  onOpenCatalog,
-}) => {
-  const insets = useSafeAreaInsets();
-
-  const tabs: { key: TabType; label: string; icon: string }[] = [
-    { key: "routines", label: "Rutinas", icon: "📋" },
-    { key: "tracking", label: "Marcas", icon: "📈" },
-    { key: "catalog", label: "Catálogo", icon: "📖" },
-    { key: "equipment", label: "Máquinas", icon: "⚙️" },
-    { key: "profile", label: "Perfil", icon: "👤" },
-  ];
-
+  onSelectTab,
+  colors,
+}: DashboardTabBarProps) {
   return (
     <View
       style={[
-        barStyles.container,
+        styles.barContainer,
         {
           backgroundColor: colors.backgroundElement,
-          borderTopColor: "rgba(150, 150, 150, 0.15)",
-          paddingBottom: Math.max(insets.bottom, 8),
+          borderColor: colors.borderSubtle,
         },
       ]}
     >
-      {tabs.map((tab) => {
+      {TABS.map((tab) => {
         const isActive = activeTab === tab.key;
-        return (
-          <TouchableOpacity
-            key={tab.key}
-            style={barStyles.tabItem}
-            activeOpacity={0.7}
-            onPress={() => {
-              setActiveTab(tab.key);
-              if (tab.key === "catalog") {
-                onOpenCatalog();
-              }
-            }}
-          >
-            <View style={barStyles.iconWrapper}>
-              <Text
-                style={[
-                  barStyles.iconText,
-                  isActive && barStyles.iconTextActive,
-                ]}
-              >
-                {tab.icon}
-              </Text>
-            </View>
+        const iconColor = isActive ? "#FFFFFF" : colors.textSecondary;
 
+        return (
+          <Pressable
+            key={tab.key}
+            onPress={() => onSelectTab(tab.key)}
+            style={[
+              styles.tabItem,
+              isActive && {
+                backgroundColor: colors.primary,
+                shadowColor: colors.primary,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.35,
+                shadowRadius: 8,
+                elevation: 4,
+              },
+            ]}
+          >
+            <GymIcon
+              name={tab.icon}
+              size={18}
+              color={iconColor}
+              strokeWidth={isActive ? 2.4 : 2}
+            />
             <Text
               style={[
-                barStyles.labelText,
-                { color: isActive ? "#10b981" : colors.textSecondary },
-                isActive && barStyles.labelTextActive,
+                styles.tabLabel,
+                {
+                  color: isActive ? "#FFFFFF" : colors.textSecondary,
+                  fontWeight: isActive ? "800" : "600",
+                },
               ]}
+              numberOfLines={1}
             >
               {tab.label}
             </Text>
-
-            {isActive ? (
-              <View style={barStyles.activeIndicator} />
-            ) : (
-              <View style={barStyles.inactiveIndicator} />
-            )}
-          </TouchableOpacity>
+          </Pressable>
         );
       })}
     </View>
   );
-};
+}
 
-const barStyles = StyleSheet.create({
-  container: {
+const styles = StyleSheet.create({
+  barContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
-    paddingTop: 8,
-    borderTopWidth: 1,
-    elevation: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
+    borderRadius: Radius.xl,
+    padding: 5,
+    marginHorizontal: Spacing.three,
+    marginTop: Spacing.two,
+    marginBottom: Spacing.one,
+    borderWidth: 1,
   },
   tabItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 4,
+    paddingVertical: 9,
+    borderRadius: Radius.lg,
+    gap: 4,
   },
-  iconWrapper: {
-    height: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  iconText: {
-    fontSize: 21,
-  },
-  iconTextActive: {
-    transform: [{ scale: 1.15 }],
-  },
-  labelText: {
-    fontSize: 13,
-    fontWeight: "700",
-    marginTop: 3,
-  },
-  labelTextActive: {
-    fontWeight: "800",
-    color: "#10b981",
-  },
-  activeIndicator: {
-    width: 20,
-    height: 3,
-    backgroundColor: "#10b981",
-    borderRadius: 2,
-    marginTop: 3,
-  },
-  inactiveIndicator: {
-    width: 20,
-    height: 3,
-    backgroundColor: "transparent",
-    marginTop: 3,
+  tabLabel: {
+    fontSize: 11,
+    letterSpacing: 0.1,
   },
 });

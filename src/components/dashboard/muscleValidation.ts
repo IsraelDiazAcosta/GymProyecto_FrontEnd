@@ -1,28 +1,30 @@
 import { Exercise } from "@/services/api";
 
 /**
- * Valida de forma estricta si un ejercicio pertenece al grupo muscular / enfoque de la rutina.
+ * Valida si un ejercicio pertenece al grupo muscular / enfoque seleccionado.
+ * Soporta tanto recibir el objeto Exercise completo como (name, focus, primaryMuscle).
  */
 export function isExerciseCompatibleWithFocus(
-  exercise: Exercise,
-  focus?: string
+  exerciseOrName: Exercise | string,
+  focus?: string,
+  primaryMuscleOverride?: string,
 ): boolean {
   if (!focus || focus.toLowerCase() === "fullbody") {
     return true;
   }
 
   const f = focus.toLowerCase().trim();
+  const exercise: Partial<Exercise> =
+    typeof exerciseOrName === "string"
+      ? { name: exerciseOrName, primary_muscle: primaryMuscleOverride }
+      : exerciseOrName;
 
-  // 1. Revisar los músculos asociados (muscles array)
   if (exercise.muscles && exercise.muscles.length > 0) {
     for (const m of exercise.muscles) {
       const bp = (m.body_part || "").toLowerCase();
       const mn = (m.muscle_name || "").toLowerCase();
 
-      // Coincidencia directa de body_part
       if (bp === f) return true;
-
-      // Torso desglosado en Pecho y Espalda
       if (f === "pecho" && (mn.includes("pecho") || mn.includes("pectoral"))) {
         return true;
       }
@@ -79,10 +81,10 @@ export function isExerciseCompatibleWithFocus(
     }
   }
 
-  // 2. Revisar primary_muscle (string simple de la API)
-  if (exercise.primary_muscle) {
-    const pm = exercise.primary_muscle.toLowerCase();
-    if (f === "pecho" && (pm.includes("pecho") || pm.includes("pectoral"))) return true;
+  const pm = (primaryMuscleOverride || exercise.primary_muscle || "").toLowerCase();
+  if (pm) {
+    if (f === "pecho" && (pm.includes("pecho") || pm.includes("pectoral")))
+      return true;
     if (
       f === "espalda" &&
       (pm.includes("espalda") ||
@@ -122,7 +124,6 @@ export function isExerciseCompatibleWithFocus(
       return true;
   }
 
-  // 3. Fallback inteligente por nombre de ejercicio si el ejercicio aún no tiene músculos en BD
   const name = (exercise.name || "").toLowerCase();
   if (
     f === "pecho" &&
@@ -197,10 +198,20 @@ export function isExerciseCompatibleWithFocus(
   return false;
 }
 
-export function getExerciseMuscleLabel(exercise: Exercise): string {
-  if (exercise.primary_muscle) return exercise.primary_muscle;
-  if (exercise.muscles && exercise.muscles.length > 0) {
-    return exercise.muscles[0].muscle_name || exercise.muscles[0].body_part || "General";
+export function getExerciseMuscleLabel(
+  exerciseOrName: Exercise | string,
+  primaryMuscleOverride?: string,
+): string {
+  if (typeof exerciseOrName === "string") {
+    return primaryMuscleOverride || "General";
+  }
+  if (exerciseOrName.primary_muscle) return exerciseOrName.primary_muscle;
+  if (exerciseOrName.muscles && exerciseOrName.muscles.length > 0) {
+    return (
+      exerciseOrName.muscles[0].muscle_name ||
+      exerciseOrName.muscles[0].body_part ||
+      "General"
+    );
   }
   return "General";
 }
