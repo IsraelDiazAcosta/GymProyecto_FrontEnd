@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -12,7 +12,7 @@ import {
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon, IconName } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
-import { Equipment } from "@/services/api";
+import { api, Equipment } from "@/services/api";
 import { DashboardColors } from "../types";
 import { EQUIPMENT_TYPES } from "./AddEquipmentModal";
 
@@ -58,6 +58,21 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("all");
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  useEffect(() => {
+  const loadFavorites = async () => {
+    try {
+      const profile = await api.getProfile();
+
+      setFavoriteIds(
+        (profile.favorite_equipment || []).map(String)
+      );
+    } catch (error) {
+      console.error("Error cargando favoritos", error);
+    }
+  };
+
+  loadFavorites();
+}, []);
 
   const handleTriggerOptions = (item: Equipment) => {
     try {
@@ -65,12 +80,20 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
     } catch {}
     onEquipmentOptionsPress?.(item);
   };
-  const toggleFavorite = (equipmentId: string) => {
-  setFavoriteIds((prev) =>
-    prev.includes(equipmentId)
-      ? prev.filter((id) => id !== equipmentId)
-      : [...prev, equipmentId]
-  );
+  const toggleFavorite = async (equipmentId: string) => {
+  const updatedFavorites = favoriteIds.includes(equipmentId)
+    ? favoriteIds.filter((id) => id !== equipmentId)
+    : [...favoriteIds, equipmentId];
+
+  setFavoriteIds(updatedFavorites);
+
+  try {
+    await api.updateProfile({
+      favorite_equipment: updatedFavorites.map(Number),
+    });
+  } catch (error) {
+    console.error("Error guardando favoritos", error);
+  }
 };
 
   const filteredEquipment = equipmentList.filter((item) => {

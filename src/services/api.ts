@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 import { storage } from "./storage";
 
-export const DEV_PC_IP = "192.168.0.22";
+export const DEV_PC_IP = "192.168.100.56";
 export const API_BASE_URL = Platform.select({
   web: "http://127.0.0.1:8000/api/v1",
   android: `http://${DEV_PC_IP}:8000/api/v1`,
@@ -17,6 +17,7 @@ export interface User {
   current_weight?: number;
   height?: number;
   bio?: string;
+  favorite_equipment?: number[];
   is_staff?: boolean;
 }
 
@@ -180,6 +181,12 @@ export const api = {
   async getProfile(): Promise<User> {
     return request<User>("/auth/profile/");
   },
+  async updateProfile(payload: Partial<User>): Promise<User> {
+  return request<User>("/auth/profile/", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+},
 
   async getAdminUsers(): Promise<any[]> {
     const res: any = await request("/auth/users/");
