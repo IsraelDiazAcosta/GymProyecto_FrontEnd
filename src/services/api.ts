@@ -17,7 +17,7 @@ export interface User {
   current_weight?: number;
   height?: number;
   bio?: string;
-  favorite_equipment?: number[];
+  favorite_exercises?: string[];
   is_staff?: boolean;
 }
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -12,7 +12,7 @@ import {
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
-import { Exercise } from "@/services/api";
+import { api, Exercise } from "@/services/api";
 import { isExerciseCompatibleWithFocus } from "../muscleValidation";
 import { DashboardColors } from "../types";
 
@@ -49,6 +49,8 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMuscleFilter, setSelectedMuscleFilter] =
     useState<string>("all");
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   const handleLongPress = (ex: Exercise) => {
     if (!isStaff || !onExerciseOptionsPress) return;
@@ -57,6 +59,37 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
     } catch {}
     onExerciseOptionsPress(ex);
   };
+  useEffect(() => {
+  const loadFavorites = async () => {
+    try {
+      const profile = await api.getProfile();
+
+      setFavoriteIds(
+        (profile.favorite_exercises || []).map(String)
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  loadFavorites();
+}, []);
+
+const toggleFavorite = async (exerciseId: string) => {
+  const updatedFavorites = favoriteIds.includes(exerciseId)
+    ? favoriteIds.filter((id) => id !== exerciseId)
+    : [...favoriteIds, exerciseId];
+
+  setFavoriteIds(updatedFavorites);
+
+  try {
+    await api.updateProfile({
+      favorite_exercises: updatedFavorites,
+    });
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   const filteredExercises = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -70,7 +103,12 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
         );
         if (!matchesMuscle) return false;
       }
-
+      if (
+        showFavoritesOnly &&
+        !favoriteIds.includes(ex.id)
+      ) {
+        return false;
+      }
       if (!query) return true;
 
       const matchName = ex.name?.toLowerCase().includes(query);
@@ -79,7 +117,14 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
 
       return Boolean(matchName || matchEquip || matchMuscle);
     });
-  }, [exercises, searchQuery, selectedMuscleFilter]);
+    }, [
+  exercises,
+  searchQuery,
+  selectedMuscleFilter,
+  showFavoritesOnly,
+  favoriteIds,
+]);
+  
 
   return (
     <AnimatedCard
@@ -151,7 +196,72 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
           </Pressable>
         )}
       </View>
+      <View
+  style={{
+    flexDirection: "row",
+    gap: 8,
+  }}
+>
+  <Pressable
+    onPress={() => setShowFavoritesOnly(false)}
+    style={[
+      styles.filterChip,
+      {
+        backgroundColor: !showFavoritesOnly
+          ? colors.primary
+          : colors.backgroundElevated,
+      },
+    ]}
+  >
+    <Text
+      style={[
+        styles.filterChipText,
+        {
+          color: !showFavoritesOnly
+            ? "#FFFFFF"
+            : colors.textSecondary,
+        },
+      ]}
+    >
+      Todos
+    </Text>
+  </Pressable>
 
+  <Pressable
+    onPress={() => setShowFavoritesOnly(true)}
+    style={[
+      styles.filterChip,
+      {
+        backgroundColor: showFavoritesOnly
+          ? colors.primary
+          : colors.backgroundElevated,
+      },
+    ]}
+  >
+    <GymIcon
+      name="award"
+      size={12}
+      color={
+        showFavoritesOnly
+          ? "#FFFFFF"
+          : colors.textSecondary
+      }
+    />
+
+    <Text
+      style={[
+        styles.filterChipText,
+        {
+          color: showFavoritesOnly
+            ? "#FFFFFF"
+            : colors.textSecondary,
+        },
+      ]}
+    >
+      Favoritos
+    </Text>
+  </Pressable>
+</View>
       {/* Chips de filtro muscular */}
       <ScrollView
         horizontal
@@ -323,6 +433,20 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
               </View>
 
               <View style={styles.rightActions}>
+              <Pressable
+                  onPress={() => toggleFavorite(ex.id)}
+                  hitSlop={10}
+                >
+                  <GymIcon
+                    name="award"
+                    size={18}
+                    color={
+                      favoriteIds.includes(ex.id)
+                        ? colors.primary
+                        : colors.textSecondary
+                    }
+                  />
+                </Pressable>
                 <View
                   style={[
                     styles.detailBadge,

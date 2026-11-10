@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -12,7 +12,7 @@ import {
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon, IconName } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
-import { api, Equipment } from "@/services/api";
+import { Equipment } from "@/services/api";
 import { DashboardColors } from "../types";
 import { EQUIPMENT_TYPES } from "./AddEquipmentModal";
 
@@ -56,23 +56,8 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("all");
-  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  useEffect(() => {
-  const loadFavorites = async () => {
-    try {
-      const profile = await api.getProfile();
 
-      setFavoriteIds(
-        (profile.favorite_equipment || []).map(String)
-      );
-    } catch (error) {
-      console.error("Error cargando favoritos", error);
-    }
-  };
 
-  loadFavorites();
-}, []);
 
   const handleTriggerOptions = (item: Equipment) => {
     try {
@@ -80,21 +65,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
     } catch {}
     onEquipmentOptionsPress?.(item);
   };
-  const toggleFavorite = async (equipmentId: string) => {
-  const updatedFavorites = favoriteIds.includes(equipmentId)
-    ? favoriteIds.filter((id) => id !== equipmentId)
-    : [...favoriteIds, equipmentId];
-
-  setFavoriteIds(updatedFavorites);
-
-  try {
-    await api.updateProfile({
-      favorite_equipment: updatedFavorites.map(Number),
-    });
-  } catch (error) {
-    console.error("Error guardando favoritos", error);
-  }
-};
+ 
 
   const filteredEquipment = equipmentList.filter((item) => {
   const matchesSearch =
@@ -106,12 +77,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
   const matchesType =
     selectedTypeFilter === "all" ||
     item.equipment_type === selectedTypeFilter;
-
-  const matchesFavorites =
-    !showFavoritesOnly ||
-    favoriteIds.includes(String(item.id));
-
-  return matchesSearch && matchesType && matchesFavorites;
+      return matchesSearch && matchesType;
 });
 
   return (
@@ -182,75 +148,6 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
         )}
       </View>
 
-      <View
-  style={{
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 6,
-  }}
->
-  <Pressable
-    onPress={() => setShowFavoritesOnly(false)}
-    style={[
-      styles.filterChip,
-      {
-        backgroundColor: !showFavoritesOnly
-          ? colors.primary
-          : colors.backgroundElevated,
-        borderColor: colors.borderSubtle,
-      },
-    ]}
-  >
-    <Text
-      style={[
-        styles.filterChipText,
-        {
-          color: !showFavoritesOnly
-            ? "#FFFFFF"
-            : colors.textSecondary,
-        },
-      ]}
-    >
-      Todas
-    </Text>
-  </Pressable>
-
-  <Pressable
-    onPress={() => setShowFavoritesOnly(true)}
-    style={[
-      styles.filterChip,
-      {
-        backgroundColor: showFavoritesOnly
-          ? colors.primary
-          : colors.backgroundElevated,
-        borderColor: colors.borderSubtle,
-      },
-    ]}
-  >
-    <GymIcon
-      name="award"
-      size={12}
-      color={
-        showFavoritesOnly
-          ? "#FFFFFF"
-          : colors.textSecondary
-      }
-    />
-
-    <Text
-      style={[
-        styles.filterChipText,
-        {
-          color: showFavoritesOnly
-            ? "#FFFFFF"
-            : colors.textSecondary,
-        },
-      ]}
-    >
-      Favoritas
-    </Text>
-  </Pressable>
-</View>
       {/* Filtros por categoría */}
       <ScrollView
         horizontal
@@ -415,43 +312,9 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                 </View>
 
                 <View style={styles.rightMeta}>
-                  {typeof item.exercises_count === "number" && (
-                    <View
-                      style={[
-                        styles.countBadge,
-                        { backgroundColor: colors.backgroundElement },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.countNumber, { color: colors.primary }]}
-                      >
-                        {item.exercises_count}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.countLabel,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        ejerc.
-                      </Text>
-                    </View>
-                  )}
+                  
 
-                  <Pressable
-                    onPress={() => toggleFavorite(String(item.id))}
-                    hitSlop={10}
-                  >
-                    <GymIcon
-                      name="award"
-                      size={18}
-                      color={
-                        favoriteIds.includes(String(item.id))
-                          ? colors.primary
-                          : colors.textSecondary
-                      }
-                    />
-                  </Pressable>
+                
 
                   {onEquipmentOptionsPress && (
                     <Pressable
