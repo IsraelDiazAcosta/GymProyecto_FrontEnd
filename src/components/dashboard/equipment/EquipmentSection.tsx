@@ -56,6 +56,8 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("all");
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   const handleTriggerOptions = (item: Equipment) => {
     try {
@@ -63,20 +65,31 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
     } catch {}
     onEquipmentOptionsPress?.(item);
   };
+  const toggleFavorite = (equipmentId: string) => {
+  setFavoriteIds((prev) =>
+    prev.includes(equipmentId)
+      ? prev.filter((id) => id !== equipmentId)
+      : [...prev, equipmentId]
+  );
+};
 
   const filteredEquipment = equipmentList.filter((item) => {
-    const matchesSearch =
-      !searchQuery.trim() ||
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description?.toLowerCase().includes(searchQuery.toLowerCase());
+  const matchesSearch =
+    !searchQuery.trim() ||
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesType =
-      selectedTypeFilter === "all" ||
-      item.equipment_type === selectedTypeFilter;
+  const matchesType =
+    selectedTypeFilter === "all" ||
+    item.equipment_type === selectedTypeFilter;
 
-    return matchesSearch && matchesType;
-  });
+  const matchesFavorites =
+    !showFavoritesOnly ||
+    favoriteIds.includes(String(item.id));
+
+  return matchesSearch && matchesType && matchesFavorites;
+});
 
   return (
     <AnimatedCard
@@ -146,6 +159,75 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
         )}
       </View>
 
+      <View
+  style={{
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 6,
+  }}
+>
+  <Pressable
+    onPress={() => setShowFavoritesOnly(false)}
+    style={[
+      styles.filterChip,
+      {
+        backgroundColor: !showFavoritesOnly
+          ? colors.primary
+          : colors.backgroundElevated,
+        borderColor: colors.borderSubtle,
+      },
+    ]}
+  >
+    <Text
+      style={[
+        styles.filterChipText,
+        {
+          color: !showFavoritesOnly
+            ? "#FFFFFF"
+            : colors.textSecondary,
+        },
+      ]}
+    >
+      Todas
+    </Text>
+  </Pressable>
+
+  <Pressable
+    onPress={() => setShowFavoritesOnly(true)}
+    style={[
+      styles.filterChip,
+      {
+        backgroundColor: showFavoritesOnly
+          ? colors.primary
+          : colors.backgroundElevated,
+        borderColor: colors.borderSubtle,
+      },
+    ]}
+  >
+    <GymIcon
+      name="award"
+      size={12}
+      color={
+        showFavoritesOnly
+          ? "#FFFFFF"
+          : colors.textSecondary
+      }
+    />
+
+    <Text
+      style={[
+        styles.filterChipText,
+        {
+          color: showFavoritesOnly
+            ? "#FFFFFF"
+            : colors.textSecondary,
+        },
+      ]}
+    >
+      Favoritas
+    </Text>
+  </Pressable>
+</View>
       {/* Filtros por categoría */}
       <ScrollView
         horizontal
@@ -332,6 +414,21 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                       </Text>
                     </View>
                   )}
+
+                  <Pressable
+                    onPress={() => toggleFavorite(String(item.id))}
+                    hitSlop={10}
+                  >
+                    <GymIcon
+                      name="award"
+                      size={18}
+                      color={
+                        favoriteIds.includes(String(item.id))
+                          ? colors.primary
+                          : colors.textSecondary
+                      }
+                    />
+                  </Pressable>
 
                   {onEquipmentOptionsPress && (
                     <Pressable
