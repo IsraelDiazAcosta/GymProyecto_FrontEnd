@@ -42,13 +42,16 @@ export type IconName =
   | "target"
   | "zap"
   | "lock"
-  | "mail";
+  | "mail"
+  | "heart";
 
 interface GymIconProps {
   name: IconName;
   size?: number;
   color?: string;
   strokeWidth?: number;
+  /** Color de relleno (p. ej. para el corazón de favoritos activo). */
+  fill?: string;
 }
 
 /**
@@ -61,6 +64,7 @@ export function GymIcon({
   size = 20,
   color = "#10B981",
   strokeWidth = 2,
+  fill,
 }: GymIconProps) {
   const commonProps = {
     stroke: color,
@@ -450,6 +454,15 @@ export function GymIcon({
             <Rect {...commonProps} x="2" y="4" width="20" height="16" rx="2" />
             <Path {...commonProps} d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
           </>
+        );
+
+      case "heart":
+        return (
+          <Path
+            {...commonProps}
+            fill={fill ?? "none"}
+            d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+          />
         );
 
       default:

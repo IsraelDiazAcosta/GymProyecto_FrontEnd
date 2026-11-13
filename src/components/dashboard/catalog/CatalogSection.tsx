@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -12,7 +12,8 @@ import {
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
-import { api, Exercise } from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
+import { Exercise } from "@/services/api";
 import { isExerciseCompatibleWithFocus } from "../muscleValidation";
 import { DashboardColors } from "../types";
 
@@ -46,10 +47,19 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
   onOpenExerciseDetail,
   onExerciseOptionsPress,
 }) => {
+  const { user, updateProfile } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMuscleFilter, setSelectedMuscleFilter] =
     useState<string>("all");
-  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  // Lista optimista mientras se guarda; null = usar la del usuario
+  const [pendingFavorites, setPendingFavorites] = useState<string[] | null>(
+    null,
+  );
+  const userFavoriteIds = useMemo(
+    () => (user?.favorite_exercises || []).map(String),
+    [user?.favorite_exercises],
+  );
+  const favoriteIds = pendingFavorites ?? userFavoriteIds;
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   const handleLongPress = (ex: Exercise) => {
@@ -59,37 +69,25 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
     } catch {}
     onExerciseOptionsPress(ex);
   };
-  useEffect(() => {
-  const loadFavorites = async () => {
-    try {
-      const profile = await api.getProfile();
+  const toggleFavorite = async (exerciseId: string) => {
+    const updatedFavorites = favoriteIds.includes(exerciseId)
+      ? favoriteIds.filter((id) => id !== exerciseId)
+      : [...favoriteIds, exerciseId];
 
-      setFavoriteIds(
-        (profile.favorite_exercises || []).map(String)
-      );
+    // Actualización optimista: el corazón cambia al instante
+    setPendingFavorites(updatedFavorites);
+    try {
+      Vibration.vibrate(15);
+    } catch {}
+
+    try {
+      await updateProfile({ favorite_exercises: updatedFavorites });
     } catch (error) {
-      console.error(error);
+      console.error(error); // al limpiar se revierte a la lista del usuario
+    } finally {
+      setPendingFavorites(null);
     }
   };
-
-  loadFavorites();
-}, []);
-
-const toggleFavorite = async (exerciseId: string) => {
-  const updatedFavorites = favoriteIds.includes(exerciseId)
-    ? favoriteIds.filter((id) => id !== exerciseId)
-    : [...favoriteIds, exerciseId];
-
-  setFavoriteIds(updatedFavorites);
-
-  try {
-    await api.updateProfile({
-      favorite_exercises: updatedFavorites,
-    });
-  } catch (error) {
-    console.error(error);
-  }
-};
 
   const filteredExercises = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -239,13 +237,10 @@ const toggleFavorite = async (exerciseId: string) => {
     ]}
   >
     <GymIcon
-      name="award"
+      name="heart"
       size={12}
-      color={
-        showFavoritesOnly
-          ? "#FFFFFF"
-          : colors.textSecondary
-      }
+      color={showFavoritesOnly ? "#FFFFFF" : colors.textSecondary}
+      fill={showFavoritesOnly ? "#FFFFFF" : undefined}
     />
 
     <Text
@@ -435,16 +430,34 @@ const toggleFavorite = async (exerciseId: string) => {
               <View style={styles.rightActions}>
               <Pressable
                   onPress={() => toggleFavorite(ex.id)}
-                  hitSlop={10}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    favoriteIds.includes(ex.id)
+                      ? `Quitar ${ex.name} de favoritos`
+                      : `Agregar ${ex.name} a favoritos`
+                  }
+                  style={[
+                    styles.favoriteBtn,
+                    {
+                      backgroundColor: favoriteIds.includes(ex.id)
+                        ? colors.dangerGlow
+                        : colors.backgroundElement,
+                      borderColor: favoriteIds.includes(ex.id)
+                        ? colors.danger
+                        : colors.border,
+                    },
+                  ]}
                 >
                   <GymIcon
-                    name="award"
+                    name="heart"
                     size={18}
                     color={
                       favoriteIds.includes(ex.id)
-                        ? colors.primary
+                        ? colors.danger
                         : colors.textSecondary
                     }
+                    fill={favoriteIds.includes(ex.id) ? colors.danger : undefined}
                   />
                 </Pressable>
                 <View
@@ -617,6 +630,14 @@ const styles = StyleSheet.create({
   muscleBadgeText: {
     fontSize: 11,
     fontWeight: "800",
+  },
+  favoriteBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
   },
   rightActions: {
     flexDirection: "row",

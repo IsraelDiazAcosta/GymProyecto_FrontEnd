@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import { storage } from "./storage";
 
 export const DEV_PC_IP =
-  process.env.EXPO_PUBLIC_DEV_PC_IP || "192.168.100.56";
+  process.env.EXPO_PUBLIC_DEV_PC_IP;
 export const API_BASE_URL = Platform.select({
   web: "http://127.0.0.1:8000/api/v1",
   android: `http://${DEV_PC_IP}:8000/api/v1`,
@@ -10,16 +10,44 @@ export const API_BASE_URL = Platform.select({
   default: `http://${DEV_PC_IP}:8000/api/v1`,
 });
 
+export type ExperienceLevel = "beginner" | "intermediate" | "advanced";
+
+export const EXPERIENCE_LEVELS: { value: ExperienceLevel; label: string }[] = [
+  { value: "beginner", label: "Principiante" },
+  { value: "intermediate", label: "Intermedio" },
+  { value: "advanced", label: "Avanzado" },
+];
+
 export interface User {
   id: string;
   email: string;
-  username?: string;
-  experience_level?: string;
-  current_weight?: number;
-  height?: number;
+  username?: string | null;
+  avatar?: string | null;
+  experience_level?: ExperienceLevel;
+  // DRF serializa DecimalField como string ("72.50")
+  current_weight?: number | string | null;
+  height?: number | string | null;
   bio?: string;
   favorite_exercises?: string[];
   is_staff?: boolean;
+}
+
+/** Campos del perfil que el usuario puede editar vía PATCH /auth/profile/. */
+export interface ProfileUpdatePayload {
+  username?: string | null;
+  experience_level?: ExperienceLevel;
+  current_weight?: string | null;
+  height?: string | null;
+  bio?: string;
+  favorite_exercises?: string[];
+}
+
+/** Convierte rutas relativas de media (/media/avatars/x.jpg) en URL absoluta. */
+export function resolveMediaUrl(path?: string | null): string | null {
+  if (!path) return null;
+  if (/^https?:\/\//.test(path)) return path;
+  const host = (API_BASE_URL ?? "").replace(/\/api\/v1\/?$/, "");
+  return `${host}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
 export interface AuthResponse {
@@ -182,12 +210,12 @@ export const api = {
   async getProfile(): Promise<User> {
     return request<User>("/auth/profile/");
   },
-  async updateProfile(payload: Partial<User>): Promise<User> {
-  return request<User>("/auth/profile/", {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
-},
+  async updateProfile(payload: ProfileUpdatePayload): Promise<User> {
+    return request<User>("/auth/profile/", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
 
   async getAdminUsers(): Promise<any[]> {
     const res: any = await request("/auth/users/");

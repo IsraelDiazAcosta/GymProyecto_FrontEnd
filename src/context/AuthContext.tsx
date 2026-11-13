@@ -1,4 +1,4 @@
-import { api, AuthResponse, User } from "@/services/api";
+import { api, AuthResponse, ProfileUpdatePayload, User } from "@/services/api";
 import { storage } from "@/services/storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
@@ -15,6 +15,7 @@ interface AuthContextType {
     password?: string,
   ) => Promise<boolean>;
   logout: () => Promise<void>;
+  updateProfile: (payload: ProfileUpdatePayload) => Promise<User>;
   clearError: () => void;
 }
 
@@ -94,6 +95,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     await storage.clearAuth();
   };
 
+  const updateProfile = async (payload: ProfileUpdatePayload) => {
+    const updated = await api.updateProfile(payload);
+    setUser(updated);
+    await storage.saveUser(updated);
+    return updated;
+  };
+
   const clearError = () => setError(null);
 
   return (
@@ -108,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         error,
         login,
         logout,
+        updateProfile,
         clearError,
       }}
     >
