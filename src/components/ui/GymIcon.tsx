@@ -50,7 +50,6 @@ interface GymIconProps {
   size?: number;
   color?: string;
   strokeWidth?: number;
-  /** Color de relleno (p. ej. para el corazón de favoritos activo). */
   fill?: string;
 }
 
