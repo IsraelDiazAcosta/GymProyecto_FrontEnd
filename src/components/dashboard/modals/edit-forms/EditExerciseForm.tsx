@@ -1,10 +1,17 @@
+import { Image } from "expo-image";
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { AppInput } from "@/components/ui/AppInput";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
-import { Equipment, MuscleGroup } from "@/services/api";
+import {
+  Equipment,
+  MuscleGroup,
+  pickAndCompressImage,
+  PickedImageAsset,
+  resolveMediaUrl,
+} from "@/services/api";
 import { DashboardColors } from "../../types";
 
 interface EditExerciseFormProps {
@@ -21,6 +28,9 @@ interface EditExerciseFormProps {
   setExInstructions: (val: string) => void;
   equipmentList: Equipment[];
   muscleList: MuscleGroup[];
+  currentImageUrl?: string | null;
+  pickedImage: PickedImageAsset | null;
+  setPickedImage: (val: PickedImageAsset | null) => void;
 }
 
 /**
@@ -41,12 +51,25 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
   setExInstructions,
   equipmentList,
   muscleList,
+  currentImageUrl,
+  pickedImage,
+  setPickedImage,
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [muscleDropdownOpen, setMuscleDropdownOpen] = useState(false);
 
   const selectedEquipObj = equipmentList.find((eq) => eq.id === exEquipment);
   const selectedMuscleObj = muscleList.find((m) => m.id === exMuscle);
+  const previewUri =
+    pickedImage?.uri ||
+    resolveMediaUrl(currentImageUrl || selectedEquipObj?.image);
+
+  const handlePickImage = async (source: "camera" | "gallery") => {
+    try {
+      const asset = await pickAndCompressImage(source);
+      if (asset) setPickedImage(asset);
+    } catch {}
+  };
 
   return (
     <View style={styles.container}>
@@ -294,6 +317,46 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
         onChangeText={setExInstructions}
         multiline
       />
+
+      <Text style={[styles.label, { color: colors.textSecondary }]}>
+        Imagen del Ejercicio (Propia o hereda de su máquina)
+      </Text>
+      <View style={styles.imagePickerRow}>
+        <Pressable
+          onPress={() => handlePickImage("camera")}
+          style={[
+            styles.pickerBtn,
+            {
+              backgroundColor: colors.backgroundElevated,
+              borderColor: colors.borderSubtle,
+            },
+          ]}
+        >
+          <GymIcon name="camera" size={15} color={colors.primary} />
+          <Text style={[styles.optionText, { color: colors.text }]}>Cámara</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => handlePickImage("gallery")}
+          style={[
+            styles.pickerBtn,
+            {
+              backgroundColor: colors.backgroundElevated,
+              borderColor: colors.borderSubtle,
+            },
+          ]}
+        >
+          <GymIcon name="image" size={15} color={colors.primary} />
+          <Text style={[styles.optionText, { color: colors.text }]}>Galería</Text>
+        </Pressable>
+      </View>
+      {previewUri && (
+        <Image
+          source={{ uri: previewUri }}
+          style={[styles.previewImage, { borderColor: colors.border }]}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+        />
+      )}
     </View>
   );
 };
@@ -357,5 +420,27 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 13,
     fontWeight: "700",
+  },
+  imagePickerRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10,
+  },
+  pickerBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  previewImage: {
+    width: "100%",
+    height: 140,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    marginBottom: 8,
   },
 });

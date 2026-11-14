@@ -43,7 +43,9 @@ export type IconName =
   | "zap"
   | "lock"
   | "mail"
-  | "heart";
+  | "heart"
+  | "camera"
+  | "image";
 
 interface GymIconProps {
   name: IconName;
@@ -462,6 +464,26 @@ export function GymIcon({
             fill={fill ?? "none"}
             d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
           />
+        );
+
+      case "camera":
+        return (
+          <>
+            <Path
+              {...commonProps}
+              d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"
+            />
+            <Circle {...commonProps} cx="12" cy="13" r="3" />
+          </>
+        );
+
+      case "image":
+        return (
+          <>
+            <Rect {...commonProps} x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <Circle {...commonProps} cx="8.5" cy="8.5" r="1.5" />
+            <Polyline {...commonProps} points="21 15 16 10 5 21" />
+          </>
         );
 
       default:

@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import React, { useState } from "react";
 import {
   Pressable,
@@ -11,8 +12,8 @@ import {
 
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon, IconName } from "@/components/ui/GymIcon";
-import { Radius, Spacing } from "@/constants/theme";
-import { Equipment } from "@/services/api";
+import { Palette, Radius, Spacing } from "@/constants/theme";
+import { Equipment, resolveMediaUrl } from "@/services/api";
 import { DashboardColors } from "../types";
 import { EQUIPMENT_TYPES } from "./AddEquipmentModal";
 
@@ -21,6 +22,7 @@ export interface EquipmentSectionProps {
   equipmentList: Equipment[];
   onOpenAddEquipment: () => void;
   onEquipmentOptionsPress?: (item: Equipment) => void;
+  onToggleFavorite?: (equipmentId: number) => void;
 }
 
 export const getEquipmentIconName = (type?: string): IconName => {
@@ -53,11 +55,11 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
   equipmentList,
   onOpenAddEquipment,
   onEquipmentOptionsPress,
+  onToggleFavorite,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("all");
-
-
+  const favoritesCount = equipmentList.filter((item) => Boolean(item.is_favorite)).length;
 
   const handleTriggerOptions = (item: Equipment) => {
     try {
@@ -65,20 +67,22 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
     } catch {}
     onEquipmentOptionsPress?.(item);
   };
- 
 
   const filteredEquipment = equipmentList.filter((item) => {
-  const matchesSearch =
-    !searchQuery.trim() ||
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      !searchQuery.trim() ||
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const matchesType =
-    selectedTypeFilter === "all" ||
-    item.equipment_type === selectedTypeFilter;
-      return matchesSearch && matchesType;
-});
+    const matchesType =
+      selectedTypeFilter === "all"
+        ? true
+        : selectedTypeFilter === "favorites"
+          ? Boolean(item.is_favorite)
+          : item.equipment_type === selectedTypeFilter;
+    return matchesSearch && matchesType;
+  });
 
   return (
     <AnimatedCard
@@ -118,8 +122,8 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
             },
           ]}
         >
-          <GymIcon name="plus" size={16} color="#FFFFFF" />
-          <Text style={styles.addBtnText}>Nueva</Text>
+          <GymIcon name="plus" size={16} color={colors.onPrimary} />
+          <Text style={[styles.addBtnText, { color: colors.onPrimary }]}>Nueva</Text>
         </Pressable>
       </View>
 
@@ -176,12 +180,55 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
               {
                 color:
                   selectedTypeFilter === "all"
-                    ? "#FFFFFF"
+                    ? colors.onPrimary
                     : colors.textSecondary,
               },
             ]}
           >
             Todas ({equipmentList.length})
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setSelectedTypeFilter("favorites")}
+          style={[
+            styles.filterChip,
+            {
+              backgroundColor:
+                selectedTypeFilter === "favorites"
+                  ? colors.primary
+                  : colors.backgroundElevated,
+              borderColor:
+                selectedTypeFilter === "favorites"
+                  ? colors.primaryLight
+                  : colors.borderSubtle,
+            },
+          ]}
+        >
+          <GymIcon
+            name="heart"
+            size={13}
+            color={
+              selectedTypeFilter === "favorites"
+                ? colors.onPrimary
+                : colors.textSecondary
+            }
+            fill={
+              selectedTypeFilter === "favorites" ? colors.onPrimary : undefined
+            }
+          />
+          <Text
+            style={[
+              styles.filterChipText,
+              {
+                color:
+                  selectedTypeFilter === "favorites"
+                    ? colors.onPrimary
+                    : colors.textSecondary,
+              },
+            ]}
+          >
+            Mis favoritas ({favoritesCount})
           </Text>
         </Pressable>
 
@@ -206,13 +253,13 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
               <GymIcon
                 name={t.icon}
                 size={13}
-                color={isSelected ? "#FFFFFF" : colors.textSecondary}
+                color={isSelected ? colors.onPrimary : colors.textSecondary}
               />
               <Text
                 style={[
                   styles.filterChipText,
                   {
-                    color: isSelected ? "#FFFFFF" : colors.textSecondary,
+                    color: isSelected ? colors.onPrimary : colors.textSecondary,
                   },
                 ]}
               >
@@ -245,7 +292,10 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
         </View>
       ) : (
         <View style={styles.listColumn}>
-          {filteredEquipment.map((item) => (
+          {filteredEquipment.map((item) => {
+            const imgUrl = resolveMediaUrl(item.image);
+            const isFav = Boolean(item.is_favorite);
+            return (
             <Pressable
               key={item.id}
               onLongPress={() => handleTriggerOptions(item)}
@@ -265,14 +315,24 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                     {
                       backgroundColor: colors.primaryGlow,
                       borderColor: colors.border,
+                      overflow: "hidden",
                     },
                   ]}
                 >
-                  <GymIcon
-                    name={getEquipmentIconName(item.equipment_type)}
-                    size={20}
-                    color={colors.primary}
-                  />
+                  {imgUrl ? (
+                    <Image
+                      source={{ uri: imgUrl }}
+                      style={styles.equipThumb}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <GymIcon
+                      name={getEquipmentIconName(item.equipment_type)}
+                      size={20}
+                      color={colors.primary}
+                    />
+                  )}
                 </View>
 
                 <View style={{ flex: 1 }}>
@@ -312,9 +372,34 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                 </View>
 
                 <View style={styles.rightMeta}>
-                  
-
-                
+                  {onToggleFavorite && (
+                    <Pressable
+                      onPress={() => onToggleFavorite(item.id)}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        isFav
+                          ? `Quitar ${item.name} de favoritas`
+                          : `Marcar ${item.name} como favorita`
+                      }
+                      style={[
+                        styles.favBtn,
+                        {
+                          backgroundColor: isFav
+                            ? colors.dangerGlow
+                            : colors.backgroundElement,
+                          borderColor: isFav ? colors.danger : colors.borderSubtle,
+                        },
+                      ]}
+                    >
+                      <GymIcon
+                        name="heart"
+                        size={17}
+                        color={isFav ? colors.danger : colors.textSecondary}
+                        fill={isFav ? colors.danger : undefined}
+                      />
+                    </Pressable>
+                  )}
 
                   {onEquipmentOptionsPress && (
                     <Pressable
@@ -364,7 +449,8 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                 </View>
               )}
             </Pressable>
-          ))}
+            );
+          })}
         </View>
       )}
     </AnimatedCard>
@@ -417,7 +503,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   addBtnText: {
-    color: "#FFFFFF",
+    color: Palette.textOnVolt,
     fontWeight: "800",
     fontSize: 13,
   },
@@ -466,10 +552,22 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   iconCircle: {
-    width: 46,
-    height: 46,
+    width: 52,
+    height: 52,
     borderRadius: 14,
     borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  equipThumb: {
+    width: "100%",
+    height: "100%",
+  },
+  favBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
   },

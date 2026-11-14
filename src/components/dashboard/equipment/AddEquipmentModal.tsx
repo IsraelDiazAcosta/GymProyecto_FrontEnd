@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import React, { useState } from "react";
 import {
   Modal,
@@ -12,6 +13,7 @@ import { AppButton } from "@/components/ui/AppButton";
 import { AppInput } from "@/components/ui/AppInput";
 import { GymIcon, IconName } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
+import { pickAndCompressImage, PickedImageAsset } from "@/services/api";
 import { DashboardColors } from "../types";
 
 export const EQUIPMENT_TYPES: {
@@ -38,6 +40,7 @@ export interface AddEquipmentModalProps {
     brand?: string;
     description?: string;
     setup_guide?: string;
+    image?: PickedImageAsset | null;
   }) => Promise<void>;
   onClose: () => void;
 }
@@ -57,7 +60,15 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
   const [brand, setBrand] = useState("");
   const [description, setDescription] = useState("");
   const [setupGuide, setSetupGuide] = useState("");
+  const [pickedImage, setPickedImage] = useState<PickedImageAsset | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const handlePickImage = async (source: "camera" | "gallery") => {
+    try {
+      const asset = await pickAndCompressImage(source);
+      if (asset) setPickedImage(asset);
+    } catch {}
+  };
 
   const handleSave = async () => {
     if (!name.trim()) return;
@@ -69,13 +80,17 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
         brand: brand.trim(),
         description: description.trim(),
         setup_guide: setupGuide.trim(),
+        image: pickedImage,
       });
       setName("");
       setEquipmentType("plate_loaded");
       setBrand("");
       setDescription("");
       setSetupGuide("");
+      setPickedImage(null);
       onClose();
+    } catch {
+      // El toast de error ya se muestra en useGymDashboardData
     } finally {
       setSubmitting(false);
     }
@@ -195,6 +210,60 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
               multiline
             />
 
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              Fotografía de la Máquina (Máx. 1080px, comprimida)
+            </Text>
+            <View style={styles.imagePickerRow}>
+              <Pressable
+                onPress={() => handlePickImage("camera")}
+                style={[
+                  styles.pickerBtn,
+                  {
+                    backgroundColor: colors.backgroundElevated,
+                    borderColor: colors.borderSubtle,
+                  },
+                ]}
+              >
+                <GymIcon name="camera" size={16} color={colors.primary} />
+                <Text style={[styles.pickerBtnText, { color: colors.text }]}>
+                  Cámara
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => handlePickImage("gallery")}
+                style={[
+                  styles.pickerBtn,
+                  {
+                    backgroundColor: colors.backgroundElevated,
+                    borderColor: colors.borderSubtle,
+                  },
+                ]}
+              >
+                <GymIcon name="image" size={16} color={colors.primary} />
+                <Text style={[styles.pickerBtnText, { color: colors.text }]}>
+                  Galería
+                </Text>
+              </Pressable>
+              {pickedImage && (
+                <Pressable
+                  onPress={() => setPickedImage(null)}
+                  style={[
+                    styles.pickerClearBtn,
+                    { backgroundColor: colors.dangerGlow },
+                  ]}
+                >
+                  <GymIcon name="trash" size={15} color={colors.danger} />
+                </Pressable>
+              )}
+            </View>
+            {pickedImage && (
+              <Image
+                source={{ uri: pickedImage.uri }}
+                style={[styles.previewImage, { borderColor: colors.border }]}
+                contentFit="cover"
+              />
+            )}
+
             <View style={styles.actionsRow}>
               <AppButton
                 title="Guardar Máquina"
@@ -287,5 +356,37 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 6,
+  },
+  imagePickerRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  pickerBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  pickerBtnText: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  pickerClearBtn: {
+    width: 42,
+    borderRadius: Radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previewImage: {
+    width: "100%",
+    height: 150,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    marginBottom: 12,
   },
 });

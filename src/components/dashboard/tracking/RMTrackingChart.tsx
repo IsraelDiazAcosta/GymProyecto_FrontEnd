@@ -197,7 +197,7 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
               <Text
                 style={[
                   styles.chipText,
-                  { color: active ? "#FFFFFF" : colors.textSecondary },
+                  { color: active ? colors.onPrimary : colors.textSecondary },
                 ]}
               >
                 {r.title || (r as any).name || "Rutina"}
@@ -238,7 +238,7 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
                 <Text
                   style={[
                     styles.chipText,
-                    { color: active ? "#FFFFFF" : colors.textSecondary },
+                    { color: active ? colors.onPrimary : colors.textSecondary },
                   ]}
                 >
                   {ex.name}

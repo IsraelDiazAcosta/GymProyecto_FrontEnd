@@ -1,9 +1,15 @@
+import { Image } from "expo-image";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppInput } from "@/components/ui/AppInput";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
+import {
+  pickAndCompressImage,
+  PickedImageAsset,
+  resolveMediaUrl,
+} from "@/services/api";
 import { EQUIPMENT_TYPES } from "../../equipment/AddEquipmentModal";
 import { DashboardColors } from "../../types";
 
@@ -19,6 +25,9 @@ interface EditEquipmentFormProps {
   setEqDescription: (val: string) => void;
   eqSetupGuide: string;
   setEqSetupGuide: (val: string) => void;
+  currentImageUrl?: string | null;
+  pickedImage: PickedImageAsset | null;
+  setPickedImage: (val: PickedImageAsset | null) => void;
 }
 
 /**
@@ -36,7 +45,19 @@ export const EditEquipmentForm: React.FC<EditEquipmentFormProps> = ({
   setEqDescription,
   eqSetupGuide,
   setEqSetupGuide,
+  currentImageUrl,
+  pickedImage,
+  setPickedImage,
 }) => {
+  const previewUri = pickedImage?.uri || resolveMediaUrl(currentImageUrl);
+
+  const handlePickImage = async (source: "camera" | "gallery") => {
+    try {
+      const asset = await pickAndCompressImage(source);
+      if (asset) setPickedImage(asset);
+    } catch {}
+  };
+
   return (
     <View style={styles.container}>
       <AppInput
@@ -109,6 +130,46 @@ export const EditEquipmentForm: React.FC<EditEquipmentFormProps> = ({
         onChangeText={setEqSetupGuide}
         multiline
       />
+
+      <Text style={[styles.label, { color: colors.textSecondary }]}>
+        Fotografía de la Máquina
+      </Text>
+      <View style={styles.imagePickerRow}>
+        <Pressable
+          onPress={() => handlePickImage("camera")}
+          style={[
+            styles.pickerBtn,
+            {
+              backgroundColor: colors.backgroundElevated,
+              borderColor: colors.borderSubtle,
+            },
+          ]}
+        >
+          <GymIcon name="camera" size={15} color={colors.primary} />
+          <Text style={[styles.typeLabel, { color: colors.text }]}>Cámara</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => handlePickImage("gallery")}
+          style={[
+            styles.pickerBtn,
+            {
+              backgroundColor: colors.backgroundElevated,
+              borderColor: colors.borderSubtle,
+            },
+          ]}
+        >
+          <GymIcon name="image" size={15} color={colors.primary} />
+          <Text style={[styles.typeLabel, { color: colors.text }]}>Galería</Text>
+        </Pressable>
+      </View>
+      {previewUri && (
+        <Image
+          source={{ uri: previewUri }}
+          style={[styles.previewImage, { borderColor: colors.border }]}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+        />
+      )}
     </View>
   );
 };
@@ -142,5 +203,27 @@ const styles = StyleSheet.create({
   typeLabel: {
     fontSize: 12,
     fontWeight: "800",
+  },
+  imagePickerRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10,
+  },
+  pickerBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  previewImage: {
+    width: "100%",
+    height: 140,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    marginBottom: 8,
   },
 });

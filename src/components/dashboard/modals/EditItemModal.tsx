@@ -10,7 +10,13 @@ import {
 
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon, IconName } from "@/components/ui/GymIcon";
-import { Equipment, Exercise, MuscleGroup, Routine } from "@/services/api";
+import {
+  Equipment,
+  Exercise,
+  MuscleGroup,
+  PickedImageAsset,
+  Routine,
+} from "@/services/api";
 import { DashboardColors } from "../types";
 import { EditEquipmentForm } from "./edit-forms/EditEquipmentForm";
 import { EditExerciseForm } from "./edit-forms/EditExerciseForm";
@@ -29,6 +35,7 @@ export interface EditItemModalProps {
     muscle_id?: number | null;
     instructions: string;
     video_url?: string;
+    image?: string | null;
   } | null;
   marcaData?: {
     id: string;
@@ -43,6 +50,7 @@ export interface EditItemModalProps {
     brand: string;
     description?: string;
     setup_guide?: string;
+    image?: string | null;
   } | null;
   equipmentList: Equipment[];
   muscleList?: MuscleGroup[];
@@ -55,6 +63,7 @@ export interface EditItemModalProps {
     instructions: string,
     video_url?: string,
     muscle_id?: number | null,
+    image?: PickedImageAsset | null,
   ) => Promise<void>;
   onSaveMarca?: (
     id: string,
@@ -70,6 +79,7 @@ export interface EditItemModalProps {
       brand?: string;
       description?: string;
       setup_guide?: string;
+      image?: PickedImageAsset | null;
     },
   ) => Promise<void>;
   onRemoveExerciseFromRoutine?: (
@@ -79,6 +89,12 @@ export interface EditItemModalProps {
   onAddExerciseToRoutine?: (
     routineId: string,
     exerciseId: string,
+    setsCount: number,
+    minReps: number,
+    maxReps: number,
+  ) => Promise<void>;
+  onUpdateRoutineExercise?: (
+    routineExerciseId: string,
     setsCount: number,
     minReps: number,
     maxReps: number,
@@ -133,6 +149,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   onSaveEquipment,
   onRemoveExerciseFromRoutine,
   onAddExerciseToRoutine,
+  onUpdateRoutineExercise,
   onClose,
 }) => {
   const [routineTitle, setRoutineTitle] = useState("");
@@ -143,6 +160,9 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   const [exMuscle, setExMuscle] = useState<number | null>(null);
   const [exVideo, setExVideo] = useState("");
   const [exInstructions, setExInstructions] = useState("");
+  const [exPickedImage, setExPickedImage] = useState<PickedImageAsset | null>(
+    null,
+  );
 
   const [marcaWeight, setMarcaWeight] = useState("100");
   const [marcaReps, setMarcaReps] = useState("10");
@@ -153,10 +173,15 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   const [eqBrand, setEqBrand] = useState("");
   const [eqDescription, setEqDescription] = useState("");
   const [eqSetupGuide, setEqSetupGuide] = useState("");
+  const [eqPickedImage, setEqPickedImage] = useState<PickedImageAsset | null>(
+    null,
+  );
 
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    setExPickedImage(null);
+    setEqPickedImage(null);
     if (itemType === "routine" && routineData) {
       setRoutineTitle(
         routineData.title || (routineData as any).name || "",
@@ -203,6 +228,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           exInstructions,
           exVideo,
           exMuscle,
+          exPickedImage,
         );
       } else if (itemType === "marca" && marcaData && onSaveMarca) {
         await onSaveMarca(
@@ -218,6 +244,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           brand: eqBrand.trim(),
           description: eqDescription.trim(),
           setup_guide: eqSetupGuide.trim(),
+          image: eqPickedImage,
         });
       }
       onClose();
@@ -285,6 +312,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
                 allExercises={allExercises}
                 onRemoveExerciseFromRoutine={onRemoveExerciseFromRoutine}
                 onAddExerciseToRoutine={onAddExerciseToRoutine}
+                onUpdateRoutineExercise={onUpdateRoutineExercise}
               />
             )}
 
@@ -303,6 +331,9 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
                 setExInstructions={setExInstructions}
                 equipmentList={equipmentList}
                 muscleList={muscleList}
+                currentImageUrl={exerciseData?.image}
+                pickedImage={exPickedImage}
+                setPickedImage={setExPickedImage}
               />
             )}
 
@@ -319,6 +350,9 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
                 setEqDescription={setEqDescription}
                 eqSetupGuide={eqSetupGuide}
                 setEqSetupGuide={setEqSetupGuide}
+                currentImageUrl={equipmentData?.image}
+                pickedImage={eqPickedImage}
+                setPickedImage={setEqPickedImage}
               />
             )}
 

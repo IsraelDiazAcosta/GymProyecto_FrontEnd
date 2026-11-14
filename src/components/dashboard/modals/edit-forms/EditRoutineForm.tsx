@@ -49,6 +49,12 @@ interface EditRoutineFormProps {
     minReps: number,
     maxReps: number,
   ) => Promise<void>;
+  onUpdateRoutineExercise?: (
+    routineExerciseId: string,
+    setsCount: number,
+    minReps: number,
+    maxReps: number,
+  ) => Promise<void>;
 }
 
 /**
@@ -64,6 +70,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
   allExercises,
   onRemoveExerciseFromRoutine,
   onAddExerciseToRoutine,
+  onUpdateRoutineExercise,
 }) => {
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [selectedExToAddId, setSelectedExToAddId] = useState("");
@@ -72,6 +79,10 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
   const [newMaxReps, setNewMaxReps] = useState("12");
   const [exDropdownOpen, setExDropdownOpen] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [editingExId, setEditingExId] = useState<string | null>(null);
+  const [editSets, setEditSets] = useState("4");
+  const [editMinReps, setEditMinReps] = useState("8");
+  const [editMaxReps, setEditMaxReps] = useState("12");
 
   const rawExercises =
     routineData.days?.[0]?.exercises || (routineData as any).exercises || [];
@@ -161,7 +172,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
             >
               <Text
                 style={{
-                  color: isSelected ? "#FFFFFF" : colors.text,
+                  color: isSelected ? colors.onPrimary : colors.text,
                   fontWeight: "800",
                   fontSize: 12,
                 }}
@@ -249,7 +260,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                       styles.indexCircle,
                       {
                         backgroundColor: !isCompatible
-                          ? "rgba(245,158,11,0.16)"
+                          ? colors.warningGlow
                           : colors.primaryGlow,
                       },
                     ]}
@@ -272,13 +283,129 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                     >
                       {ex.name}
                     </Text>
-                    <Text
-                      style={{ fontSize: 11, color: colors.textSecondary }}
-                    >
-                      {ex.setsCount || 4} series × {ex.minReps || 8}-
-                      {ex.maxReps || 12} reps
-                    </Text>
+                    {editingExId === ex.routineExerciseId ? (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                          marginTop: 6,
+                        }}
+                      >
+                        <TextInput
+                          style={[
+                            styles.miniInput,
+                            {
+                              flex: 1,
+                              height: 34,
+                              color: colors.text,
+                              backgroundColor: colors.backgroundElevated,
+                              borderColor: colors.borderSubtle,
+                            },
+                          ]}
+                          keyboardType="numeric"
+                          value={editSets}
+                          onChangeText={setEditSets}
+                        />
+                        <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+                          ×
+                        </Text>
+                        <TextInput
+                          style={[
+                            styles.miniInput,
+                            {
+                              flex: 1,
+                              height: 34,
+                              color: colors.text,
+                              backgroundColor: colors.backgroundElevated,
+                              borderColor: colors.borderSubtle,
+                            },
+                          ]}
+                          keyboardType="numeric"
+                          value={editMinReps}
+                          onChangeText={setEditMinReps}
+                        />
+                        <Text style={{ color: colors.textSecondary, fontSize: 11 }}>
+                          -
+                        </Text>
+                        <TextInput
+                          style={[
+                            styles.miniInput,
+                            {
+                              flex: 1,
+                              height: 34,
+                              color: colors.text,
+                              backgroundColor: colors.backgroundElevated,
+                              borderColor: colors.borderSubtle,
+                            },
+                          ]}
+                          keyboardType="numeric"
+                          value={editMaxReps}
+                          onChangeText={setEditMaxReps}
+                        />
+                        <Pressable
+                          onPress={async () => {
+                            if (!ex.routineExerciseId || !onUpdateRoutineExercise)
+                              return;
+                            setActionLoadingId(ex.routineExerciseId);
+                            try {
+                              await onUpdateRoutineExercise(
+                                ex.routineExerciseId,
+                                parseInt(editSets, 10) || 4,
+                                parseInt(editMinReps, 10) || 8,
+                                parseInt(editMaxReps, 10) || 12,
+                              );
+                              setEditingExId(null);
+                            } finally {
+                              setActionLoadingId(null);
+                            }
+                          }}
+                          style={[
+                            styles.trashBtn,
+                            { backgroundColor: colors.primary },
+                          ]}
+                        >
+                          <GymIcon
+                            name="check"
+                            size={14}
+                            color={colors.onPrimary}
+                          />
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <Text
+                        style={{ fontSize: 11, color: colors.textSecondary }}
+                      >
+                        {ex.setsCount || 4} series × {ex.minReps || 8}-
+                        {ex.maxReps || 12} reps
+                      </Text>
+                    )}
                   </View>
+
+                  {onUpdateRoutineExercise && ex.routineExerciseId && (
+                    <Pressable
+                      onPress={() => {
+                        if (editingExId === ex.routineExerciseId) {
+                          setEditingExId(null);
+                        } else {
+                          setEditingExId(ex.routineExerciseId!);
+                          setEditSets(String(ex.setsCount || 4));
+                          setEditMinReps(String(ex.minReps || 8));
+                          setEditMaxReps(String(ex.maxReps || 12));
+                        }
+                      }}
+                      style={[
+                        styles.trashBtn,
+                        { backgroundColor: colors.primaryGlow },
+                      ]}
+                    >
+                      <GymIcon
+                        name={editingExId === ex.routineExerciseId ? "x" : "edit"}
+                        size={14}
+                        color={colors.primary}
+                      />
+                    </Pressable>
+                  )}
 
                   <Pressable
                     disabled={isRemoving}

@@ -51,6 +51,7 @@ export default function HomeScreen() {
   if (user) {
     return (
       <SafeAreaView
+        edges={["top", "left", "right"]}
         style={[styles.safeArea, { backgroundColor: colors.background }]}
       >
         <GymDashboard />

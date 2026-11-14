@@ -63,7 +63,7 @@ export function LoginForm() {
         >
           <GymIcon name="dumbbell" size={28} color={colors.primary} />
         </View>
-        <View style={styles.statusPill}>
+        <View style={[styles.statusPill, { backgroundColor: colors.primaryGlow }]}>
           <GymIcon name="zap" size={13} color={colors.primary} />
           <Text style={[styles.statusText, { color: colors.primary }]}>
             APEX PERFORMANCE
@@ -169,7 +169,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: Radius.pill,
-    backgroundColor: "rgba(16, 185, 129, 0.12)",
   },
   statusText: {
     fontSize: 10,

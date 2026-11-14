@@ -117,7 +117,7 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
               <Text
                 style={[
                   styles.chipText,
-                  { color: active ? "#FFFFFF" : colors.textSecondary },
+                  { color: active ? colors.onPrimary : colors.textSecondary },
                 ]}
               >
                 {r.title || (r as any).name || "Rutina"}
@@ -157,7 +157,7 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
                 <Text
                   style={[
                     styles.chipText,
-                    { color: active ? "#FFFFFF" : colors.textSecondary },
+                    { color: active ? colors.onPrimary : colors.textSecondary },
                   ]}
                 >
                   {ex.name}

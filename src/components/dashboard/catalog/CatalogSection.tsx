@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import React, { useMemo, useState } from "react";
 import {
   Pressable,
@@ -11,15 +12,20 @@ import {
 
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon } from "@/components/ui/GymIcon";
-import { Radius, Spacing } from "@/constants/theme";
+import { Palette, Radius, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
-import { Exercise } from "@/services/api";
+import {
+  Equipment,
+  Exercise,
+  resolveExerciseImageUrl,
+} from "@/services/api";
 import { isExerciseCompatibleWithFocus } from "../muscleValidation";
 import { DashboardColors } from "../types";
 
 export interface CatalogSectionProps {
   colors: DashboardColors;
   exercises: Exercise[];
+  equipmentList?: Equipment[];
   isStaff?: boolean;
   onOpenAddExercise: () => void;
   onOpenExerciseDetail: (exerciseId: string) => void;
@@ -42,6 +48,7 @@ const MUSCLE_FILTER_OPTIONS = [
 export const CatalogSection: React.FC<CatalogSectionProps> = ({
   colors,
   exercises,
+  equipmentList = [],
   isStaff,
   onOpenAddExercise,
   onOpenExerciseDetail,
@@ -163,8 +170,8 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
               },
             ]}
           >
-            <GymIcon name="plus" size={16} color="#FFFFFF" />
-            <Text style={styles.addBtnText}>Nuevo</Text>
+            <GymIcon name="plus" size={16} color={colors.onPrimary} />
+            <Text style={[styles.addBtnText, { color: colors.onPrimary }]}>Nuevo</Text>
           </Pressable>
         )}
       </View>
@@ -216,7 +223,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
         styles.filterChipText,
         {
           color: !showFavoritesOnly
-            ? "#FFFFFF"
+            ? colors.onPrimary
             : colors.textSecondary,
         },
       ]}
@@ -239,8 +246,8 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
     <GymIcon
       name="heart"
       size={12}
-      color={showFavoritesOnly ? "#FFFFFF" : colors.textSecondary}
-      fill={showFavoritesOnly ? "#FFFFFF" : undefined}
+      color={showFavoritesOnly ? colors.onPrimary : colors.textSecondary}
+      fill={showFavoritesOnly ? colors.onPrimary : undefined}
     />
 
     <Text
@@ -248,7 +255,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
         styles.filterChipText,
         {
           color: showFavoritesOnly
-            ? "#FFFFFF"
+            ? colors.onPrimary
             : colors.textSecondary,
         },
       ]}
@@ -285,7 +292,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
               {
                 color:
                   selectedMuscleFilter === "all"
-                    ? "#FFFFFF"
+                    ? colors.onPrimary
                     : colors.textSecondary,
               },
             ]}
@@ -318,7 +325,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                 style={[
                   styles.filterChipText,
                   {
-                    color: isSelected ? "#FFFFFF" : colors.textSecondary,
+                    color: isSelected ? colors.onPrimary : colors.textSecondary,
                   },
                 ]}
               >
@@ -352,7 +359,9 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
         </View>
       ) : (
         <View style={styles.listColumn}>
-          {filteredExercises.map((ex) => (
+          {filteredExercises.map((ex) => {
+            const exImageUrl = resolveExerciseImageUrl(ex, equipmentList);
+            return (
             <Pressable
               key={ex.id}
               onPress={() => onOpenExerciseDetail(ex.id)}
@@ -372,10 +381,20 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                   {
                     backgroundColor: colors.primaryGlow,
                     borderColor: colors.border,
+                    overflow: "hidden",
                   },
                 ]}
               >
-                <GymIcon name="dumbbell" size={20} color={colors.primary} />
+                {exImageUrl ? (
+                  <Image
+                    source={{ uri: exImageUrl }}
+                    style={{ width: "100%", height: "100%" }}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                  />
+                ) : (
+                  <GymIcon name="dumbbell" size={20} color={colors.primary} />
+                )}
               </View>
 
               <View style={{ flex: 1 }}>
@@ -496,7 +515,8 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                 )}
               </View>
             </Pressable>
-          ))}
+            );
+          })}
         </View>
       )}
     </AnimatedCard>
@@ -549,7 +569,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   addBtnText: {
-    color: "#FFFFFF",
+    color: Palette.textOnVolt,
     fontWeight: "800",
     fontSize: 13,
   },

@@ -111,7 +111,7 @@ export const CreateRoutineCard: React.FC<CreateRoutineCardProps> = ({
               <Text
                 style={[
                   styles.chipText,
-                  { color: active ? "#FFFFFF" : colors.textSecondary },
+                  { color: active ? colors.onPrimary : colors.textSecondary },
                 ]}
               >
                 {option.label}

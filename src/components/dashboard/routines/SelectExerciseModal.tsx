@@ -1,7 +1,7 @@
+import { Image } from "expo-image";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
-  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -13,7 +13,11 @@ import {
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
-import { Exercise } from "@/services/api";
+import {
+  Equipment,
+  Exercise,
+  resolveExerciseImageUrl,
+} from "@/services/api";
 import { isExerciseCompatibleWithFocus } from "../muscleValidation";
 import { DashboardColors } from "../types";
 
@@ -21,6 +25,7 @@ export interface SelectExerciseModalProps {
   visible: boolean;
   colors: DashboardColors;
   exercises: Exercise[];
+  equipmentList?: Equipment[];
   routineFocus?: string;
   selectedExerciseId?: string;
   selectedExerciseIds?: string[];
@@ -71,7 +76,8 @@ const ExerciseThumbnail: React.FC<{
         borderRadius: 12,
         backgroundColor: colors.backgroundElevated,
       }}
-      resizeMode="cover"
+      contentFit="cover"
+      cachePolicy="memory-disk"
       onError={() => setHasError(true)}
     />
   );
@@ -81,6 +87,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
   visible,
   colors,
   exercises,
+  equipmentList = [],
   routineFocus,
   selectedExerciseId,
   selectedExerciseIds = [],
@@ -338,7 +345,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
                   ]}
                 >
                   <ExerciseThumbnail
-                    uri={item.image_url}
+                    uri={resolveExerciseImageUrl(item, equipmentList)}
                     size={54}
                     colors={colors}
                   />
@@ -401,7 +408,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
                     ]}
                   >
                     {isSelected && (
-                      <GymIcon name="check" size={14} color="#FFFFFF" />
+                      <GymIcon name="check" size={14} color={colors.onPrimary} />
                     )}
                   </View>
                 </Pressable>

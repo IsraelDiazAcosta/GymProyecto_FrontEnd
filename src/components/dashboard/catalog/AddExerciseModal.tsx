@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import React, { useState } from "react";
 import {
   Modal,
@@ -12,7 +13,13 @@ import { AppButton } from "@/components/ui/AppButton";
 import { AppInput } from "@/components/ui/AppInput";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
-import { Equipment, MuscleGroup } from "@/services/api";
+import {
+  Equipment,
+  MuscleGroup,
+  pickAndCompressImage,
+  PickedImageAsset,
+  resolveMediaUrl,
+} from "@/services/api";
 import { DashboardColors } from "../types";
 
 export interface AddExerciseModalProps {
@@ -30,6 +37,8 @@ export interface AddExerciseModalProps {
   muscleList: MuscleGroup[];
   selectedMuscle: number | null;
   setSelectedMuscle: (id: number | null) => void;
+  newExImage?: PickedImageAsset | null;
+  setNewExImage?: (asset: PickedImageAsset | null) => void;
   onSubmit: () => void;
   onClose: () => void;
 }
@@ -53,6 +62,8 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
   muscleList,
   selectedMuscle,
   setSelectedMuscle,
+  newExImage,
+  setNewExImage,
   onSubmit,
   onClose,
 }) => {
@@ -63,6 +74,15 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
     (eq) => eq.id === selectedEquipment,
   );
   const selectedMuscleObj = muscleList.find((m) => m.id === selectedMuscle);
+  const previewUri =
+    newExImage?.uri || resolveMediaUrl(selectedEquipObj?.image);
+
+  const handlePickImage = async (source: "camera" | "gallery") => {
+    try {
+      const asset = await pickAndCompressImage(source);
+      if (asset) setNewExImage?.(asset);
+    } catch {}
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide">
@@ -420,6 +440,61 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
               multiline
             />
 
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+              Fotografía Propia (Opcional — si no, hereda de la máquina)
+            </Text>
+            <View style={styles.imagePickerRow}>
+              <Pressable
+                onPress={() => handlePickImage("camera")}
+                style={[
+                  styles.pickerBtn,
+                  {
+                    backgroundColor: colors.backgroundElevated,
+                    borderColor: colors.borderSubtle,
+                  },
+                ]}
+              >
+                <GymIcon name="camera" size={16} color={colors.primary} />
+                <Text style={[styles.optionTitle, { color: colors.text }]}>
+                  Cámara
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => handlePickImage("gallery")}
+                style={[
+                  styles.pickerBtn,
+                  {
+                    backgroundColor: colors.backgroundElevated,
+                    borderColor: colors.borderSubtle,
+                  },
+                ]}
+              >
+                <GymIcon name="image" size={16} color={colors.primary} />
+                <Text style={[styles.optionTitle, { color: colors.text }]}>
+                  Galería
+                </Text>
+              </Pressable>
+              {newExImage && (
+                <Pressable
+                  onPress={() => setNewExImage?.(null)}
+                  style={[
+                    styles.pickerClearBtn,
+                    { backgroundColor: colors.dangerGlow },
+                  ]}
+                >
+                  <GymIcon name="trash" size={15} color={colors.danger} />
+                </Pressable>
+              )}
+            </View>
+            {previewUri && (
+              <Image
+                source={{ uri: previewUri }}
+                style={[styles.previewImage, { borderColor: colors.border }]}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+              />
+            )}
+
             <View style={styles.actionsRow}>
               <AppButton
                 title="Guardar Ejercicio"
@@ -541,5 +616,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 6,
+  },
+  imagePickerRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 10,
+  },
+  pickerBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  pickerClearBtn: {
+    width: 42,
+    borderRadius: Radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previewImage: {
+    width: "100%",
+    height: 140,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    marginBottom: 10,
   },
 });

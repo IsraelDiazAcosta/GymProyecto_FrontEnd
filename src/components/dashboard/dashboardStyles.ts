@@ -37,7 +37,7 @@ export const dashboardStyles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.two,
-    paddingBottom: Spacing.six,
+    paddingBottom: 110,
     gap: Spacing.three,
   },
   sectionBlock: {

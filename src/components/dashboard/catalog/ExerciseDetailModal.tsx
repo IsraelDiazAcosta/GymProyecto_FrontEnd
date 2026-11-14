@@ -1,6 +1,6 @@
+import { Image } from "expo-image";
 import React, { useState } from "react";
 import {
-  Image,
   Linking,
   Modal,
   Pressable,
@@ -12,14 +12,19 @@ import {
 
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
-import { Radius } from "@/constants/theme";
-import { Exercise } from "@/services/api";
+import { Palette, Radius } from "@/constants/theme";
+import {
+  Equipment,
+  Exercise,
+  resolveExerciseImageUrl,
+} from "@/services/api";
 import { DashboardColors } from "../types";
 
 export interface ExerciseDetailModalProps {
   colors: DashboardColors;
   visible: boolean;
   exercise: Exercise | null;
+  equipmentList?: Equipment[];
   onClose: () => void;
 }
 
@@ -31,20 +36,16 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
   colors,
   visible,
   exercise,
+  equipmentList = [],
   onClose,
 }) => {
   const [imgError, setImgError] = useState(false);
 
   if (!exercise) return null;
 
-  const imageUri =
-    !imgError &&
-    (exercise.thumbnail ||
-      exercise.media?.find(
-        (m) => m.media_type === "image" || Boolean(m.thumbnail),
-      )?.thumbnail ||
-      exercise.media?.find((m) => m.media_type === "image")?.file ||
-      null);
+  const imageUri = !imgError
+    ? resolveExerciseImageUrl(exercise, equipmentList)
+    : null;
 
   const videoMedia = exercise.media?.find(
     (m) => m.media_type === "video" || Boolean(m.external_url),
@@ -120,7 +121,8 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                 <Image
                   source={{ uri: imageUri }}
                   style={styles.heroImage}
-                  resizeMode="cover"
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
                   onError={() => setImgError(true)}
                 />
                 {videoUrl && (
@@ -131,8 +133,13 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                     ]}
                     onPress={() => Linking.openURL(videoUrl)}
                   >
-                    <GymIcon name="play" size={15} color="#FFFFFF" />
-                    <Text style={styles.videoOverlayText}>
+                    <GymIcon name="play" size={15} color={colors.onPrimary} />
+                    <Text
+                      style={[
+                        styles.videoOverlayText,
+                        { color: colors.onPrimary },
+                      ]}
+                    >
                       Ver Video Demostrativo
                     </Text>
                   </Pressable>
@@ -162,8 +169,13 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                     ]}
                     onPress={() => Linking.openURL(videoUrl)}
                   >
-                    <GymIcon name="video" size={15} color="#FFFFFF" />
-                    <Text style={styles.videoOverlayText}>
+                    <GymIcon name="video" size={15} color={colors.onPrimary} />
+                    <Text
+                      style={[
+                        styles.videoOverlayText,
+                        { color: colors.onPrimary },
+                      ]}
+                    >
                       Abrir Video Externo
                     </Text>
                   </Pressable>
@@ -441,7 +453,7 @@ const styles = StyleSheet.create({
     height: 190,
     borderRadius: Radius.lg,
     overflow: "hidden",
-    backgroundColor: "#111",
+    backgroundColor: Palette.emeraldBase,
     position: "relative",
   },
   heroImage: {
@@ -460,7 +472,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
   },
   videoOverlayText: {
-    color: "#FFFFFF",
+    color: Palette.textOnVolt,
     fontWeight: "800",
     fontSize: 12,
   },
@@ -558,7 +570,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   stepNumberText: {
-    color: "#FFFFFF",
+    color: Palette.textOnVolt,
     fontSize: 12,
     fontWeight: "900",
   },

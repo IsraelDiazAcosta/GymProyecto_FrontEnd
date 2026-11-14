@@ -12,6 +12,7 @@ import {
   Equipment,
   Exercise,
   MuscleGroup,
+  PickedImageAsset,
   ProgressionItem,
   Routine,
 } from "@/services/api";
@@ -60,6 +61,7 @@ export function useGymDashboardData() {
   const [newExVideo, setNewExVideo] = useState("");
   const [newExEquipment, setNewExEquipment] = useState<number | null>(null);
   const [newExMuscle, setNewExMuscle] = useState<number | null>(null);
+  const [newExImage, setNewExImage] = useState<PickedImageAsset | null>(null);
 
   // Estados de Rutinas
   const [newRoutineTitle, setNewRoutineTitle] = useState("");
@@ -216,6 +218,7 @@ export function useGymDashboardData() {
         video_url: newExVideo,
         equipment_id: newExEquipment,
         muscle_id: newExMuscle,
+        image: newExImage,
       });
       showToast(
         "success",
@@ -228,6 +231,7 @@ export function useGymDashboardData() {
       setNewExVideo("");
       setNewExEquipment(null);
       setNewExMuscle(null);
+      setNewExImage(null);
       const updated = await api.getExercises();
       setExercises(updated);
     } catch (e: any) {
@@ -251,17 +255,34 @@ export function useGymDashboardData() {
       return ex ? isExerciseCompatibleWithFocus(ex, newRoutineFocus) : false;
     });
 
+    const sc = parseInt(setsCount, 10) || 4;
+    const minR = parseInt(minReps, 10) || 8;
+    const maxR = parseInt(maxReps, 10) || 12;
+
     try {
       setLoading(true);
-      await api.createRoutine(
+      const created = await api.createRoutine(
         newRoutineTitle.trim(),
         newRoutineFocus,
         "Rutina personalizada",
         validExerciseIds,
-        parseInt(setsCount, 10) || 4,
-        parseInt(minReps, 10) || 8,
-        parseInt(maxReps, 10) || 12,
+        sc,
+        minR,
+        maxR,
       );
+      if (
+        validExerciseIds.length > 0 &&
+        created?.id &&
+        getExercisesOfRoutine(created).length === 0
+      ) {
+        await api.addExerciseToRoutine(created.id, {
+          exercise_id: validExerciseIds[0],
+          exercise_ids: validExerciseIds,
+          sets_count: sc,
+          min_reps: minR,
+          max_reps: maxR,
+        });
+      }
       const createdTitle = newRoutineTitle.trim();
       setNewRoutineTitle("");
       setNewRoutineExerciseIds([]);
@@ -342,6 +363,7 @@ export function useGymDashboardData() {
     try {
       setLoading(true);
       await api.addExerciseToRoutine(routineId, {
+        exercise_id: validExerciseIds[0],
         exercise_ids: validExerciseIds,
         sets_count: parseInt(setsCount, 10) || 4,
         min_reps: parseInt(minReps, 10) || 8,
@@ -609,6 +631,52 @@ export function useGymDashboardData() {
     }
   };
 
+  const handleUpdateRoutineExercise = async (
+    routineExerciseId: string,
+    sc: number,
+    minR: number,
+    maxR: number,
+  ) => {
+    if (!Number.isInteger(sc) || sc < 1 || !Number.isInteger(minR) || minR < 1 || !Number.isInteger(maxR) || maxR < 1) {
+      showToast(
+        "warning",
+        "Valores Inválidos",
+        "Series y repeticiones deben ser números enteros positivos.",
+      );
+      return;
+    }
+    try {
+      setLoading(true);
+      await api.updateRoutineExercise(routineExerciseId, {
+        sets_count: sc,
+        min_reps: minR,
+        max_reps: Math.max(minR, maxR),
+      });
+      const updated = await api.getRoutines();
+      setRoutines(updated);
+      if (editModalItem && editModalItem.type === "routine") {
+        const updatedRoutine = updated.find(
+          (r) => r.id === editModalItem.data.id,
+        );
+        if (updatedRoutine) {
+          setEditModalItem({
+            ...editModalItem,
+            data: updatedRoutine,
+          });
+        }
+      }
+      showToast(
+        "success",
+        "Series / Reps Actualizadas",
+        `Configuración actualizada a ${sc} series × ${minR}-${Math.max(minR, maxR)} reps.`,
+      );
+    } catch (e: any) {
+      showToast("error", "Error al actualizar series", e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSaveExerciseEdit = async (
     id: string,
     name: string,
@@ -616,6 +684,7 @@ export function useGymDashboardData() {
     instructions: string,
     video_url?: string,
     muscle_id?: number | null,
+    image?: PickedImageAsset | null,
   ) => {
     try {
       setLoading(true);
@@ -625,6 +694,7 @@ export function useGymDashboardData() {
         instructions,
         video_url,
         muscle_id,
+        image,
       });
       const updated = await api.getExercises();
       setExercises(updated);
@@ -646,6 +716,7 @@ export function useGymDashboardData() {
     brand?: string;
     setup_guide?: string;
     description?: string;
+    image?: PickedImageAsset | null;
   }) => {
     try {
       setLoading(true);
@@ -673,13 +744,18 @@ export function useGymDashboardData() {
       brand?: string;
       setup_guide?: string;
       description?: string;
+      image?: PickedImageAsset | null;
     },
   ) => {
     try {
       setLoading(true);
       await api.updateEquipment(id, data);
-      const updated = await api.getEquipment();
+      const [updated, updatedExercises] = await Promise.all([
+        api.getEquipment(),
+        api.getExercises().catch(() => exercises),
+      ]);
       setEquipmentList(updated);
+      setExercises(updatedExercises);
       showToast(
         "success",
         "Máquina Actualizada",
@@ -689,6 +765,32 @@ export function useGymDashboardData() {
       showToast("error", "Error al actualizar máquina", e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleEquipmentFavorite = async (equipmentId: number) => {
+    try {
+      Vibration.vibrate(15);
+    } catch {}
+    setEquipmentList((prev) =>
+      prev.map((eq) =>
+        eq.id === equipmentId ? { ...eq, is_favorite: !eq.is_favorite } : eq,
+      ),
+    );
+    try {
+      const res = await api.toggleEquipmentFavorite(equipmentId);
+      setEquipmentList((prev) =>
+        prev.map((eq) =>
+          eq.id === equipmentId ? { ...eq, is_favorite: res.is_favorite } : eq,
+        ),
+      );
+    } catch (e: any) {
+      setEquipmentList((prev) =>
+        prev.map((eq) =>
+          eq.id === equipmentId ? { ...eq, is_favorite: !eq.is_favorite } : eq,
+        ),
+      );
+      showToast("error", "Error en favoritos", e.message);
     }
   };
 
@@ -727,8 +829,12 @@ export function useGymDashboardData() {
         );
       } else {
         await api.deleteExercise(deleteConfirmItem.id);
-        const updated = await api.getExercises();
-        setExercises(updated);
+        const [updatedExercises, updatedRoutines] = await Promise.all([
+          api.getExercises(),
+          api.getRoutines().catch(() => routines),
+        ]);
+        setExercises(updatedExercises);
+        setRoutines(updatedRoutines);
         showToast(
           "success",
           "Ejercicio Eliminado",
@@ -767,6 +873,8 @@ export function useGymDashboardData() {
     setNewExEquipment,
     newExMuscle,
     setNewExMuscle,
+    newExImage,
+    setNewExImage,
     newRoutineTitle,
     setNewRoutineTitle,
     newRoutineFocus,
@@ -827,9 +935,11 @@ export function useGymDashboardData() {
     handleSaveRoutineEdit,
     handleRemoveExerciseFromRoutine,
     handleAddExerciseToRoutineInEdit,
+    handleUpdateRoutineExercise,
     handleSaveExerciseEdit,
     handleCreateEquipment,
     handleSaveEquipmentEdit,
+    handleToggleEquipmentFavorite,
     handleConfirmDelete,
   };
 }

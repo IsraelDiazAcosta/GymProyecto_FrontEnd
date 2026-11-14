@@ -1,8 +1,34 @@
+import Constants from "expo-constants";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
 import { Platform } from "react-native";
 import { storage } from "./storage";
 
-export const DEV_PC_IP =
-  process.env.EXPO_PUBLIC_DEV_PC_IP;
+function extractLanIp(raw?: string | null): string | null {
+  if (!raw || typeof raw !== "string") return null;
+  const cleaned = raw.replace(/^[a-z]+:\/\//i, "").split("/")[0];
+  const host = cleaned.split(":")[0]?.trim();
+  if (!host || host === "localhost" || host === "127.0.0.1") {
+    return null;
+  }
+  return /^\d{1,3}(\.\d{1,3}){3}$/.test(host) ? host : null;
+}
+
+function resolveDevHostIp(): string {
+  const envIp = process.env.EXPO_PUBLIC_DEV_PC_IP?.trim();
+  if (envIp) return envIp;
+
+  const expoHostUri =
+    Constants.expoConfig?.hostUri ||
+    (Constants as any).manifest2?.extra?.expoGo?.debuggerHost ||
+    (Constants as any).manifest2?.extra?.expoClient?.hostUri ||
+    (Constants as any).manifest?.debuggerHost ||
+    (Constants as any).manifest?.hostUri;
+
+  return extractLanIp(expoHostUri) || "192.168.100.8";
+}
+
+export const DEV_PC_IP = resolveDevHostIp();
 export const API_BASE_URL = Platform.select({
   web: "http://127.0.0.1:8000/api/v1",
   android: `http://${DEV_PC_IP}:8000/api/v1`,
@@ -18,12 +44,62 @@ export const EXPERIENCE_LEVELS: { value: ExperienceLevel; label: string }[] = [
   { value: "advanced", label: "Avanzado" },
 ];
 
+export type TrainingGoal =
+  | "hypertrophy"
+  | "strength"
+  | "weight_loss"
+  | "endurance"
+  | "general_fitness";
+
+export const TRAINING_GOALS: { value: TrainingGoal; label: string }[] = [
+  { value: "hypertrophy", label: "Hipertrofia" },
+  { value: "strength", label: "Fuerza" },
+  { value: "weight_loss", label: "Definición" },
+  { value: "endurance", label: "Resistencia" },
+  { value: "general_fitness", label: "Salud General" },
+];
+
+export interface PickedImageAsset {
+  uri: string;
+  name: string;
+  type: string;
+  file?: File;
+  base64?: string;
+}
+
+export interface BodyWeightLogItem {
+  id: number;
+  weight: number | string;
+  date: string;
+  created_at?: string;
+}
+
+export interface Weight1RMPoint {
+  set_id: string;
+  date: string;
+  logged_at: string;
+  exercise_id: string;
+  exercise_name: string;
+  weight: number;
+  reps: number;
+  estimated_1rm: number;
+  body_weight?: number | null;
+  relative_strength?: number | null;
+}
+
+export interface Weight1RMProgressResponse {
+  exercise_id?: string | null;
+  weight_logs: { id: number; date: string; weight: number }[];
+  progress: Weight1RMPoint[];
+}
+
 export interface User {
   id: string;
   email: string;
   username?: string | null;
   avatar?: string | null;
   experience_level?: ExperienceLevel;
+  training_goal?: TrainingGoal;
   // DRF serializa DecimalField como string ("72.50")
   current_weight?: number | string | null;
   height?: number | string | null;
@@ -36,6 +112,7 @@ export interface User {
 export interface ProfileUpdatePayload {
   username?: string | null;
   experience_level?: ExperienceLevel;
+  training_goal?: TrainingGoal;
   current_weight?: string | null;
   height?: string | null;
   bio?: string;
@@ -50,6 +127,119 @@ export function resolveMediaUrl(path?: string | null): string | null {
   return `${host}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
+/** Devuelve la URL absoluta de la imagen propia del ejercicio o hereda la de su máquina. */
+export function resolveExerciseImageUrl(
+  exercise?: Exercise | null,
+  equipmentList?: Equipment[],
+): string | null {
+  if (!exercise) return null;
+  const direct =
+    exercise.image ||
+    exercise.image_url ||
+    exercise.thumbnail ||
+    exercise.media?.find((m) => m.media_type === "image" || Boolean(m.thumbnail))
+      ?.thumbnail ||
+    exercise.media?.find((m) => m.media_type === "image")?.file ||
+    (typeof exercise.equipment === "object" && exercise.equipment
+      ? exercise.equipment.image
+      : null);
+  if (direct) return resolveMediaUrl(direct);
+  if (equipmentList && equipmentList.length > 0) {
+    const eqId =
+      typeof exercise.equipment === "object" && exercise.equipment
+        ? exercise.equipment.id
+        : (exercise as any).equipment_id;
+    const eqMatch = equipmentList.find(
+      (eq) =>
+        (eqId && eq.id === eqId) ||
+        (exercise.equipment_name &&
+          eq.name.toLowerCase() === exercise.equipment_name.toLowerCase()),
+    );
+    if (eqMatch?.image) return resolveMediaUrl(eqMatch.image);
+  }
+  return null;
+}
+
+/** Abre cámara o galería, redimensiona lado largo a máx. 1080px y comprime a calidad 0.7. */
+export async function pickAndCompressImage(
+  source: "camera" | "gallery",
+): Promise<PickedImageAsset | null> {
+  if (source === "camera") {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      throw new Error("Se requiere permiso de cámara para tomar una foto.");
+    }
+  } else {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      throw new Error("Se requiere permiso de galería para elegir una imagen.");
+    }
+  }
+
+  const pickerFn =
+    source === "camera"
+      ? ImagePicker.launchCameraAsync
+      : ImagePicker.launchImageLibraryAsync;
+
+  const result = await pickerFn({
+    mediaTypes: ["images"],
+    allowsEditing: true,
+    quality: 0.9,
+  });
+
+  if (result.canceled || !result.assets?.[0]) {
+    return null;
+  }
+
+  const asset = result.assets[0];
+  const w = asset.width || 0;
+  const h = asset.height || 0;
+  const actions: ImageManipulator.Action[] = [];
+
+  if (w > 1080 || h > 1080) {
+    if (w >= h) {
+      actions.push({ resize: { width: 1080 } });
+    } else {
+      actions.push({ resize: { height: 1080 } });
+    }
+  }
+
+  const format =
+    Platform.OS === "web"
+      ? ImageManipulator.SaveFormat.WEBP
+      : ImageManipulator.SaveFormat.JPEG;
+  const ext = format === ImageManipulator.SaveFormat.WEBP ? "webp" : "jpg";
+  const mime =
+    format === ImageManipulator.SaveFormat.WEBP ? "image/webp" : "image/jpeg";
+
+  const manipulated = await ImageManipulator.manipulateAsync(
+    asset.uri,
+    actions,
+    {
+      compress: 0.7,
+      format,
+      base64: true,
+    },
+  );
+
+  let webFile: File | undefined;
+  if (Platform.OS === "web" && manipulated.uri) {
+    try {
+      const resp = await fetch(manipulated.uri);
+      const blob = await resp.blob();
+      webFile = new File([blob], `upload_${Date.now()}.${ext}`, { type: mime });
+    } catch {}
+  }
+
+  return {
+    uri: manipulated.uri,
+    name: `upload_${Date.now()}.${ext}`,
+    type: mime,
+    file: webFile,
+    base64: manipulated.base64,
+  };
+}
+
 export interface AuthResponse {
   access: string;
   refresh: string;
@@ -61,8 +251,10 @@ export interface Equipment {
   name: string;
   equipment_type: string;
   equipment_type_display?: string;
+  type_display?: string;
   brand: string;
-  image?: string;
+  image?: string | null;
+  is_favorite?: boolean;
   description?: string;
   setup_guide?: string;
 }
@@ -90,16 +282,21 @@ export interface Exercise {
   primary_muscle?: string;
   equipment?: Equipment;
   muscles?: {
+    id?: number;
     muscle: number;
     muscle_name: string;
     body_part: string;
+    role?: string;
     role_display: string;
   }[];
   mechanics?: string;
   difficulty?: string;
+  description?: string;
   instructions?: string;
   tips?: string;
   media?: ExerciseMedia[];
+  image?: string | null;
+  image_url?: string | null;
   thumbnail?: string | null;
 }
 
@@ -151,6 +348,81 @@ export interface ProgressionItem {
   rpe?: number;
 }
 
+export interface RoutineRef {
+  id: string | null;
+  name: string;
+  title?: string;
+}
+
+export interface WorkoutSessionItem {
+  id: string;
+  routine?: string | RoutineRef | null;
+  routine_id?: string | null;
+  routine_title?: string;
+  routine_detail?: RoutineRef | null;
+  title?: string;
+  started_at: string;
+  ended_at?: string | null;
+  start_time: string;
+  end_time?: string | null;
+  duration_seconds?: number | null;
+  duration_minutes?: number | null;
+  status: "active" | "completed" | "cancelled";
+  date?: string | null;
+  total_exercises?: number;
+  total_sets?: number;
+  total_volume?: number;
+}
+
+export interface SessionExerciseSetDetail {
+  id: string;
+  set_number: number;
+  weight: number;
+  reps: number;
+  rpe?: number | null;
+  estimated_1rm: number;
+  set_type?: string;
+}
+
+export interface SessionExerciseDetail {
+  id: string;
+  exercise_id: string;
+  exercise_name: string;
+  order: number;
+  unrecorded: boolean;
+  status: string;
+  planned_sets?: number;
+  planned_reps?: string | null;
+  sets: SessionExerciseSetDetail[];
+}
+
+export interface WorkoutSessionDetail extends WorkoutSessionItem {
+  has_logged_sets: boolean;
+  exercises: SessionExerciseDetail[];
+}
+
+export interface RoutineSessionSummaryItem {
+  routine_id: string | null;
+  routine_name: string;
+  routine: RoutineRef;
+  sessions_count: number;
+  average_duration_seconds: number;
+  total_duration_seconds: number;
+  last_session_at: string | null;
+}
+
+export interface PaginatedSessionsResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  summary?: {
+    total_sessions: number;
+    total_duration_seconds: number;
+    average_duration_seconds: number;
+  };
+  results: WorkoutSessionItem[];
+}
+
 export class ApiError extends Error {
   status: number;
   data: any;
@@ -162,13 +434,68 @@ export class ApiError extends Error {
   }
 }
 
+function buildMultipartBody(payload: Record<string, any>): FormData {
+  const formData = new FormData();
+  Object.entries(payload).forEach(([key, val]) => {
+    if (val === undefined || val === null) return;
+    if (key === "image" && typeof val === "object" && "uri" in val) {
+      if (Platform.OS === "web" && val.file) {
+        formData.append("image", val.file, val.name || "upload.jpg");
+      } else {
+        formData.append("image", {
+          uri: val.uri,
+          name: val.name || "upload.jpg",
+          type: val.type || "image/jpeg",
+        } as any);
+      }
+    } else {
+      formData.append(key, String(val));
+    }
+  });
+  return formData;
+}
+
+function serializePayloadWithImage(
+  payload: Record<string, any>,
+): string | FormData {
+  const img = payload?.image as PickedImageAsset | null | undefined;
+  if (img && typeof img === "object") {
+    if (img.base64) {
+      const cleanPayload: Record<string, any> = {};
+      Object.entries(payload).forEach(([key, val]) => {
+        if (key === "image" || val === undefined) return;
+        cleanPayload[key] = val;
+      });
+      const mime = img.type || "image/jpeg";
+      const cleanBase64 = img.base64.includes(";base64,")
+        ? img.base64.split(";base64,")[1]
+        : img.base64;
+      cleanPayload.image = `data:${mime};base64,${cleanBase64}`;
+      return JSON.stringify(cleanPayload);
+    }
+    if ("uri" in img || "file" in img) {
+      return buildMultipartBody(payload);
+    }
+  }
+
+  const cleanPayload: Record<string, any> = {};
+  Object.entries(payload || {}).forEach(([key, val]) => {
+    if (val === undefined) return;
+    if (key === "image" && val === null) return;
+    cleanPayload[key] = val;
+  });
+  return JSON.stringify(cleanPayload);
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
   const token = await storage.getAccessToken();
+  const isMultipart =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(isMultipart ? {} : { "Content-Type": "application/json" }),
     Accept: "application/json",
     ...(options.headers as Record<string, string>),
   };
@@ -217,6 +544,21 @@ export const api = {
     });
   },
 
+  async getWeightLogs(): Promise<BodyWeightLogItem[]> {
+    const res: any = await request("/auth/weight-logs/");
+    return res.results || res;
+  },
+
+  async createWeightLog(
+    weight: number | string,
+    date?: string,
+  ): Promise<BodyWeightLogItem> {
+    return request<BodyWeightLogItem>("/auth/weight-logs/", {
+      method: "POST",
+      body: JSON.stringify(date ? { weight, date } : { weight }),
+    });
+  },
+
   async getAdminUsers(): Promise<any[]> {
     const res: any = await request("/auth/users/");
     return res.results || res;
@@ -237,16 +579,32 @@ export const api = {
     return res.results || res;
   },
 
+  async getFavoriteEquipment(): Promise<Equipment[]> {
+    const res: any = await request("/catalog/equipment/favorites/");
+    return res.results || res;
+  },
+
+  async toggleEquipmentFavorite(
+    id: number,
+  ): Promise<{ is_favorite: boolean; equipment_id: number }> {
+    return request<{ is_favorite: boolean; equipment_id: number }>(
+      `/catalog/equipment/${id}/favorite/`,
+      { method: "POST" },
+    );
+  },
+
   async createEquipment(payload: {
     name: string;
     equipment_type: string;
     brand?: string;
     description?: string;
     setup_guide?: string;
+    image?: PickedImageAsset | null;
   }): Promise<Equipment> {
+    const body = serializePayloadWithImage(payload);
     return request<Equipment>("/catalog/equipment/", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body,
     });
   },
 
@@ -258,11 +616,13 @@ export const api = {
       brand?: string;
       description?: string;
       setup_guide?: string;
+      image?: PickedImageAsset | null;
     },
   ): Promise<Equipment> {
+    const body = serializePayloadWithImage(payload);
     return request<Equipment>(`/catalog/equipment/${id}/`, {
       method: "PATCH",
-      body: JSON.stringify(payload),
+      body,
     });
   },
 
@@ -278,16 +638,18 @@ export const api = {
   },
 
   async createExercise(payload: any): Promise<Exercise> {
+    const body = serializePayloadWithImage(payload);
     return request<Exercise>("/catalog/exercises/", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body,
     });
   },
 
   async updateExercise(id: string, payload: any): Promise<Exercise> {
+    const body = serializePayloadWithImage(payload);
     return request<Exercise>(`/catalog/exercises/${id}/`, {
       method: "PATCH",
-      body: JSON.stringify(payload),
+      body,
     });
   },
 
@@ -348,6 +710,19 @@ export const api = {
     });
   },
 
+  async updateRoutineExercise(
+    routineExerciseId: string,
+    payload: { sets_count: number; min_reps: number; max_reps: number },
+  ): Promise<RoutineExercise> {
+    return request<RoutineExercise>(
+      `/routines/exercises/${routineExerciseId}/`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      },
+    );
+  },
+
   async addExerciseToRoutine(
     routineId: string,
     payload: {
@@ -361,8 +736,20 @@ export const api = {
   ): Promise<Routine> {
     return request<Routine>(`/routines/routines/${routineId}/add-exercise/`, {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        exercise_id: payload.exercise_id || payload.exercise_ids?.[0],
+      }),
     });
+  },
+
+  async getWeight1RMProgress(
+    exerciseId?: string,
+  ): Promise<Weight1RMProgressResponse> {
+    const q = exerciseId ? `?exercise_id=${encodeURIComponent(exerciseId)}` : "";
+    return request<Weight1RMProgressResponse>(
+      `/tracking/progress/weight-1rm/${q}`,
+    );
   },
 
   // --- TRACKING Y MARCAS ---
@@ -436,5 +823,107 @@ export const api = {
     return request<void>(`/tracking/sets/${setId}/`, {
       method: "DELETE",
     });
+  },
+
+  // --- SESIONES DE RUTINA CON TIMER ---
+  async startRoutineSession(routineId: string): Promise<WorkoutSessionItem> {
+    return request<WorkoutSessionItem>("/tracking/sessions/start/", {
+      method: "POST",
+      body: JSON.stringify({ routine_id: routineId }),
+    });
+  },
+
+  async finishRoutineSession(): Promise<WorkoutSessionItem> {
+    return request<WorkoutSessionItem>("/tracking/sessions/finish/", {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+  },
+
+  async cancelRoutineSession(): Promise<{ status: string; id?: string | null }> {
+    return request<{ status: string; id?: string | null }>(
+      "/tracking/sessions/cancel/",
+      {
+        method: "POST",
+        body: JSON.stringify({}),
+      },
+    );
+  },
+
+  async getActiveRoutineSession(): Promise<WorkoutSessionItem | null> {
+    const res = await request<WorkoutSessionItem | null>(
+      "/tracking/sessions/active/",
+    );
+    return res && res.id ? res : null;
+  },
+
+  async getRoutineSessionHistory(params?: {
+    desde?: string;
+    hasta?: string;
+    routine_id?: string;
+  }): Promise<WorkoutSessionItem[]> {
+    const search = new URLSearchParams();
+    if (params?.desde) search.append("desde", params.desde);
+    if (params?.hasta) search.append("hasta", params.hasta);
+    if (params?.routine_id) search.append("routine_id", params.routine_id);
+    const qs = search.toString();
+    const res: any = await request(
+      `/tracking/sessions/history/${qs ? `?${qs}` : ""}`,
+    );
+    return Array.isArray(res) ? res : res?.results || [];
+  },
+
+  async getCompletedSessionsPaginated(params?: {
+    page?: number;
+    desde?: string;
+    hasta?: string;
+    routine_id?: string;
+  }): Promise<PaginatedSessionsResponse> {
+    const search = new URLSearchParams();
+    if (params?.page) search.append("page", String(params.page));
+    if (params?.desde) search.append("desde", params.desde);
+    if (params?.hasta) search.append("hasta", params.hasta);
+    if (params?.routine_id) search.append("routine_id", params.routine_id);
+    const qs = search.toString();
+    const res: any = await request(
+      `/tracking/sessions/history/${qs ? `?${qs}` : ""}`,
+    );
+    if (Array.isArray(res)) {
+      return {
+        count: res.length,
+        next: null,
+        previous: null,
+        results: res,
+      };
+    }
+    return {
+      count: res?.count ?? (res?.results?.length || 0),
+      next: res?.next || null,
+      previous: res?.previous || null,
+      summary: res?.summary,
+      results: res?.results || [],
+    };
+  },
+
+  async getWorkoutSessionDetail(
+    sessionId: string,
+  ): Promise<WorkoutSessionDetail> {
+    return request<WorkoutSessionDetail>(`/tracking/sessions/${sessionId}/`);
+  },
+
+  async getRoutineSessionsSummary(params?: {
+    desde?: string;
+    hasta?: string;
+    routine_id?: string;
+  }): Promise<RoutineSessionSummaryItem[]> {
+    const search = new URLSearchParams();
+    if (params?.desde) search.append("desde", params.desde);
+    if (params?.hasta) search.append("hasta", params.hasta);
+    if (params?.routine_id) search.append("routine_id", params.routine_id);
+    const qs = search.toString();
+    const res: any = await request(
+      `/tracking/sessions/routine-summary/${qs ? `?${qs}` : ""}`,
+    );
+    return Array.isArray(res) ? res : res?.results || [];
   },
 };

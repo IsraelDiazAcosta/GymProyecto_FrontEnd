@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GymIcon, IconName } from "@/components/ui/GymIcon";
-import { Radius } from "@/constants/theme";
+import { Palette, Radius } from "@/constants/theme";
 import { DashboardColors } from "../types";
 
 export interface ItemActionSheetProps {
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: 3,
-    backgroundColor: "rgba(150,150,150,0.35)",
+    backgroundColor: Palette.lilacBorder,
     alignSelf: "center",
     marginBottom: 14,
   },

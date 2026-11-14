@@ -6,10 +6,13 @@ import { AppInput } from "@/components/ui/AppInput";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import {
+  api,
   ApiError,
   EXPERIENCE_LEVELS,
   ExperienceLevel,
   ProfileUpdatePayload,
+  TRAINING_GOALS,
+  TrainingGoal,
   User,
 } from "@/services/api";
 import { DashboardColors } from "../types";
@@ -57,6 +60,9 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
   const [level, setLevel] = useState<ExperienceLevel>(
     user.experience_level ?? "beginner",
   );
+  const [goal, setGoal] = useState<TrainingGoal>(
+    user.training_goal ?? "hypertrophy",
+  );
   const [weight, setWeight] = useState(toInputValue(user.current_weight));
   const [height, setHeight] = useState(toInputValue(user.height));
   const [bio, setBio] = useState(user.bio ?? "");
@@ -80,6 +86,7 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
     const payload: ProfileUpdatePayload = {
       username: username.trim() || null,
       experience_level: level,
+      training_goal: goal,
       current_weight: "value" in w ? w.value : null,
       height: "value" in h ? h.value : null,
       bio: bio.trim(),
@@ -89,6 +96,15 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
     setErrors({});
     try {
       await updateProfile(payload);
+      if (
+        "value" in w &&
+        w.value &&
+        Number(w.value) !== Number(user.current_weight)
+      ) {
+        await api
+          .createWeightLog(Number(w.value))
+          .catch(() => undefined);
+      }
       onSaved();
     } catch (err) {
       // DRF devuelve errores por campo: { current_weight: ["..."] }
@@ -143,7 +159,40 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
               <Text
                 style={[
                   styles.levelChipText,
-                  { color: active ? "#FFFFFF" : colors.text },
+                  { color: active ? colors.onPrimary : colors.text },
+                ]}
+              >
+                {opt.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text style={[styles.label, { color: colors.textSecondary }]}>
+        Objetivo de entrenamiento
+      </Text>
+      <View style={styles.goalWrap}>
+        {TRAINING_GOALS.map((opt) => {
+          const active = opt.value === goal;
+          return (
+            <Pressable
+              key={opt.value}
+              onPress={() => setGoal(opt.value)}
+              style={[
+                styles.goalChip,
+                {
+                  backgroundColor: active
+                    ? colors.primary
+                    : colors.backgroundElevated,
+                  borderColor: active ? colors.primary : colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.levelChipText,
+                  { color: active ? colors.onPrimary : colors.text },
                 ]}
               >
                 {opt.label}
@@ -230,6 +279,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     marginBottom: Spacing.three,
+  },
+  goalWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: Spacing.three,
+  },
+  goalChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
+    alignItems: "center",
   },
   levelChip: {
     flex: 1,
