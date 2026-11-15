@@ -137,8 +137,9 @@ export function resolveExerciseImageUrl(
     exercise.image ||
     exercise.image_url ||
     exercise.thumbnail ||
-    exercise.media?.find((m) => m.media_type === "image" || Boolean(m.thumbnail))
-      ?.thumbnail ||
+    exercise.media?.find(
+      (m) => m.media_type === "image" || Boolean(m.thumbnail),
+    )?.thumbnail ||
     exercise.media?.find((m) => m.media_type === "image")?.file ||
     (typeof exercise.equipment === "object" && exercise.equipment
       ? exercise.equipment.image
@@ -280,6 +281,7 @@ export interface Exercise {
   slug?: string;
   equipment_name?: string;
   primary_muscle?: string;
+  is_favorite?: boolean;
   equipment?: Equipment;
   muscles?: {
     id?: number;
@@ -593,6 +595,12 @@ export const api = {
     );
   },
 
+  async toggleExerciseFavorite(
+    id: string,
+  ): Promise<{ is_favorite: boolean; exercise_id: string }> {
+    return request(`/catalog/exercises/${id}/favorite/`, { method: "POST" });
+  },
+
   async createEquipment(payload: {
     name: string;
     equipment_type: string;
@@ -746,7 +754,9 @@ export const api = {
   async getWeight1RMProgress(
     exerciseId?: string,
   ): Promise<Weight1RMProgressResponse> {
-    const q = exerciseId ? `?exercise_id=${encodeURIComponent(exerciseId)}` : "";
+    const q = exerciseId
+      ? `?exercise_id=${encodeURIComponent(exerciseId)}`
+      : "";
     return request<Weight1RMProgressResponse>(
       `/tracking/progress/weight-1rm/${q}`,
     );
@@ -840,7 +850,10 @@ export const api = {
     });
   },
 
-  async cancelRoutineSession(): Promise<{ status: string; id?: string | null }> {
+  async cancelRoutineSession(): Promise<{
+    status: string;
+    id?: string | null;
+  }> {
     return request<{ status: string; id?: string | null }>(
       "/tracking/sessions/cancel/",
       {

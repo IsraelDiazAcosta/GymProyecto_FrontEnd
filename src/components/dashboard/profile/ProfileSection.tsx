@@ -9,10 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Svg, {
-  Circle as SvgCircle,
-  Polyline,
-} from "react-native-svg";
+import Svg, { Polyline, Circle as SvgCircle } from "react-native-svg";
 
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { AppButton } from "@/components/ui/AppButton";
@@ -28,6 +25,7 @@ import {
   TRAINING_GOALS,
   Weight1RMPoint,
 } from "@/services/api";
+import { WeeklyAttendanceCard } from "../routines/WeeklyAttendanceCard";
 import { DashboardColors } from "../types";
 import { EditProfileForm } from "./EditProfileForm";
 
@@ -44,6 +42,9 @@ export interface ProfileSectionProps {
   showAdminUsers: boolean;
   adminUsers: any[];
   onLoadAdminUsers: () => void;
+  trainedDayFlags?: number[];
+  todayWeekIndex?: number;
+  trainedCount?: number;
 }
 
 /**
@@ -56,6 +57,9 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   showAdminUsers,
   adminUsers,
   onLoadAdminUsers,
+  trainedDayFlags = [0, 0, 0, 0, 0, 0, 0],
+  todayWeekIndex = 0,
+  trainedCount = 0,
 }) => {
   const { user, logout, updateProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -374,7 +378,9 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                       />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.userItemEmail, { color: colors.text }]}>
+                      <Text
+                        style={[styles.userItemEmail, { color: colors.text }]}
+                      >
                         {u.email || u.username}
                       </Text>
                       <Text
@@ -401,6 +407,13 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           style={{ width: "100%", marginTop: 12 }}
         />
       </AnimatedCard>
+
+      <WeeklyAttendanceCard
+        colors={colors}
+        trainedDayFlags={trainedDayFlags}
+        todayWeekIndex={todayWeekIndex}
+        trainedCount={trainedCount}
+      />
 
       {/* Tarjeta de Historial de Peso Corporal y Curva 1RM */}
       <AnimatedCard
@@ -532,10 +545,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         <View style={styles.legendRow}>
           <View style={styles.legendItem}>
             <View
-              style={[
-                styles.legendDot,
-                { backgroundColor: colors.primary },
-              ]}
+              style={[styles.legendDot, { backgroundColor: colors.primary }]}
             />
             <Text style={[styles.legendText, { color: colors.text }]}>
               Curva 1RM (kg)
@@ -571,8 +581,8 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               <Text
                 style={[styles.emptyChartText, { color: colors.textSecondary }]}
               >
-                Registra tu peso corporal y marcas para visualizar la correlación
-                con tu curva de 1RM.
+                Registra tu peso corporal y marcas para visualizar la
+                correlación con tu curva de 1RM.
               </Text>
             </View>
           ) : (
@@ -649,7 +659,9 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                     size={13}
                     color={colors.textSecondary}
                   />
-                  <Text style={[styles.logDate, { color: colors.textSecondary }]}>
+                  <Text
+                    style={[styles.logDate, { color: colors.textSecondary }]}
+                  >
                     {item.date}
                   </Text>
                 </View>

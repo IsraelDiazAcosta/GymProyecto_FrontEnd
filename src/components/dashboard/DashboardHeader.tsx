@@ -1,4 +1,3 @@
-import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { GymIcon } from "@/components/ui/GymIcon";
@@ -11,6 +10,7 @@ interface DashboardHeaderProps {
   routinesCount: number;
   exercisesCount: number;
   colors: DashboardColors;
+  trainedCount?: number;
 }
 
 /**
@@ -22,6 +22,7 @@ export function DashboardHeader({
   isAdmin,
   routinesCount,
   exercisesCount,
+  trainedCount = 0,
   colors,
 }: DashboardHeaderProps) {
   return (
@@ -51,7 +52,10 @@ export function DashboardHeader({
             APEX GYM HUB
           </Text>
         </View>
-        <Text style={[styles.greetingText, { color: colors.text }]} numberOfLines={1}>
+        <Text
+          style={[styles.greetingText, { color: colors.text }]}
+          numberOfLines={1}
+        >
           Hola, {username}
         </Text>
       </View>
@@ -84,6 +88,21 @@ export function DashboardHeader({
           <GymIcon name="book-open" size={13} color={colors.primary} />
           <Text style={[styles.statText, { color: colors.text }]}>
             {exercisesCount}
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.statPill,
+            {
+              backgroundColor: colors.backgroundElevated,
+              borderColor: colors.borderSubtle,
+            },
+          ]}
+        >
+          <GymIcon name="calendar" size={13} color={colors.primary} />
+          <Text style={[styles.statText, { color: colors.text }]}>
+            {trainedCount}/7
           </Text>
         </View>
 

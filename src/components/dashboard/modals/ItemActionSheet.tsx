@@ -160,87 +160,91 @@ export const ItemActionSheet: React.FC<ItemActionSheetProps> = ({
 
           {/* Opciones */}
           <View style={styles.optionsList}>
-            <Pressable
-              style={[
-                styles.optionBtn,
-                {
-                  backgroundColor: colors.backgroundElevated,
-                  borderColor: colors.borderSubtle,
-                },
-              ]}
-              onPress={() => {
-                onClose();
-                setTimeout(onEdit, 180);
-              }}
-            >
-              <View
+            {itemType !== "routine" && (
+              <Pressable
                 style={[
-                  styles.optionIconCircle,
-                  { backgroundColor: colors.primaryGlow },
+                  styles.optionBtn,
+                  {
+                    backgroundColor: colors.backgroundElevated,
+                    borderColor: colors.borderSubtle,
+                  },
                 ]}
+                onPress={() => {
+                  onClose();
+                  setTimeout(onEdit, 180);
+                }}
               >
-                <GymIcon name="edit" size={18} color={colors.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  Editar información
-                </Text>
-                <Text
+                <View
                   style={[
-                    styles.optionSub,
-                    { color: colors.textSecondary },
+                    styles.optionIconCircle,
+                    { backgroundColor: colors.primaryGlow },
                   ]}
                 >
-                  {getEditSubtitle()}
-                </Text>
-              </View>
-              <GymIcon
-                name="chevron-right"
-                size={18}
-                color={colors.textSecondary}
-              />
-            </Pressable>
+                  <GymIcon name="edit" size={18} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.optionTitle, { color: colors.text }]}>
+                    Editar información
+                  </Text>
+                  <Text
+                    style={[
+                      styles.optionSub,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {getEditSubtitle()}
+                  </Text>
+                </View>
+                <GymIcon
+                  name="chevron-right"
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            )}
 
-            <Pressable
-              style={[
-                styles.optionBtn,
-                {
-                  backgroundColor: colors.dangerGlow,
-                  borderColor: colors.danger + "40",
-                },
-              ]}
-              onPress={() => {
-                onClose();
-                setTimeout(onDelete, 180);
-              }}
-            >
-              <View
+            {itemType !== "routine" && (
+              <Pressable
                 style={[
-                  styles.optionIconCircle,
-                  { backgroundColor: colors.danger + "25" },
+                  styles.optionBtn,
+                  {
+                    backgroundColor: colors.dangerGlow,
+                    borderColor: colors.danger + "40",
+                  },
                 ]}
+                onPress={() => {
+                  onClose();
+                  setTimeout(onDelete, 180);
+                }}
               >
-                <GymIcon name="trash" size={18} color={colors.danger} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.optionTitle, { color: colors.danger }]}>
-                  {getDeleteTitle()}
-                </Text>
-                <Text
+                <View
                   style={[
-                    styles.optionSub,
-                    { color: colors.textSecondary },
+                    styles.optionIconCircle,
+                    { backgroundColor: colors.danger + "25" },
                   ]}
                 >
-                  Borrar permanentemente de la base de datos
-                </Text>
-              </View>
-              <GymIcon
-                name="chevron-right"
-                size={18}
-                color={colors.danger}
-              />
-            </Pressable>
+                  <GymIcon name="trash" size={18} color={colors.danger} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.optionTitle, { color: colors.danger }]}>
+                    {getDeleteTitle()}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.optionSub,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Borrar permanentemente de la base de datos
+                  </Text>
+                </View>
+                <GymIcon
+                  name="chevron-right"
+                  size={18}
+                  color={colors.danger}
+                />
+              </Pressable>
+            )}
           </View>
 
           <Pressable

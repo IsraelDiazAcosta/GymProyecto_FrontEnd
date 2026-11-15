@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -21,12 +27,15 @@ import {
   WorkoutSessionDetail,
   WorkoutSessionItem,
 } from "@/services/api";
-import { DashboardColors } from "../types";
+import { DashboardColors, RoutineExerciseItem } from "../types";
 
 export interface MarcaHistoryListProps {
   colors: DashboardColors;
   marcaHistory: ProgressionItem[];
   onMarcaOptionsPress?: (item: ProgressionItem) => void;
+  currentRoutineExercises?: RoutineExerciseItem[];
+  trackingExerciseId?: string;
+  onSelectExercise?: (exerciseId: string) => void;
 }
 
 /**
@@ -37,6 +46,9 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
   colors,
   marcaHistory,
   onMarcaOptionsPress,
+  currentRoutineExercises = [],
+  trackingExerciseId = "",
+  onSelectExercise,
 }) => {
   const handleTriggerOptions = (item: ProgressionItem) => {
     try {
@@ -63,10 +75,7 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
           </Text>
         </View>
         <View
-          style={[
-            styles.countBadge,
-            { backgroundColor: colors.primaryGlow },
-          ]}
+          style={[styles.countBadge, { backgroundColor: colors.primaryGlow }]}
         >
           <Text style={[styles.countText, { color: colors.primary }]}>
             {marcaHistory.length}
@@ -74,8 +83,74 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
         </View>
       </View>
 
+      <Text style={[styles.stepLabel, { color: colors.textSecondary }]}>
+        Selecciona el Ejercicio
+      </Text>
+      {currentRoutineExercises.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+        >
+          {Array.from(
+            new Map(currentRoutineExercises.map((e) => [e.id, e])).values(),
+          ).map((ex, idx) => {
+            const active = trackingExerciseId === ex.id;
+            return (
+              <Pressable
+                key={`${ex.id}-${idx}`}
+                onPress={() => onSelectExercise?.(ex.id)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: active
+                      ? colors.primary
+                      : colors.backgroundElevated,
+                    borderColor: active
+                      ? colors.primaryLight
+                      : colors.borderSubtle,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: active ? colors.onPrimary : colors.textSecondary },
+                  ]}
+                >
+                  {ex.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : (
+        <View
+          style={[
+            styles.emptyNotice,
+            {
+              backgroundColor: colors.backgroundElevated,
+              borderColor: colors.borderSubtle,
+            },
+          ]}
+        >
+          <GymIcon name="info" size={14} color={colors.textSecondary} />
+          <Text
+            style={[styles.emptyNoticeText, { color: colors.textSecondary }]}
+          >
+            No hay ejercicios disponibles en la rutina seleccionada
+          </Text>
+        </View>
+      )}
+
       {marcaHistory.length > 0 ? (
-        <View style={styles.listWrap}>
+        <ScrollView
+          style={styles.scrollList}
+          contentContainerStyle={styles.listWrap}
+          nestedScrollEnabled={true}
+          showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
+        >
           {marcaHistory.map((item, idx) => {
             const oneRm =
               item.reps > 0 && item.reps < 37
@@ -118,10 +193,7 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
                       color={colors.textSecondary}
                     />
                     <Text
-                      style={[
-                        styles.metaText,
-                        { color: colors.textSecondary },
-                      ]}
+                      style={[styles.metaText, { color: colors.textSecondary }]}
                     >
                       {fecha} • RPE {item.rpe || 8}
                     </Text>
@@ -161,7 +233,7 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
               </Pressable>
             );
           })}
-        </View>
+        </ScrollView>
       ) : (
         <View
           style={[
@@ -189,6 +261,40 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 12,
   },
+  stepLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginTop: 2,
+  },
+  chipsRow: {
+    gap: 8,
+    paddingBottom: 2,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  emptyNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  emptyNoticeText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "600",
+  },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -211,6 +317,9 @@ const styles = StyleSheet.create({
   countText: {
     fontSize: 12,
     fontWeight: "800",
+  },
+  scrollList: {
+    maxHeight: 225,
   },
   listWrap: {
     gap: 8,
@@ -367,15 +476,7 @@ const getLocalPeriodBounds = (period: PeriodFilter) => {
       hasta: sundayEnd.toISOString(),
     };
   }
-  const monthStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1,
-    0,
-    0,
-    0,
-    0,
-  );
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
   const monthEnd = new Date(
     now.getFullYear(),
     now.getMonth() + 1,
@@ -629,7 +730,10 @@ export const RoutineSessionHistorySection: React.FC<
             Sesiones
           </Text>
           <Text
-            style={[historySectionStyles.summaryValue, { color: colors.primary }]}
+            style={[
+              historySectionStyles.summaryValue,
+              { color: colors.primary },
+            ]}
           >
             {summaryTotals.total_sessions}
           </Text>
@@ -897,7 +1001,10 @@ export const RoutineSessionHistorySection: React.FC<
             ]}
           >
             <Text
-              style={[historySectionStyles.retryText, { color: colors.primary }]}
+              style={[
+                historySectionStyles.retryText,
+                { color: colors.primary },
+              ]}
             >
               Reintentar
             </Text>
@@ -924,7 +1031,13 @@ export const RoutineSessionHistorySection: React.FC<
           </Text>
         </View>
       ) : viewMode === "sessions" ? (
-        <View style={historySectionStyles.listWrap}>
+        <ScrollView
+          style={historySectionStyles.scrollList}
+          contentContainerStyle={historySectionStyles.listWrap}
+          nestedScrollEnabled={true}
+          showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
+        >
           {sessions.map((item) => {
             const routineName = resolveSessionRoutineName(item);
             const durationSec = resolveSessionDurationSeconds(item);
@@ -1095,9 +1208,15 @@ export const RoutineSessionHistorySection: React.FC<
               )}
             </Pressable>
           )}
-        </View>
+        </ScrollView>
       ) : (
-        <View style={historySectionStyles.listWrap}>
+        <ScrollView
+          style={historySectionStyles.scrollList}
+          contentContainerStyle={historySectionStyles.listWrap}
+          nestedScrollEnabled={true}
+          showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
+        >
           {routineSummaries.map((entry, idx) => (
             <View
               key={entry.routine_id || `${entry.routine_name}-${idx}`}
@@ -1205,7 +1324,7 @@ export const RoutineSessionHistorySection: React.FC<
               </View>
             </View>
           ))}
-        </View>
+        </ScrollView>
       )}
 
       {/* Modal de detalle de sesión */}
@@ -1645,6 +1764,9 @@ const historySectionStyles = StyleSheet.create({
   retryText: {
     fontSize: 12,
     fontWeight: "800",
+  },
+  scrollList: {
+    maxHeight: 350,
   },
   listWrap: {
     gap: 9,

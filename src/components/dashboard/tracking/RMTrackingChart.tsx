@@ -176,11 +176,11 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.chipsRow}
       >
-        {routines.map((r) => {
+        {routines.map((r, idx) => {
           const active = trackingRoutineId === r.id;
           return (
             <Pressable
-              key={r.id}
+              key={`${r.id}-${idx}`}
               onPress={() => onSelectRoutine(r.id)}
               style={[
                 styles.chip,
@@ -217,12 +217,13 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipsRow}
         >
-          {exercises.map((ex) => {
-            const active = trackingExerciseId === ex.id;
-            return (
-              <Pressable
-                key={ex.id}
-                onPress={() => onSelectExercise(ex.id)}
+          {Array.from(new Map(exercises.map((e) => [e.id, e])).values()).map(
+            (ex, idx) => {
+              const active = trackingExerciseId === ex.id;
+              return (
+                <Pressable
+                  key={`${ex.id}-${idx}`}
+                  onPress={() => onSelectExercise(ex.id)}
                 style={[
                   styles.chip,
                   {

@@ -409,24 +409,26 @@ export function useGymDashboardData() {
     }
   };
 
-  const handleSaveMarca = async () => {
+  const handleSaveMarca = async (): Promise<boolean> => {
     if (!trackingExerciseId) {
-      return showToast(
+      showToast(
         "warning",
         "Selecciona Ejercicio",
         "Elige un ejercicio de tu rutina antes de registrar marca.",
       );
+      return false;
     }
     const w = parseFloat(marcaWeight);
     const r = parseInt(marcaReps, 10);
     const rpe = parseFloat(marcaRpe) || undefined;
 
     if (isNaN(w) || isNaN(r)) {
-      return showToast(
+      showToast(
         "warning",
         "Datos Inválidos",
         "Ingresa peso y repeticiones válidos.",
       );
+      return false;
     }
 
     try {
@@ -441,8 +443,10 @@ export function useGymDashboardData() {
         `${w} kg × ${r} reps (1RM est: ${res.estimated_1rm} kg)`,
       );
       await loadProgressionHistory(trackingExerciseId);
+      return true;
     } catch (e: any) {
       showToast("error", "Error al guardar marca", e.message);
+      return false;
     } finally {
       setSavingMarca(false);
     }
@@ -794,6 +798,32 @@ export function useGymDashboardData() {
     }
   };
 
+  const handleToggleExerciseFavorite = async (exerciseId: string) => {
+    try {
+      Vibration.vibrate(15);
+    } catch {}
+    setExercises((prev) =>
+      prev.map((ex) =>
+        ex.id === exerciseId ? { ...ex, is_favorite: !ex.is_favorite } : ex,
+      ),
+    );
+    try {
+      const res = await api.toggleExerciseFavorite(exerciseId);
+      setExercises((prev) =>
+        prev.map((ex) =>
+          ex.id === exerciseId ? { ...ex, is_favorite: res.is_favorite } : ex,
+        ),
+      );
+    } catch (e: any) {
+      setExercises((prev) =>
+        prev.map((ex) =>
+          ex.id === exerciseId ? { ...ex, is_favorite: !ex.is_favorite } : ex,
+        ),
+      );
+      showToast("error", "Error en favoritos", e.message);
+    }
+  };
+
   const handleConfirmDelete = async () => {
     if (!deleteConfirmItem) return;
     try {
@@ -853,6 +883,7 @@ export function useGymDashboardData() {
     setActiveTab,
     loading,
     toast,
+    showToast,
     hideToast,
     exercises,
     routines,
@@ -940,6 +971,7 @@ export function useGymDashboardData() {
     handleCreateEquipment,
     handleSaveEquipmentEdit,
     handleToggleEquipmentFavorite,
+    handleToggleExerciseFavorite,
     handleConfirmDelete,
   };
 }

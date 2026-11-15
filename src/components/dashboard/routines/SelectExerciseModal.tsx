@@ -29,9 +29,13 @@ export interface SelectExerciseModalProps {
   routineFocus?: string;
   selectedExerciseId?: string;
   selectedExerciseIds?: string[];
+  selectedIds?: string[];
   multiSelect?: boolean;
   onSelect?: (exerciseId: string) => void;
   onConfirmSelection?: (selectedIds: string[]) => void;
+  onToggleSelect?: (exerciseId: string) => void;
+  onSave?: () => void;
+  allRoutines?: any[];
   onClose: () => void;
 }
 
@@ -90,12 +94,23 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
   equipmentList = [],
   routineFocus,
   selectedExerciseId,
-  selectedExerciseIds = [],
+  selectedExerciseIds,
+  selectedIds,
   multiSelect = false,
   onSelect,
   onConfirmSelection,
+  onToggleSelect,
+  onSave,
+  allRoutines,
   onClose,
 }) => {
+  const isMulti =
+    multiSelect ||
+    Boolean(selectedIds) ||
+    Boolean(onToggleSelect) ||
+    Boolean(onConfirmSelection);
+  const effectiveSelectedIds = selectedIds || selectedExerciseIds || [];
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filterByFocus, setFilterByFocus] = useState<boolean>(
     Boolean(routineFocus),
@@ -104,15 +119,15 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
 
   useEffect(() => {
     if (visible) {
-      if (multiSelect) {
-        setTempSelectedIds(selectedExerciseIds);
+      if (isMulti) {
+        setTempSelectedIds(effectiveSelectedIds);
       } else if (selectedExerciseId) {
         setTempSelectedIds([selectedExerciseId]);
       } else {
         setTempSelectedIds([]);
       }
     }
-  }, [visible, multiSelect, selectedExerciseId, selectedExerciseIds]);
+  }, [visible, isMulti, selectedExerciseId, selectedIds, selectedExerciseIds]);
 
   const filteredExercises = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -141,7 +156,11 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
   };
 
   const toggleExercise = (exerciseId: string) => {
-    if (!multiSelect) {
+    if (onToggleSelect) {
+      onToggleSelect(exerciseId);
+    }
+
+    if (!isMulti) {
       onSelect?.(exerciseId);
       handleClose();
       return;
@@ -156,6 +175,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
 
   const handleConfirmMulti = () => {
     onConfirmSelection?.(tempSelectedIds);
+    onSave?.();
     handleClose();
   };
 
@@ -302,7 +322,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
           {/* Lista */}
           <FlatList
             data={filteredExercises}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => `${item.id}-${index}`}
             style={styles.list}
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"
@@ -325,8 +345,8 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
               </View>
             }
             renderItem={({ item }) => {
-              const isSelected = multiSelect
-                ? tempSelectedIds.includes(item.id)
+              const isSelected = isMulti
+                ? (onToggleSelect ? effectiveSelectedIds.includes(item.id) : tempSelectedIds.includes(item.id))
                 : item.id === selectedExerciseId;
 
               return (
@@ -416,7 +436,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
             }}
           />
 
-          {multiSelect && (
+          {isMulti && (
             <View
               style={[
                 styles.footerBar,
@@ -425,8 +445,8 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
             >
               <AppButton
                 title={
-                  tempSelectedIds.length > 0
-                    ? `Confirmar selección (${tempSelectedIds.length})`
+                  (onToggleSelect ? effectiveSelectedIds.length : tempSelectedIds.length) > 0
+                    ? `Confirmar selección (${onToggleSelect ? effectiveSelectedIds.length : tempSelectedIds.length})`
                     : "Confirmar sin ejercicios"
                 }
                 icon="check"

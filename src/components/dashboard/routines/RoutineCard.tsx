@@ -43,6 +43,7 @@ export interface RoutineCardProps {
     maxReps: number,
   ) => Promise<void>;
   onOptionsPress?: () => void;
+  onDeletePress?: () => void;
   compact?: boolean;
   onPress?: () => void;
 }
@@ -72,6 +73,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
   onAddExercise,
   onUpdateRoutineExercise,
   onOptionsPress,
+  onDeletePress,
   compact = false,
   onPress,
 }) => {
@@ -221,7 +223,24 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
             </View>
           </View>
 
-          {onOptionsPress && (
+          {onDeletePress ? (
+            <Pressable
+              onPress={(e) => {
+                e?.stopPropagation?.();
+                onDeletePress();
+              }}
+              hitSlop={10}
+              style={[
+                styles.deleteBtn,
+                {
+                  backgroundColor: colors.dangerGlow,
+                  borderColor: colors.danger + "35",
+                },
+              ]}
+            >
+              <GymIcon name="trash" size={17} color={colors.danger} />
+            </Pressable>
+          ) : onOptionsPress ? (
             <Pressable
               onPress={onOptionsPress}
               hitSlop={10}
@@ -236,7 +255,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                 color={colors.textSecondary}
               />
             </Pressable>
-          )}
+          ) : null}
         </View>
 
         {/* Alerta de compatibilidad muscular y contenido desplegado */}
@@ -600,6 +619,14 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },

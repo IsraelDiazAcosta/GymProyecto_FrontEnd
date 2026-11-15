@@ -292,12 +292,12 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
         </View>
       ) : (
         <View style={styles.listColumn}>
-          {filteredEquipment.map((item) => {
+          {filteredEquipment.map((item, idx) => {
             const imgUrl = resolveMediaUrl(item.image);
             const isFav = Boolean(item.is_favorite);
             return (
             <Pressable
-              key={item.id}
+              key={`${item.id}-${idx}`}
               onLongPress={() => handleTriggerOptions(item)}
               delayLongPress={380}
               style={[

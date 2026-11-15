@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Linking,
   Modal,
@@ -17,6 +17,7 @@ import {
   Equipment,
   Exercise,
   resolveExerciseImageUrl,
+  resolveMediaUrl,
 } from "@/services/api";
 import { DashboardColors } from "../types";
 
@@ -52,15 +53,30 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
   );
   const videoUrl = videoMedia?.external_url || videoMedia?.file;
 
-  const equipmentLabel =
-    typeof exercise.equipment === "object" && exercise.equipment !== null
-      ? exercise.equipment.name
-      : exercise.equipment_name || "Peso Libre / Sin máquina específica";
+  const matchedEquipment: Equipment | null = useMemo(() => {
+    if (typeof exercise.equipment === "object" && exercise.equipment !== null) {
+      return exercise.equipment;
+    }
+    const eqId =
+      (exercise as any).equipment_id ||
+      (typeof exercise.equipment === "number" ? exercise.equipment : null);
+    if (eqId && equipmentList.length > 0) {
+      return equipmentList.find((e) => e.id === eqId) || null;
+    }
+    if (exercise.equipment_name && equipmentList.length > 0) {
+      return (
+        equipmentList.find(
+          (e) =>
+            e.name.toLowerCase() === exercise.equipment_name?.toLowerCase(),
+        ) || null
+      );
+    }
+    return null;
+  }, [exercise, equipmentList]);
 
-  const equipmentType =
-    typeof exercise.equipment === "object" && exercise.equipment !== null
-      ? exercise.equipment.type_display || exercise.equipment.equipment_type
-      : null;
+  const equipmentImageUrl = matchedEquipment?.image
+    ? resolveMediaUrl(matchedEquipment.image)
+    : null;
 
   const primaryMuscles =
     exercise.muscles?.filter((m) => m.role === "primary") || [];
@@ -192,7 +208,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
               </View>
             )}
 
-            {/* Tarjeta de Máquina */}
+            {/* Tarjeta de Máquina Requerida */}
             <View
               style={[
                 styles.infoBox,
@@ -210,13 +226,124 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                   EQUIPO / MÁQUINA REQUERIDA
                 </Text>
               </View>
-              <Text style={[styles.infoValue, { color: colors.text }]}>
-                {equipmentLabel}
-              </Text>
-              {equipmentType && (
-                <Text style={[styles.infoSub, { color: colors.primary }]}>
-                  Categoría: {equipmentType}
-                </Text>
+
+              {matchedEquipment ? (
+                <View style={styles.equipCardContent}>
+                  <View style={styles.equipCardTopRow}>
+                    <View
+                      style={[
+                        styles.equipThumbBox,
+                        {
+                          backgroundColor: colors.primaryGlow,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                    >
+                      {equipmentImageUrl ? (
+                        <Image
+                          source={{ uri: equipmentImageUrl }}
+                          style={styles.equipThumbImage}
+                          contentFit="cover"
+                          cachePolicy="memory-disk"
+                        />
+                      ) : (
+                        <GymIcon name="cog" size={22} color={colors.primary} />
+                      )}
+                    </View>
+
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <Text
+                        style={[styles.equipNameText, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {matchedEquipment.name}
+                      </Text>
+                      <View style={styles.equipMetaRow}>
+                        <View
+                          style={[
+                            styles.equipTypeBadge,
+                            {
+                              backgroundColor: colors.primaryGlow,
+                              borderColor: colors.border,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.equipTypeBadgeText,
+                              { color: colors.primary },
+                            ]}
+                          >
+                            {matchedEquipment.type_display ||
+                              matchedEquipment.equipment_type ||
+                              "MÁQUINA"}
+                          </Text>
+                        </View>
+                        {Boolean(matchedEquipment.brand) && (
+                          <Text
+                            style={[
+                              styles.equipBrandText,
+                              { color: colors.textSecondary },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            • {matchedEquipment.brand}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+
+                  {Boolean(matchedEquipment.setup_guide) && (
+                    <View
+                      style={[
+                        styles.setupGuideBox,
+                        {
+                          backgroundColor: colors.backgroundElement,
+                          borderColor: colors.borderSubtle,
+                        },
+                      ]}
+                    >
+                      <GymIcon name="sliders" size={12} color={colors.primary} />
+                      <Text
+                        style={[
+                          styles.setupGuideText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        Ajuste: {matchedEquipment.setup_guide}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <View style={styles.noEquipRow}>
+                  <View
+                    style={[
+                      styles.equipThumbBox,
+                      {
+                        backgroundColor: colors.primaryGlow,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
+                    <GymIcon name="dumbbell" size={20} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={[styles.equipNameText, { color: colors.text }]}>
+                      {exercise.equipment_name || "Peso Libre / Sin máquina"}
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: colors.textSecondary,
+                        fontWeight: "500",
+                      }}
+                    >
+                      No requiere de una máquina fija específica.
+                    </Text>
+                  </View>
+                </View>
               )}
             </View>
 
@@ -244,9 +371,9 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
 
                 <View style={styles.badgesContainer}>
                   {primaryMuscles.length > 0 ? (
-                    primaryMuscles.map((m) => (
+                    primaryMuscles.map((m, idx) => (
                       <View
-                        key={m.id}
+                        key={m.id ?? m.muscle ?? `${m.muscle_name}-${idx}`}
                         style={[
                           styles.primaryMuscleBadge,
                           {
@@ -286,9 +413,9 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                     </View>
                   ) : null}
 
-                  {secondaryMuscles.map((m) => (
+                  {secondaryMuscles.map((m, idx) => (
                     <View
-                      key={m.id}
+                      key={m.id ?? m.muscle ?? `${m.muscle_name}-${idx}`}
                       style={[
                         styles.secondaryMuscleBadge,
                         {
@@ -521,6 +648,74 @@ const styles = StyleSheet.create({
   infoSub: {
     fontSize: 12,
     fontWeight: "700",
+  },
+  equipCardContent: {
+    gap: 10,
+    marginTop: 4,
+  },
+  equipCardTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  equipThumbBox: {
+    width: 48,
+    height: 48,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  equipThumbImage: {
+    width: "100%",
+    height: "100%",
+  },
+  equipNameText: {
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  equipMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  equipTypeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+  },
+  equipTypeBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  equipBrandText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  setupGuideBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  setupGuideText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "500",
+  },
+  noEquipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 4,
   },
   badgesContainer: {
     flexDirection: "row",

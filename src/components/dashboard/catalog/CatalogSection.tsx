@@ -14,11 +14,7 @@ import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Palette, Radius, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
-import {
-  Equipment,
-  Exercise,
-  resolveExerciseImageUrl,
-} from "@/services/api";
+import { Equipment, Exercise, resolveExerciseImageUrl } from "@/services/api";
 import { isExerciseCompatibleWithFocus } from "../muscleValidation";
 import { DashboardColors } from "../types";
 
@@ -30,6 +26,7 @@ export interface CatalogSectionProps {
   onOpenAddExercise: () => void;
   onOpenExerciseDetail: (exerciseId: string) => void;
   onExerciseOptionsPress?: (exercise: Exercise) => void;
+  onToggleFavorite?: (exerciseId: string) => void;
 }
 
 const MUSCLE_FILTER_OPTIONS = [
@@ -43,7 +40,7 @@ const MUSCLE_FILTER_OPTIONS = [
 
 /**
  * Sección de Catálogo de Ejercicios con buscador reactivo, chips de grupo muscular
- * y disposición estrictamente vertical de metadatos (Máquina arriba, Músculo abajo).
+ * y filtro de favoritos unificado estilo EquipmentSection.
  */
 export const CatalogSection: React.FC<CatalogSectionProps> = ({
   colors,
@@ -53,21 +50,15 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
   onOpenAddExercise,
   onOpenExerciseDetail,
   onExerciseOptionsPress,
+  onToggleFavorite,
 }) => {
-  const { user, updateProfile } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMuscleFilter, setSelectedMuscleFilter] =
     useState<string>("all");
-  // Lista optimista mientras se guarda; null = usar la del usuario
-  const [pendingFavorites, setPendingFavorites] = useState<string[] | null>(
-    null,
-  );
-  const userFavoriteIds = useMemo(
-    () => (user?.favorite_exercises || []).map(String),
-    [user?.favorite_exercises],
-  );
-  const favoriteIds = pendingFavorites ?? userFavoriteIds;
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  const favoritesCount = useMemo(() => {
+    return exercises.filter((ex) => Boolean(ex.is_favorite)).length;
+  }, [exercises]);
 
   const handleLongPress = (ex: Exercise) => {
     if (!isStaff || !onExerciseOptionsPress) return;
@@ -76,60 +67,29 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
     } catch {}
     onExerciseOptionsPress(ex);
   };
-  const toggleFavorite = async (exerciseId: string) => {
-    const updatedFavorites = favoriteIds.includes(exerciseId)
-      ? favoriteIds.filter((id) => id !== exerciseId)
-      : [...favoriteIds, exerciseId];
-
-    // Actualización optimista: el corazón cambia al instante
-    setPendingFavorites(updatedFavorites);
-    try {
-      Vibration.vibrate(15);
-    } catch {}
-
-    try {
-      await updateProfile({ favorite_exercises: updatedFavorites });
-    } catch (error) {
-      console.error(error); // al limpiar se revierte a la lista del usuario
-    } finally {
-      setPendingFavorites(null);
-    }
-  };
 
   const filteredExercises = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
     return exercises.filter((ex) => {
-      if (selectedMuscleFilter !== "all") {
-        const matchesMuscle = isExerciseCompatibleWithFocus(
-          ex.name,
-          selectedMuscleFilter,
-          ex.primary_muscle,
-        );
-        if (!matchesMuscle) return false;
+      if (query) {
+        const matchName = ex.name?.toLowerCase().includes(query);
+        const matchEquip = ex.equipment_name?.toLowerCase().includes(query);
+        const matchMuscle = ex.primary_muscle?.toLowerCase().includes(query);
+        if (!matchName && !matchEquip && !matchMuscle) return false;
       }
-      if (
-        showFavoritesOnly &&
-        !favoriteIds.includes(ex.id)
-      ) {
-        return false;
+
+      if (selectedMuscleFilter === "all") return true;
+      if (selectedMuscleFilter === "favorites") {
+        return Boolean(ex.is_favorite);
       }
-      if (!query) return true;
-
-      const matchName = ex.name?.toLowerCase().includes(query);
-      const matchEquip = ex.equipment_name?.toLowerCase().includes(query);
-      const matchMuscle = ex.primary_muscle?.toLowerCase().includes(query);
-
-      return Boolean(matchName || matchEquip || matchMuscle);
+      return isExerciseCompatibleWithFocus(
+        ex.name,
+        selectedMuscleFilter,
+        ex.primary_muscle,
+      );
     });
-    }, [
-  exercises,
-  searchQuery,
-  selectedMuscleFilter,
-  showFavoritesOnly,
-  favoriteIds,
-]);
-  
+  }, [exercises, searchQuery, selectedMuscleFilter]);
 
   return (
     <AnimatedCard
@@ -171,7 +131,9 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
             ]}
           >
             <GymIcon name="plus" size={16} color={colors.onPrimary} />
-            <Text style={[styles.addBtnText, { color: colors.onPrimary }]}>Nuevo</Text>
+            <Text style={[styles.addBtnText, { color: colors.onPrimary }]}>
+              Nuevo
+            </Text>
           </Pressable>
         )}
       </View>
@@ -201,69 +163,6 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
           </Pressable>
         )}
       </View>
-      <View
-  style={{
-    flexDirection: "row",
-    gap: 8,
-  }}
->
-  <Pressable
-    onPress={() => setShowFavoritesOnly(false)}
-    style={[
-      styles.filterChip,
-      {
-        backgroundColor: !showFavoritesOnly
-          ? colors.primary
-          : colors.backgroundElevated,
-      },
-    ]}
-  >
-    <Text
-      style={[
-        styles.filterChipText,
-        {
-          color: !showFavoritesOnly
-            ? colors.onPrimary
-            : colors.textSecondary,
-        },
-      ]}
-    >
-      Todos
-    </Text>
-  </Pressable>
-
-  <Pressable
-    onPress={() => setShowFavoritesOnly(true)}
-    style={[
-      styles.filterChip,
-      {
-        backgroundColor: showFavoritesOnly
-          ? colors.primary
-          : colors.backgroundElevated,
-      },
-    ]}
-  >
-    <GymIcon
-      name="heart"
-      size={12}
-      color={showFavoritesOnly ? colors.onPrimary : colors.textSecondary}
-      fill={showFavoritesOnly ? colors.onPrimary : undefined}
-    />
-
-    <Text
-      style={[
-        styles.filterChipText,
-        {
-          color: showFavoritesOnly
-            ? colors.onPrimary
-            : colors.textSecondary,
-        },
-      ]}
-    >
-      Favoritos
-    </Text>
-  </Pressable>
-</View>
       {/* Chips de filtro muscular */}
       <ScrollView
         horizontal
@@ -298,6 +197,49 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
             ]}
           >
             Todos ({exercises.length})
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setSelectedMuscleFilter("favorites")}
+          style={[
+            styles.filterChip,
+            {
+              backgroundColor:
+                selectedMuscleFilter === "favorites"
+                  ? colors.primary
+                  : colors.backgroundElevated,
+              borderColor:
+                selectedMuscleFilter === "favorites"
+                  ? colors.primaryLight
+                  : colors.borderSubtle,
+            },
+          ]}
+        >
+          <GymIcon
+            name="heart"
+            size={13}
+            color={
+              selectedMuscleFilter === "favorites"
+                ? colors.onPrimary
+                : colors.textSecondary
+            }
+            fill={
+              selectedMuscleFilter === "favorites" ? colors.onPrimary : undefined
+            }
+          />
+          <Text
+            style={[
+              styles.filterChipText,
+              {
+                color:
+                  selectedMuscleFilter === "favorites"
+                    ? colors.onPrimary
+                    : colors.textSecondary,
+              },
+            ]}
+          >
+            Mis favoritos ({favoritesCount})
           </Text>
         </Pressable>
 
@@ -347,174 +289,194 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
             },
           ]}
         >
-          <GymIcon name="search" size={28} color={colors.textSecondary} />
+          <GymIcon
+            name={selectedMuscleFilter === "favorites" ? "heart" : "search"}
+            size={28}
+            color={colors.textSecondary}
+          />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            Sin coincidencias
+            {selectedMuscleFilter === "favorites"
+              ? "No tienes ejercicios favoritos"
+              : "Sin coincidencias"}
           </Text>
           <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-            {exercises.length === 0
-              ? "Aún no hay ejercicios cargados en el catálogo."
-              : "No se encontraron ejercicios con los filtros actuales."}
+            {selectedMuscleFilter === "favorites"
+              ? "Toca el corazón en cualquier ejercicio para guardarlo en tus favoritos y acceder rápido a él."
+              : exercises.length === 0
+                ? "Aún no hay ejercicios cargados en el catálogo."
+                : "No se encontraron ejercicios con los filtros actuales."}
           </Text>
         </View>
       ) : (
         <View style={styles.listColumn}>
-          {filteredExercises.map((ex) => {
+          {filteredExercises.map((ex, idx) => {
             const exImageUrl = resolveExerciseImageUrl(ex, equipmentList);
+            const isFav = Boolean(ex.is_favorite);
             return (
-            <Pressable
-              key={ex.id}
-              onPress={() => onOpenExerciseDetail(ex.id)}
-              onLongPress={() => handleLongPress(ex)}
-              delayLongPress={380}
-              style={[
-                styles.exerciseItem,
-                {
-                  backgroundColor: colors.backgroundElevated,
-                  borderColor: colors.borderSubtle,
-                },
-              ]}
-            >
-              <View
+              <Pressable
+                key={`${ex.id}-${idx}`}
+                onPress={() => onOpenExerciseDetail(ex.id)}
+                onLongPress={() => handleLongPress(ex)}
+                delayLongPress={380}
                 style={[
-                  styles.iconBadge,
+                  styles.exerciseItem,
                   {
-                    backgroundColor: colors.primaryGlow,
-                    borderColor: colors.border,
-                    overflow: "hidden",
+                    backgroundColor: colors.backgroundElevated,
+                    borderColor: colors.borderSubtle,
                   },
                 ]}
               >
-                {exImageUrl ? (
-                  <Image
-                    source={{ uri: exImageUrl }}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                  />
-                ) : (
-                  <GymIcon name="dumbbell" size={20} color={colors.primary} />
-                )}
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.exerciseName, { color: colors.text }]}>
-                  {ex.name}
-                </Text>
-
-                {/* Orden estrictamente uno debajo del otro: Máquina arriba, Grupo muscular abajo */}
-                <View style={styles.metaColumn}>
-                  <View style={styles.metaLine}>
-                    <GymIcon
-                      name="cog"
-                      size={12}
-                      color={colors.textSecondary}
-                    />
-                    <Text
-                      style={[
-                        styles.metaEquipText,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {ex.equipment_name
-                        ? `Máquina: ${ex.equipment_name}`
-                        : "Peso Libre / General"}
-                    </Text>
-                  </View>
-
-                  {Boolean(ex.primary_muscle) && (
-                    <View
-                      style={[
-                        styles.muscleBadge,
-                        {
-                          backgroundColor: colors.primaryGlow,
-                          borderColor: colors.border,
-                        },
-                      ]}
-                    >
-                      <GymIcon name="target" size={11} color={colors.primary} />
-                      <Text
-                        style={[
-                          styles.muscleBadgeText,
-                          { color: colors.primary },
-                        ]}
-                      >
-                        {ex.primary_muscle}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-
-              <View style={styles.rightActions}>
-              <Pressable
-                  onPress={() => toggleFavorite(ex.id)}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    favoriteIds.includes(ex.id)
-                      ? `Quitar ${ex.name} de favoritos`
-                      : `Agregar ${ex.name} a favoritos`
-                  }
-                  style={[
-                    styles.favoriteBtn,
-                    {
-                      backgroundColor: favoriteIds.includes(ex.id)
-                        ? colors.dangerGlow
-                        : colors.backgroundElement,
-                      borderColor: favoriteIds.includes(ex.id)
-                        ? colors.danger
-                        : colors.border,
-                    },
-                  ]}
-                >
-                  <GymIcon
-                    name="heart"
-                    size={18}
-                    color={
-                      favoriteIds.includes(ex.id)
-                        ? colors.danger
-                        : colors.textSecondary
-                    }
-                    fill={favoriteIds.includes(ex.id) ? colors.danger : undefined}
-                  />
-                </Pressable>
                 <View
                   style={[
-                    styles.detailBadge,
+                    styles.iconBadge,
                     {
                       backgroundColor: colors.primaryGlow,
                       borderColor: colors.border,
+                      overflow: "hidden",
                     },
                   ]}
                 >
-                  <Text
-                    style={[styles.detailBadgeText, { color: colors.primary }]}
-                  >
-                    Ficha
-                  </Text>
-                  <GymIcon
-                    name="chevron-right"
-                    size={13}
-                    color={colors.primary}
-                  />
+                  {exImageUrl ? (
+                    <Image
+                      source={{ uri: exImageUrl }}
+                      style={{ width: "100%", height: "100%" }}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <GymIcon name="dumbbell" size={20} color={colors.primary} />
+                  )}
                 </View>
 
-                {isStaff && onExerciseOptionsPress && (
-                  <Pressable
-                    onPress={() => onExerciseOptionsPress(ex)}
-                    hitSlop={10}
-                    style={styles.moreBtn}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.exerciseName, { color: colors.text }]}>
+                    {ex.name}
+                  </Text>
+
+                  {/* Orden estrictamente uno debajo del otro: Máquina arriba, Grupo muscular abajo */}
+                  <View style={styles.metaColumn}>
+                    <View style={styles.metaLine}>
+                      <GymIcon
+                        name="cog"
+                        size={12}
+                        color={colors.textSecondary}
+                      />
+                      <Text
+                        style={[
+                          styles.metaEquipText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        {ex.equipment_name
+                          ? `Máquina: ${ex.equipment_name}`
+                          : "Peso Libre / General"}
+                      </Text>
+                    </View>
+
+                    {Boolean(ex.primary_muscle) && (
+                      <View
+                        style={[
+                          styles.muscleBadge,
+                          {
+                            backgroundColor: colors.primaryGlow,
+                            borderColor: colors.border,
+                          },
+                        ]}
+                      >
+                        <GymIcon
+                          name="target"
+                          size={11}
+                          color={colors.primary}
+                        />
+                        <Text
+                          style={[
+                            styles.muscleBadgeText,
+                            { color: colors.primary },
+                          ]}
+                        >
+                          {ex.primary_muscle}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                <View style={styles.rightActions}>
+                  {onToggleFavorite && (
+                    <Pressable
+                      onPress={() => onToggleFavorite(ex.id)}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        isFav
+                          ? `Quitar ${ex.name} de favoritos`
+                          : `Agregar ${ex.name} a favoritos`
+                      }
+                      style={[
+                        styles.favBtn,
+                        {
+                          backgroundColor: isFav
+                            ? colors.dangerGlow
+                            : colors.backgroundElement,
+                          borderColor: isFav
+                            ? colors.danger
+                            : colors.borderSubtle,
+                        },
+                      ]}
+                    >
+                      <GymIcon
+                        name="heart"
+                        size={17}
+                        color={
+                          isFav
+                            ? colors.danger
+                            : colors.textSecondary
+                        }
+                        fill={
+                          isFav ? colors.danger : undefined
+                        }
+                      />
+                    </Pressable>
+                  )}
+                  <View
+                    style={[
+                      styles.detailBadge,
+                      {
+                        backgroundColor: colors.primaryGlow,
+                        borderColor: colors.border,
+                      },
+                    ]}
                   >
+                    <Text
+                      style={[
+                        styles.detailBadgeText,
+                        { color: colors.primary },
+                      ]}
+                    >
+                      Ficha
+                    </Text>
                     <GymIcon
-                      name="more-vertical"
-                      size={17}
-                      color={colors.textSecondary}
+                      name="chevron-right"
+                      size={13}
+                      color={colors.primary}
                     />
-                  </Pressable>
-                )}
-              </View>
-            </Pressable>
+                  </View>
+
+                  {isStaff && onExerciseOptionsPress && (
+                    <Pressable
+                      onPress={() => onExerciseOptionsPress(ex)}
+                      hitSlop={10}
+                      style={styles.moreBtn}
+                    >
+                      <GymIcon
+                        name="more-vertical"
+                        size={17}
+                        color={colors.textSecondary}
+                      />
+                    </Pressable>
+                  )}
+                </View>
+              </Pressable>
             );
           })}
         </View>
@@ -591,6 +553,9 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: Radius.pill,
@@ -651,11 +616,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
   },
+  favBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   favoriteBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1.5,
+    width: 32,
+    height: 32,
+    borderRadius: Radius.md,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
