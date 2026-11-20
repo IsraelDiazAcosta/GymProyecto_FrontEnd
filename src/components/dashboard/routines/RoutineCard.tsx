@@ -11,6 +11,8 @@ import {
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { getMuscleFocusLabel } from "@/i18n";
 import { Exercise, Routine } from "@/services/api";
 import { isExerciseCompatibleWithFocus } from "../muscleValidation";
 import { DashboardColors, RoutineExerciseItem } from "../types";
@@ -77,6 +79,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
   compact = false,
   onPress,
 }) => {
+  const { language, t } = useLanguage();
   const [selectModalVisible, setSelectModalVisible] = useState(false);
   const [editingRoutineExId, setEditingRoutineExId] = useState<string | null>(
     null,
@@ -126,7 +129,8 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
   );
 
   const routineFocus = routine.focus || (routine as any).muscle_focus;
-  const routineTitle = routine.title || (routine as any).name || "Rutina";
+  const routineTitle =
+    routine.title || (routine as any).name || t("common.routineFallback");
 
   const incompatibleExercises = routineFocus
     ? routineExercises.filter((item) => {
@@ -203,7 +207,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                 >
                   <GymIcon name="target" size={11} color={colors.primary} />
                   <Text style={[styles.focusPillText, { color: colors.primary }]}>
-                    {String(routineFocus).toUpperCase()}
+                    {getMuscleFocusLabel(language, routineFocus).toUpperCase()}
                   </Text>
                 </View>
               )}
@@ -216,8 +220,10 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                 <Text
                   style={[styles.countPillText, { color: colors.textSecondary }]}
                 >
-                  {routineExercises.length} ejercicio
-                  {routineExercises.length === 1 ? "" : "s"}
+                  {routineExercises.length}{" "}
+                  {routineExercises.length === 1
+                    ? t("routines.exerciseSingular")
+                    : t("routines.exercisePlural")}
                 </Text>
               </View>
             </View>
@@ -273,9 +279,13 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
           >
             <GymIcon name="alert-triangle" size={16} color={colors.warning} />
             <Text style={[styles.warningText, { color: colors.warning }]}>
-              {incompatibleExercises.length} ejercicio(s) fuera del enfoque de{" "}
-              {routineFocus?.toUpperCase()}:{" "}
-              {incompatibleExercises.map((e) => e.name).join(", ")}.
+              {t("routines.incompatibleBanner", {
+                count: incompatibleExercises.length,
+                focus: routineFocus
+                  ? getMuscleFocusLabel(language, routineFocus).toUpperCase()
+                  : "",
+                names: incompatibleExercises.map((e) => e.name).join(", "),
+              })}
             </Text>
           </View>
         )}
@@ -294,7 +304,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
             >
               <GymIcon name="dumbbell" size={18} color={colors.textSecondary} />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                Sin ejercicios asignados todavía
+                {t("routines.noExercisesAssigned")}
               </Text>
             </View>
           ) : (
@@ -344,8 +354,11 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                           { color: colors.textSecondary },
                         ]}
                       >
-                        {ex.setsCount ?? 4} series × {ex.minReps ?? 8}-
-                        {ex.maxReps ?? 12} reps
+                        {t("routines.setsRepsLine", {
+                          sets: ex.setsCount ?? 4,
+                          min: ex.minReps ?? 8,
+                          max: ex.maxReps ?? 12,
+                        })}
                       </Text>
                       {Boolean(ex.equipmentName) && (
                         <Text
@@ -409,7 +422,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                             { color: colors.textSecondary },
                           ]}
                         >
-                          Series
+                          {t("routines.seriesCol")}
                         </Text>
                         <TextInput
                           style={[
@@ -420,6 +433,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                               borderColor: colors.borderSubtle,
                             },
                           ]}
+                          placeholderTextColor={colors.textSecondary}
                           keyboardType="numeric"
                           value={editSets}
                           onChangeText={setEditSets}
@@ -432,7 +446,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                             { color: colors.textSecondary },
                           ]}
                         >
-                          Reps Mín
+                          {t("routines.minRepsCol")}
                         </Text>
                         <TextInput
                           style={[
@@ -443,6 +457,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                               borderColor: colors.borderSubtle,
                             },
                           ]}
+                          placeholderTextColor={colors.textSecondary}
                           keyboardType="numeric"
                           value={editMinReps}
                           onChangeText={setEditMinReps}
@@ -455,7 +470,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                             { color: colors.textSecondary },
                           ]}
                         >
-                          Reps Máx
+                          {t("routines.maxRepsCol")}
                         </Text>
                         <TextInput
                           style={[
@@ -466,6 +481,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                               borderColor: colors.borderSubtle,
                             },
                           ]}
+                          placeholderTextColor={colors.textSecondary}
                           keyboardType="numeric"
                           value={editMaxReps}
                           onChangeText={setEditMaxReps}
@@ -508,7 +524,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
           >
             <GymIcon name="plus" size={16} color={colors.primary} />
             <Text style={[styles.addTriggerText, { color: colors.primary }]}>
-              Agregar Ejercicios a la Rutina
+              {t("routines.addToRoutineTrigger")}
             </Text>
           </Pressable>
         ) : (

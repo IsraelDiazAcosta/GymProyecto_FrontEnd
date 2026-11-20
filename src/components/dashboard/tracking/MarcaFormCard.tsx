@@ -12,6 +12,7 @@ import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 import { Routine } from "@/services/api";
 import { DashboardColors, RoutineExerciseItem } from "../types";
 
@@ -56,6 +57,8 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
   onSave,
   lastSavedSummary,
 }) => {
+  const { t } = useLanguage();
+
   return (
     <AnimatedCard
       style={[
@@ -80,16 +83,16 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: colors.text }]}>
-            Registrar Marca (1RM)
+            {t("tracking.formTitle")}
           </Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Selecciona rutina, ejercicio e ingresa los datos de tu serie
+            {t("tracking.formSubtitle")}
           </Text>
         </View>
       </View>
 
       <Text style={[styles.stepLabel, { color: colors.textSecondary }]}>
-        1. Selecciona la Rutina
+        {t("tracking.step1Routine")}
       </Text>
       <ScrollView
         horizontal
@@ -120,7 +123,7 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
                   { color: active ? colors.onPrimary : colors.textSecondary },
                 ]}
               >
-                {r.title || (r as any).name || "Rutina"}
+                {r.title || (r as any).name || t("common.routineFallback")}
               </Text>
             </Pressable>
           );
@@ -128,7 +131,7 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
       </ScrollView>
 
       <Text style={[styles.stepLabel, { color: colors.textSecondary }]}>
-        2. Selecciona el Ejercicio
+        {t("tracking.step2Exercise")}
       </Text>
       {currentRoutineExercises.length > 0 ? (
         <ScrollView
@@ -180,18 +183,18 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
         >
           <GymIcon name="info" size={15} color={colors.textSecondary} />
           <Text style={[styles.emptyNoticeText, { color: colors.textSecondary }]}>
-            Esta rutina no tiene ejercicios aún. Agrégalos en la pestaña Rutinas.
+            {t("tracking.noRoutineExercises")}
           </Text>
         </View>
       )}
 
       <Text style={[styles.stepLabel, { color: colors.textSecondary }]}>
-        3. Datos del Levantamiento
+        {t("tracking.step3Data")}
       </Text>
       <View style={styles.inputsRow}>
         <View style={styles.inputCol}>
           <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>
-            Peso (kg)
+            {t("tracking.weightLabel")}
           </Text>
           <TextInput
             style={[
@@ -212,7 +215,7 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
 
         <View style={styles.inputCol}>
           <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>
-            Repeticiones
+            {t("tracking.repsLabel")}
           </Text>
           <TextInput
             style={[
@@ -233,7 +236,7 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
 
         <View style={styles.inputCol}>
           <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>
-            RPE (1-10)
+            {t("tracking.rpeLabel")}
           </Text>
           <TextInput
             style={[
@@ -254,7 +257,7 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
       </View>
 
       <AppButton
-        title="Guardar Marca"
+        title={t("tracking.saveMarcaBtn")}
         icon="check"
         onPress={onSave}
         loading={savingMarca}

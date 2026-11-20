@@ -14,20 +14,24 @@ import Svg, { Polyline, Circle as SvgCircle } from "react-native-svg";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
-import { Palette, Radius, Spacing } from "@/constants/theme";
+import { Radius, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
+import {
+  getExperienceLevelLabel,
+  getTrainingGoalLabel,
+} from "@/i18n";
 import {
   api,
   BodyWeightLogItem,
   Exercise,
-  EXPERIENCE_LEVELS,
   resolveMediaUrl,
-  TRAINING_GOALS,
   Weight1RMPoint,
 } from "@/services/api";
 import { WeeklyAttendanceCard } from "../routines/WeeklyAttendanceCard";
 import { DashboardColors } from "../types";
 import { EditProfileForm } from "./EditProfileForm";
+import { SettingsModal } from "./SettingsModal";
 
 const formatDecimal = (v?: number | string | null) => {
   const n = Number(v);
@@ -62,6 +66,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   trainedCount = 0,
 }) => {
   const { user, logout, updateProfile } = useAuth();
+  const { language, t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [weightLogs, setWeightLogs] = useState<BodyWeightLogItem[]>([]);
   const [rmProgress, setRmProgress] = useState<Weight1RMPoint[]>([]);
@@ -69,6 +74,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const [newWeightInput, setNewWeightInput] = useState("");
   const [savingWeightLog, setSavingWeightLog] = useState(false);
   const [chartSize, setChartSize] = useState<LayoutRectangle | null>(null);
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   const loadWeightAnd1RM = useCallback(async (exId?: string) => {
     try {
@@ -113,28 +119,24 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const height = formatDecimal(user?.height);
   const bmi =
     weight && height ? (weight / Math.pow(height / 100, 2)).toFixed(1) : null;
-  const levelLabel =
-    EXPERIENCE_LEVELS.find((l) => l.value === user?.experience_level)?.label ??
-    "Principiante";
-  const goalLabel =
-    TRAINING_GOALS.find((g) => g.value === user?.training_goal)?.label ??
-    "Hipertrofia";
+  const levelLabel = getExperienceLevelLabel(language, user?.experience_level);
+  const goalLabel = getTrainingGoalLabel(language, user?.training_goal);
   const favoritesCount = user?.favorite_exercises?.length ?? 0;
 
   const stats = [
-    { icon: "award" as const, label: "Nivel", value: levelLabel },
-    { icon: "flame" as const, label: "Objetivo", value: goalLabel },
+    { icon: "award" as const, label: t("profile.statLevel"), value: levelLabel },
+    { icon: "flame" as const, label: t("profile.statGoal"), value: goalLabel },
     {
       icon: "activity" as const,
-      label: "Peso Actual",
+      label: t("profile.statWeight"),
       value: weight ? `${weight} kg` : "--",
     },
     {
       icon: "trending-up" as const,
-      label: "Estatura",
+      label: t("profile.statHeight"),
       value: height ? `${height} cm` : "--",
     },
-    { icon: "target" as const, label: "IMC", value: bmi ?? "--" },
+    { icon: "target" as const, label: t("profile.statBmi"), value: bmi ?? "--" },
   ];
 
   // Preparar series para la gráfica dual (Peso Corporal vs Curva 1RM)
@@ -206,6 +208,22 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           },
         ]}
       >
+        <Pressable
+          onPress={() => setSettingsVisible(true)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t("settings.openLabel")}
+          style={[
+            styles.settingsBtn,
+            {
+              backgroundColor: colors.backgroundElevated,
+              borderColor: colors.borderSubtle,
+            },
+          ]}
+        >
+          <GymIcon name="cog" size={19} color={colors.text} />
+        </Pressable>
+
         <View
           style={[
             styles.avatarCircle,
@@ -230,10 +248,10 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         </View>
 
         <Text style={[styles.userName, { color: colors.text }]}>
-          {user?.username || "Atleta"}
+          {user?.username || t("header.defaultAthlete")}
         </Text>
         <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
-          {user?.email || "Sin correo registrado"}
+          {user?.email || t("profile.noEmail")}
         </Text>
 
         <View
@@ -252,8 +270,8 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           />
           <Text style={[styles.rolePillText, { color: colors.primary }]}>
             {user?.is_staff
-              ? "Administrador del Gimnasio"
-              : "Atleta Registrado"}
+              ? t("profile.roleAdmin")
+              : t("profile.roleAthlete")}
           </Text>
         </View>
 
@@ -304,10 +322,10 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               ]}
             >
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-                Biografía / Objetivos
+                {t("profile.bioLabel")}
               </Text>
               <Text style={[styles.bioText, { color: colors.text }]}>
-                {user?.bio?.trim() || "Aún no has escrito tus objetivos."}
+                {user?.bio?.trim() || t("profile.bioEmpty")}
               </Text>
             </View>
 
@@ -317,13 +335,13 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 style={[styles.favoritesText, { color: colors.textSecondary }]}
               >
                 {favoritesCount === 1
-                  ? "1 ejercicio favorito"
-                  : `${favoritesCount} ejercicios favoritos`}
+                  ? t("profile.favoritesOne")
+                  : t("profile.favoritesMany", { count: favoritesCount })}
               </Text>
             </View>
 
             <AppButton
-              title="Editar Perfil"
+              title={t("profile.editProfileBtn")}
               icon="edit"
               variant="secondary"
               onPress={() => setIsEditing(true)}
@@ -347,8 +365,8 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               <GymIcon name="users" size={16} color={colors.primary} />
               <Text style={[styles.adminToggleText, { color: colors.primary }]}>
                 {showAdminUsers
-                  ? "Ocultar Directorio de Usuarios"
-                  : "Auditar Directorio de Usuarios (API)"}
+                  ? t("profile.adminHideUsers")
+                  : t("profile.adminAuditUsers")}
               </Text>
             </Pressable>
 
@@ -389,7 +407,9 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                           { color: colors.textSecondary },
                         ]}
                       >
-                        Estado: {u.status || "Activo"}
+                        {t("profile.adminStatus", {
+                          status: u.status || t("profile.adminStatusActive"),
+                        })}
                       </Text>
                     </View>
                   </View>
@@ -400,7 +420,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         )}
 
         <AppButton
-          title="Cerrar Sesión"
+          title={t("profile.logoutBtn")}
           icon="log-out"
           variant="danger"
           onPress={logout}
@@ -430,11 +450,11 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             <View style={styles.whKickerRow}>
               <GymIcon name="trending-up" size={14} color={colors.primary} />
               <Text style={[styles.whKicker, { color: colors.primary }]}>
-                BIOMETRÍA × FUERZA
+                {t("profile.biometricsKicker")}
               </Text>
             </View>
             <Text style={[styles.whTitle, { color: colors.text }]}>
-              Historial de Peso y Curva 1RM
+              {t("profile.weightAnd1RMTitle")}
             </Text>
           </View>
         </View>
@@ -453,7 +473,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             <GymIcon name="activity" size={16} color={colors.primary} />
             <TextInput
               style={[styles.logInput, { color: colors.text }]}
-              placeholder="Registrar nuevo peso (kg), ej: 74.5"
+              placeholder={t("profile.weightInputPlaceholder")}
               placeholderTextColor={colors.textSecondary}
               keyboardType="decimal-pad"
               value={newWeightInput}
@@ -467,7 +487,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           >
             <GymIcon name="plus" size={16} color={colors.onPrimary} />
             <Text style={[styles.logAddBtnText, { color: colors.onPrimary }]}>
-              Registrar
+              {t("profile.registerBtn")}
             </Text>
           </Pressable>
         </View>
@@ -505,7 +525,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                       : colors.textSecondary,
                 }}
               >
-                1RM General
+                {t("profile.general1RMChip")}
               </Text>
             </Pressable>
             {exercises.map((ex) => {
@@ -548,7 +568,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               style={[styles.legendDot, { backgroundColor: colors.primary }]}
             />
             <Text style={[styles.legendText, { color: colors.text }]}>
-              Curva 1RM (kg)
+              {t("profile.legend1RM")}
             </Text>
           </View>
           <View style={styles.legendItem}>
@@ -559,7 +579,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               ]}
             />
             <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-              Peso Corporal (kg)
+              {t("profile.legendBodyWeight")}
             </Text>
           </View>
         </View>
@@ -581,8 +601,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               <Text
                 style={[styles.emptyChartText, { color: colors.textSecondary }]}
               >
-                Registra tu peso corporal y marcas para visualizar la
-                correlación con tu curva de 1RM.
+                {t("profile.emptyChartHint")}
               </Text>
             </View>
           ) : (
@@ -640,7 +659,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         {weightLogs.length > 0 && (
           <View style={styles.logsList}>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-              Últimos registros de peso ({weightLogs.length})
+              {t("profile.recentWeightsTitle", { count: weightLogs.length })}
             </Text>
             {weightLogs.slice(0, 6).map((item) => (
               <View
@@ -673,6 +692,11 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           </View>
         )}
       </AnimatedCard>
+
+      <SettingsModal
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
+      />
     </View>
   );
 };
@@ -687,6 +711,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     gap: 8,
+    position: "relative",
+  },
+  settingsBtn: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 5,
   },
   avatarCircle: {
     width: 76,
@@ -753,7 +790,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   avatarInitial: {
-    color: Palette.textOnVolt,
     fontSize: 30,
     fontWeight: "900",
   },

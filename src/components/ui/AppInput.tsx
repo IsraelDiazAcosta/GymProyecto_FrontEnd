@@ -5,11 +5,11 @@ import {
   Text,
   TextInput,
   TextInputProps,
-  useColorScheme,
   View,
 } from "react-native";
 
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Radius, Spacing } from "@/constants/theme";
+import { useAppTheme } from "@/context/ThemeContext";
 import { GymIcon, IconName } from "./GymIcon";
 
 interface AppInputProps extends TextInputProps {
@@ -31,8 +31,7 @@ export function AppInput({
   secureTextEntry,
   ...rest
 }: AppInputProps) {
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const colors = Colors[scheme];
+  const { colors } = useAppTheme();
   const [hidePassword, setHidePassword] = useState(Boolean(secureTextEntry));
 
   return (

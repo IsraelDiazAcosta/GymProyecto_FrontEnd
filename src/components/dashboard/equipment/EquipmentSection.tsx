@@ -12,7 +12,9 @@ import {
 
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon, IconName } from "@/components/ui/GymIcon";
-import { Palette, Radius, Spacing } from "@/constants/theme";
+import { Radius, Spacing } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { getEquipmentTypeLabel } from "@/i18n";
 import { Equipment, resolveMediaUrl } from "@/services/api";
 import { DashboardColors } from "../types";
 import { EQUIPMENT_TYPES } from "./AddEquipmentModal";
@@ -57,6 +59,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
   onEquipmentOptionsPress,
   onToggleFavorite,
 }) => {
+  const { language, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("all");
   const favoritesCount = equipmentList.filter((item) => Boolean(item.is_favorite)).length;
@@ -100,15 +103,16 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
           <View style={styles.kickerRow}>
             <GymIcon name="cog" size={14} color={colors.primary} />
             <Text style={[styles.kickerText, { color: colors.primary }]}>
-              EQUIPAMIENTO DEPORTIVO
+              {t("equipment.kicker")}
             </Text>
           </View>
           <Text style={[styles.title, { color: colors.text }]}>
-            Máquinas y Equipos
+            {t("equipment.title")}
           </Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {equipmentList.length} equipo
-            {equipmentList.length === 1 ? "" : "s"} registrados en el gimnasio
+            {equipmentList.length === 1
+              ? t("equipment.subtitleOne", { count: equipmentList.length })
+              : t("equipment.subtitleMany", { count: equipmentList.length })}
           </Text>
         </View>
 
@@ -123,7 +127,9 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
           ]}
         >
           <GymIcon name="plus" size={16} color={colors.onPrimary} />
-          <Text style={[styles.addBtnText, { color: colors.onPrimary }]}>Nueva</Text>
+          <Text style={[styles.addBtnText, { color: colors.onPrimary }]}>
+            {t("equipment.newBtn")}
+          </Text>
         </Pressable>
       </View>
 
@@ -140,7 +146,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
         <GymIcon name="search" size={17} color={colors.textSecondary} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Buscar máquina, polea, marca..."
+          placeholder={t("equipment.searchPlaceholder")}
           placeholderTextColor={colors.textSecondary}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -185,7 +191,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
               },
             ]}
           >
-            Todas ({equipmentList.length})
+            {t("equipment.allFilter", { count: equipmentList.length })}
           </Text>
         </Pressable>
 
@@ -228,16 +234,16 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
               },
             ]}
           >
-            Mis favoritas ({favoritesCount})
+            {t("equipment.favoritesFilter", { count: favoritesCount })}
           </Text>
         </Pressable>
 
-        {EQUIPMENT_TYPES.map((t) => {
-          const isSelected = selectedTypeFilter === t.value;
+        {EQUIPMENT_TYPES.map((typeOpt) => {
+          const isSelected = selectedTypeFilter === typeOpt.value;
           return (
             <Pressable
-              key={t.value}
-              onPress={() => setSelectedTypeFilter(t.value)}
+              key={typeOpt.value}
+              onPress={() => setSelectedTypeFilter(typeOpt.value)}
               style={[
                 styles.filterChip,
                 {
@@ -251,7 +257,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
               ]}
             >
               <GymIcon
-                name={t.icon}
+                name={typeOpt.icon}
                 size={13}
                 color={isSelected ? colors.onPrimary : colors.textSecondary}
               />
@@ -263,7 +269,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                   },
                 ]}
               >
-                {t.label}
+                {getEquipmentTypeLabel(language, typeOpt.value, typeOpt.label)}
               </Text>
             </Pressable>
           );
@@ -283,11 +289,10 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
         >
           <GymIcon name="cog" size={28} color={colors.textSecondary} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            No se encontraron máquinas
+            {t("equipment.emptyTitle")}
           </Text>
           <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-            Intenta cambiar el filtro o registra una nueva máquina con el botón
-            superior.
+            {t("equipment.emptySubtitle")}
           </Text>
         </View>
       ) : (
@@ -355,7 +360,11 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                           { color: colors.primary },
                         ]}
                       >
-                        {item.type_display || item.equipment_type}
+                        {getEquipmentTypeLabel(
+                          language,
+                          item.equipment_type,
+                          item.type_display,
+                        )}
                       </Text>
                     </View>
                     {Boolean(item.brand) && (
@@ -379,8 +388,8 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                       accessibilityRole="button"
                       accessibilityLabel={
                         isFav
-                          ? `Quitar ${item.name} de favoritas`
-                          : `Marcar ${item.name} como favorita`
+                          ? t("equipment.favRemoveLabel", { name: item.name })
+                          : t("equipment.favAddLabel", { name: item.name })
                       }
                       style={[
                         styles.favBtn,
@@ -440,7 +449,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                     <Text
                       style={[styles.setupLabel, { color: colors.primary }]}
                     >
-                      GUÍA DE AJUSTE
+                      {t("equipment.setupGuideHeader")}
                     </Text>
                   </View>
                   <Text style={[styles.setupText, { color: colors.text }]}>
@@ -503,7 +512,6 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   addBtnText: {
-    color: Palette.textOnVolt,
     fontWeight: "800",
     fontSize: 13,
   },

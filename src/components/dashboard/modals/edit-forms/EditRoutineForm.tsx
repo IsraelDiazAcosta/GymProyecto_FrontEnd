@@ -13,6 +13,8 @@ import { AppButton } from "@/components/ui/AppButton";
 import { AppInput } from "@/components/ui/AppInput";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { getMuscleFocusLabel } from "@/i18n";
 import { Exercise, Routine } from "@/services/api";
 import {
   getExerciseMuscleLabel,
@@ -72,6 +74,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
   onAddExerciseToRoutine,
   onUpdateRoutineExercise,
 }) => {
+  const { language, t } = useLanguage();
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [selectedExToAddId, setSelectedExToAddId] = useState("");
   const [newSets, setNewSets] = useState("4");
@@ -91,7 +94,10 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
       id: String(re.exercise || re.id),
       routineExerciseId: String(re.id),
       name:
-        re.exercise_detail?.name || re.exercise_name || re.name || "Ejercicio",
+        re.exercise_detail?.name ||
+        re.exercise_name ||
+        re.name ||
+        t("common.exerciseFallback"),
       equipmentName:
         re.exercise_detail?.equipment_name || re.equipment_name,
       setsCount: re.target_sets?.length || re.sets_count || 4,
@@ -141,15 +147,15 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
   return (
     <View style={styles.container}>
       <AppInput
-        label="Nombre de la Rutina"
-        placeholder="Ej: Lunes - Pecho Pesado"
+        label={t("modals.editRoutineNameLabel")}
+        placeholder={t("modals.editRoutineNamePlaceholder")}
         leftIcon="layers"
         value={routineTitle}
         onChangeText={setRoutineTitle}
       />
 
       <Text style={[styles.label, { color: colors.textSecondary }]}>
-        Enfoque Muscular Principal
+        {t("routines.focusLabel")}
       </Text>
       <View style={styles.focusGrid}>
         {FOCUS_OPTIONS.map((opt) => {
@@ -177,7 +183,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                   fontSize: 12,
                 }}
               >
-                {opt.label}
+                {getMuscleFocusLabel(language, opt.value)}
               </Text>
             </Pressable>
           );
@@ -197,10 +203,12 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
         <View style={styles.managerHeader}>
           <View>
             <Text style={[styles.managerTitle, { color: colors.text }]}>
-              Ejercicios Asignados ({currentRoutineExercises.length})
+              {t("modals.editRoutineAssignedTitle", {
+                count: currentRoutineExercises.length,
+              })}
             </Text>
             <Text style={{ fontSize: 11, color: colors.textSecondary }}>
-              Agrega o quita ejercicios directamente
+              {t("modals.editRoutineAssignedSub")}
             </Text>
           </View>
 
@@ -217,7 +225,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
             >
               <GymIcon name="plus" size={14} color={colors.primary} />
               <Text style={[styles.smallAddText, { color: colors.primary }]}>
-                Agregar
+                {t("modals.editRoutineAddBtn")}
               </Text>
             </Pressable>
           )}
@@ -225,7 +233,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
 
         {currentRoutineExercises.length === 0 ? (
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            Esta rutina no tiene ejercicios asignados.
+            {t("modals.editRoutineEmptyExercises")}
           </Text>
         ) : (
           <View style={styles.exList}>
@@ -303,6 +311,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                               borderColor: colors.borderSubtle,
                             },
                           ]}
+                          placeholderTextColor={colors.textSecondary}
                           keyboardType="numeric"
                           value={editSets}
                           onChangeText={setEditSets}
@@ -321,6 +330,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                               borderColor: colors.borderSubtle,
                             },
                           ]}
+                          placeholderTextColor={colors.textSecondary}
                           keyboardType="numeric"
                           value={editMinReps}
                           onChangeText={setEditMinReps}
@@ -339,6 +349,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                               borderColor: colors.borderSubtle,
                             },
                           ]}
+                          placeholderTextColor={colors.textSecondary}
                           keyboardType="numeric"
                           value={editMaxReps}
                           onChangeText={setEditMaxReps}
@@ -376,8 +387,11 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                       <Text
                         style={{ fontSize: 11, color: colors.textSecondary }}
                       >
-                        {ex.setsCount || 4} series × {ex.minReps || 8}-
-                        {ex.maxReps || 12} reps
+                        {t("routines.setsRepsLine", {
+                          sets: ex.setsCount || 4,
+                          min: ex.minReps || 8,
+                          max: ex.maxReps || 12,
+                        })}
                       </Text>
                     )}
                   </View>
@@ -436,7 +450,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
             ]}
           >
             <Text style={[styles.addPanelTitle, { color: colors.primary }]}>
-              Seleccionar Ejercicio para Anexar
+              {t("modals.editRoutineSelectHeader")}
             </Text>
 
             <Pressable
@@ -459,7 +473,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
               >
                 {selectedAddExObj
                   ? selectedAddExObj.name
-                  : "Elegir del catálogo..."}
+                  : t("modals.editRoutineSelectPlaceholder")}
               </Text>
               <GymIcon
                 name={exDropdownOpen ? "chevron-up" : "chevron-down"}
@@ -481,9 +495,15 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
               >
                 {allExercises.map((ex) => {
                   const isSel = ex.id === selectedExToAddId;
-                  const muscleTag = getExerciseMuscleLabel(
+                  const rawMuscleTag = getExerciseMuscleLabel(
                     ex.name,
                     ex.primary_muscle,
+                  );
+                  const muscleTag = getMuscleFocusLabel(
+                    language,
+                    rawMuscleTag.toLowerCase() === "full body"
+                      ? "fullbody"
+                      : rawMuscleTag,
                   );
                   return (
                     <Pressable
@@ -532,7 +552,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                 <Text
                   style={[styles.miniLabel, { color: colors.textSecondary }]}
                 >
-                  Series
+                  {t("routines.seriesCol")}
                 </Text>
                 <TextInput
                   style={[
@@ -543,6 +563,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                       borderColor: colors.borderSubtle,
                     },
                   ]}
+                  placeholderTextColor={colors.textSecondary}
                   keyboardType="numeric"
                   value={newSets}
                   onChangeText={setNewSets}
@@ -552,7 +573,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                 <Text
                   style={[styles.miniLabel, { color: colors.textSecondary }]}
                 >
-                  Mín Reps
+                  {t("modals.editRoutineMinReps")}
                 </Text>
                 <TextInput
                   style={[
@@ -563,6 +584,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                       borderColor: colors.borderSubtle,
                     },
                   ]}
+                  placeholderTextColor={colors.textSecondary}
                   keyboardType="numeric"
                   value={newMinReps}
                   onChangeText={setNewMinReps}
@@ -572,7 +594,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                 <Text
                   style={[styles.miniLabel, { color: colors.textSecondary }]}
                 >
-                  Máx Reps
+                  {t("modals.editRoutineMaxReps")}
                 </Text>
                 <TextInput
                   style={[
@@ -583,6 +605,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                       borderColor: colors.borderSubtle,
                     },
                   ]}
+                  placeholderTextColor={colors.textSecondary}
                   keyboardType="numeric"
                   value={newMaxReps}
                   onChangeText={setNewMaxReps}
@@ -592,14 +615,14 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
 
             <View style={styles.addPanelActions}>
               <AppButton
-                title="Incluir"
+                title={t("modals.editRoutineIncludeBtn")}
                 icon="check"
                 loading={actionLoadingId === "adding_new"}
                 onPress={handleQuickAddExercise}
                 style={{ flex: 1 }}
               />
               <AppButton
-                title="Cerrar"
+                title={t("common.close")}
                 variant="outline"
                 onPress={() => setIsAddingExercise(false)}
                 style={{ flex: 1 }}

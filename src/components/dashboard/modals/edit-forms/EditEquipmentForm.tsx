@@ -5,6 +5,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { AppInput } from "@/components/ui/AppInput";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { getEquipmentTypeLabel } from "@/i18n";
 import {
   pickAndCompressImage,
   PickedImageAsset,
@@ -49,6 +51,7 @@ export const EditEquipmentForm: React.FC<EditEquipmentFormProps> = ({
   pickedImage,
   setPickedImage,
 }) => {
+  const { language, t } = useLanguage();
   const previewUri = pickedImage?.uri || resolveMediaUrl(currentImageUrl);
 
   const handlePickImage = async (source: "camera" | "gallery") => {
@@ -61,23 +64,23 @@ export const EditEquipmentForm: React.FC<EditEquipmentFormProps> = ({
   return (
     <View style={styles.container}>
       <AppInput
-        label="Nombre de la Máquina o Equipo"
-        placeholder="Ej: Prensa Inclinada 45°"
+        label={t("modals.editEquipNameLabel")}
+        placeholder={t("modals.editEquipNamePlaceholder")}
         leftIcon="cog"
         value={eqName}
         onChangeText={setEqName}
       />
 
       <Text style={[styles.label, { color: colors.textSecondary }]}>
-        Categoría / Tipo de Equipo
+        {t("modals.editEquipTypeLabel")}
       </Text>
       <View style={styles.typesGrid}>
-        {EQUIPMENT_TYPES.map((t) => {
-          const isSelected = eqType === t.value;
+        {EQUIPMENT_TYPES.map((typeOpt) => {
+          const isSelected = eqType === typeOpt.value;
           return (
             <Pressable
-              key={t.value}
-              onPress={() => setEqType(t.value)}
+              key={typeOpt.value}
+              onPress={() => setEqType(typeOpt.value)}
               style={[
                 styles.typeChip,
                 {
@@ -91,7 +94,7 @@ export const EditEquipmentForm: React.FC<EditEquipmentFormProps> = ({
               ]}
             >
               <GymIcon
-                name={t.icon}
+                name={typeOpt.icon}
                 size={15}
                 color={isSelected ? colors.primary : colors.textSecondary}
               />
@@ -101,7 +104,7 @@ export const EditEquipmentForm: React.FC<EditEquipmentFormProps> = ({
                   { color: isSelected ? colors.primary : colors.text },
                 ]}
               >
-                {t.label}
+                {getEquipmentTypeLabel(language, typeOpt.value, typeOpt.label)}
               </Text>
             </Pressable>
           );
@@ -109,30 +112,30 @@ export const EditEquipmentForm: React.FC<EditEquipmentFormProps> = ({
       </View>
 
       <AppInput
-        label="Marca / Fabricante"
-        placeholder="Ej: Hammer Strength, Technogym..."
+        label={t("modals.editEquipBrandLabel")}
+        placeholder={t("modals.editEquipBrandPlaceholder")}
         leftIcon="award"
         value={eqBrand}
         onChangeText={setEqBrand}
       />
 
       <AppInput
-        label="Descripción Breve"
-        placeholder="Ej: Máquina convergente para pectoral..."
+        label={t("modals.editEquipDescLabel")}
+        placeholder={t("modals.editEquipDescPlaceholder")}
         value={eqDescription}
         onChangeText={setEqDescription}
       />
 
       <AppInput
-        label="Guía de Ajuste / Configuración"
-        placeholder="Ej: Ajustar asiento a nivel 4..."
+        label={t("modals.editEquipSetupLabel")}
+        placeholder={t("modals.editEquipSetupPlaceholder")}
         value={eqSetupGuide}
         onChangeText={setEqSetupGuide}
         multiline
       />
 
       <Text style={[styles.label, { color: colors.textSecondary }]}>
-        Fotografía de la Máquina
+        {t("modals.editEquipPhotoLabel")}
       </Text>
       <View style={styles.imagePickerRow}>
         <Pressable
@@ -146,7 +149,9 @@ export const EditEquipmentForm: React.FC<EditEquipmentFormProps> = ({
           ]}
         >
           <GymIcon name="camera" size={15} color={colors.primary} />
-          <Text style={[styles.typeLabel, { color: colors.text }]}>Cámara</Text>
+          <Text style={[styles.typeLabel, { color: colors.text }]}>
+            {t("common.camera")}
+          </Text>
         </Pressable>
         <Pressable
           onPress={() => handlePickImage("gallery")}
@@ -159,7 +164,9 @@ export const EditEquipmentForm: React.FC<EditEquipmentFormProps> = ({
           ]}
         >
           <GymIcon name="image" size={15} color={colors.primary} />
-          <Text style={[styles.typeLabel, { color: colors.text }]}>Galería</Text>
+          <Text style={[styles.typeLabel, { color: colors.text }]}>
+            {t("common.gallery")}
+          </Text>
         </Pressable>
       </View>
       {previewUri && (

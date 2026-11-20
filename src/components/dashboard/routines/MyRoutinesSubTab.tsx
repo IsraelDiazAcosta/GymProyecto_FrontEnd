@@ -1,6 +1,7 @@
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 import { Exercise, ProgressionItem, Routine } from "@/services/api";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -48,6 +49,8 @@ export const MyRoutinesSubTab: React.FC<MyRoutinesSubTabProps> = ({
   onTrackingSelectRoutine,
   onTrackingSelectExercise,
 }) => {
+  const { t } = useLanguage();
+
   if (routines.length === 0) {
     return (
       <View
@@ -71,14 +74,13 @@ export const MyRoutinesSubTab: React.FC<MyRoutinesSubTabProps> = ({
           <GymIcon name="layers" size={26} color={colors.primary} />
         </View>
         <Text style={[styles.emptyTitle, { color: colors.text }]}>
-          Aún no tienes rutinas
+          {t("routines.emptyTitle")}
         </Text>
         <Text style={[styles.emptyMessage, { color: colors.textSecondary }]}>
-          Crea tu primera rutina personalizada y añade ejercicios del catálogo
-          para empezar.
+          {t("routines.emptyMessage")}
         </Text>
         <AppButton
-          title="Ir a Crear"
+          title={t("routines.goToCreateBtn")}
           icon="plus"
           onPress={onGoToCreate}
           style={{ width: "100%" }}

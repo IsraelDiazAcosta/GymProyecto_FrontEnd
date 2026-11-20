@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 import { Exercise, Routine, WorkoutSessionItem } from "@/services/api";
 import { DashboardColors, RoutineExerciseItem } from "../types";
 import { RoutineCard } from "./RoutineCard";
@@ -70,6 +71,8 @@ export const RoutineDetailView: React.FC<RoutineDetailViewProps> = ({
   routineSessions,
   onBack,
 }) => {
+  const { locale, t } = useLanguage();
+
   return (
     <>
       <Pressable
@@ -86,7 +89,7 @@ export const RoutineDetailView: React.FC<RoutineDetailViewProps> = ({
           <GymIcon name="chevron-right" size={18} color={colors.primary} />
         </View>
         <Text style={[styles.backBtnText, { color: colors.text }]}>
-          Volver a Mis Rutinas
+          {t("routines.backToMyRoutines")}
         </Text>
       </Pressable>
 
@@ -129,7 +132,7 @@ export const RoutineDetailView: React.FC<RoutineDetailViewProps> = ({
           <View style={styles.historyTitleRow}>
             <GymIcon name="clock" size={16} color={colors.primary} />
             <Text style={[styles.historyTitle, { color: colors.text }]}>
-              Últimas sesiones
+              {t("routines.recentSessionsTitle")}
             </Text>
           </View>
           <View
@@ -150,7 +153,7 @@ export const RoutineDetailView: React.FC<RoutineDetailViewProps> = ({
           <Text
             style={[styles.historyEmptyText, { color: colors.textSecondary }]}
           >
-            Aún no has completado sesiones para esta rutina.
+            {t("routines.noCompletedSessions")}
           </Text>
         ) : (
           <View style={styles.historyList}>
@@ -161,8 +164,8 @@ export const RoutineDetailView: React.FC<RoutineDetailViewProps> = ({
                 sessionItem.started_at ||
                 sessionItem.start_time;
               const dateLabel = rawDate
-                ? new Date(rawDate).toLocaleDateString()
-                : sessionItem.date || "Reciente";
+                ? new Date(rawDate).toLocaleDateString(locale)
+                : sessionItem.date || t("common.recent");
               const durationSec =
                 typeof sessionItem.duration_seconds === "number"
                   ? sessionItem.duration_seconds

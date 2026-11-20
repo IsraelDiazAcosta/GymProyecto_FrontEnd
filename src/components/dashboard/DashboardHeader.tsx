@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 import { DashboardColors } from "./types";
 
 interface DashboardHeaderProps {
@@ -25,6 +26,8 @@ export function DashboardHeader({
   trainedCount = 0,
   colors,
 }: DashboardHeaderProps) {
+  const { t } = useLanguage();
+
   return (
     <View
       style={[
@@ -49,14 +52,14 @@ export function DashboardHeader({
             <GymIcon name="dumbbell" size={16} color={colors.primary} />
           </View>
           <Text style={[styles.brandKicker, { color: colors.primary }]}>
-            APEX GYM HUB
+            {t("header.brandKicker")}
           </Text>
         </View>
         <Text
           style={[styles.greetingText, { color: colors.text }]}
           numberOfLines={1}
         >
-          Hola, {username}
+          {t("header.greeting", { username })}
         </Text>
       </View>
 
@@ -121,7 +124,7 @@ export function DashboardHeader({
             color={colors.primary}
           />
           <Text style={[styles.roleText, { color: colors.primary }]}>
-            {isAdmin ? "Admin" : "Atleta"}
+            {isAdmin ? t("header.admin") : t("header.athlete")}
           </Text>
         </View>
       </View>

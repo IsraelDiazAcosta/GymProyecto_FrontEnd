@@ -13,6 +13,8 @@ import { AppButton } from "@/components/ui/AppButton";
 import { AppInput } from "@/components/ui/AppInput";
 import { GymIcon, IconName } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { getEquipmentTypeLabel } from "@/i18n";
 import { pickAndCompressImage, PickedImageAsset } from "@/services/api";
 import { DashboardColors } from "../types";
 
@@ -55,6 +57,7 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
   onSubmit,
   onClose,
 }) => {
+  const { language, t } = useLanguage();
   const [name, setName] = useState("");
   const [equipmentType, setEquipmentType] = useState("plate_loaded");
   const [brand, setBrand] = useState("");
@@ -114,11 +117,11 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
               <View style={styles.kickerRow}>
                 <GymIcon name="cog" size={13} color={colors.primary} />
                 <Text style={[styles.kicker, { color: colors.primary }]}>
-                  INVENTARIO DE GIMNASIO
+                  {t("equipment.addKicker")}
                 </Text>
               </View>
               <Text style={[styles.title, { color: colors.text }]}>
-                Registrar Nueva Máquina
+                {t("equipment.addTitle")}
               </Text>
             </View>
 
@@ -138,23 +141,23 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
             keyboardShouldPersistTaps="handled"
           >
             <AppInput
-              label="Nombre de la Máquina o Equipo"
-              placeholder="Ej: Prensa Inclinada 45°, Polea Cruzada..."
+              label={t("equipment.nameLabel")}
+              placeholder={t("equipment.namePlaceholder")}
               leftIcon="cog"
               value={name}
               onChangeText={setName}
             />
 
             <Text style={[styles.label, { color: colors.textSecondary }]}>
-              Categoría / Tipo de Equipo
+              {t("equipment.typeLabel")}
             </Text>
             <View style={styles.typesGrid}>
-              {EQUIPMENT_TYPES.map((t) => {
-                const isSelected = equipmentType === t.value;
+              {EQUIPMENT_TYPES.map((item) => {
+                const isSelected = equipmentType === item.value;
                 return (
                   <Pressable
-                    key={t.value}
-                    onPress={() => setEquipmentType(t.value)}
+                    key={item.value}
+                    onPress={() => setEquipmentType(item.value)}
                     style={[
                       styles.typeChip,
                       {
@@ -168,7 +171,7 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
                     ]}
                   >
                     <GymIcon
-                      name={t.icon}
+                      name={item.icon}
                       size={16}
                       color={isSelected ? colors.primary : colors.textSecondary}
                     />
@@ -180,7 +183,7 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
                         },
                       ]}
                     >
-                      {t.label}
+                      {getEquipmentTypeLabel(language, item.value, item.label)}
                     </Text>
                   </Pressable>
                 );
@@ -188,30 +191,30 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
             </View>
 
             <AppInput
-              label="Marca / Fabricante (Opcional)"
-              placeholder="Ej: Hammer Strength, Technogym, Life Fitness..."
+              label={t("equipment.brandLabel")}
+              placeholder={t("equipment.brandPlaceholder")}
               leftIcon="award"
               value={brand}
               onChangeText={setBrand}
             />
 
             <AppInput
-              label="Descripción Breve (Opcional)"
-              placeholder="Ej: Máquina convergente para pectoral superior..."
+              label={t("equipment.descLabel")}
+              placeholder={t("equipment.descPlaceholder")}
               value={description}
               onChangeText={setDescription}
             />
 
             <AppInput
-              label="Guía de Ajuste / Configuración (Opcional)"
-              placeholder="Ej: Ajustar asiento a altura de hombros..."
+              label={t("equipment.setupLabel")}
+              placeholder={t("equipment.setupPlaceholder")}
               value={setupGuide}
               onChangeText={setSetupGuide}
               multiline
             />
 
             <Text style={[styles.label, { color: colors.textSecondary }]}>
-              Fotografía de la Máquina (Máx. 1080px, comprimida)
+              {t("equipment.photoLabel")}
             </Text>
             <View style={styles.imagePickerRow}>
               <Pressable
@@ -226,7 +229,7 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
               >
                 <GymIcon name="camera" size={16} color={colors.primary} />
                 <Text style={[styles.pickerBtnText, { color: colors.text }]}>
-                  Cámara
+                  {t("common.camera")}
                 </Text>
               </Pressable>
               <Pressable
@@ -241,7 +244,7 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
               >
                 <GymIcon name="image" size={16} color={colors.primary} />
                 <Text style={[styles.pickerBtnText, { color: colors.text }]}>
-                  Galería
+                  {t("common.gallery")}
                 </Text>
               </Pressable>
               {pickedImage && (
@@ -266,14 +269,14 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
 
             <View style={styles.actionsRow}>
               <AppButton
-                title="Guardar Máquina"
+                title={t("equipment.saveBtn")}
                 icon="check"
                 onPress={handleSave}
                 loading={submitting}
                 style={{ flex: 1 }}
               />
               <AppButton
-                title="Cancelar"
+                title={t("common.cancel")}
                 variant="outline"
                 onPress={onClose}
                 style={{ flex: 1 }}

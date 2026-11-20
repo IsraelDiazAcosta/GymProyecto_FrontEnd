@@ -4,11 +4,15 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from "react-native";
 
-import { Colors, Radius } from "@/constants/theme";
+import {
+  Radius,
+  ResolvedThemeMode,
+  ThemeColors,
+} from "@/constants/theme";
+import { useAppTheme } from "@/context/ThemeContext";
 import { GymIcon, IconName } from "./GymIcon";
 
 export type ToastType = "success" | "error" | "info" | "warning";
@@ -18,6 +22,7 @@ export interface ToastConfig {
   type: ToastType;
   title: string;
   message: string;
+  code?: string;
 }
 
 interface AnimatedToastProps {
@@ -25,44 +30,44 @@ interface AnimatedToastProps {
   onHide: () => void;
 }
 
-const TOAST_THEMES: Record<
-  ToastType,
-  {
-    accent: string;
-    bgDark: string;
-    bgLight: string;
-    icon: IconName;
+function getToastTheme(
+  type: ToastType,
+  colors: ThemeColors,
+  resolvedMode: ResolvedThemeMode,
+): { accent: string; bg: string; icon: IconName } {
+  switch (type) {
+    case "success":
+      return {
+        accent: colors.success,
+        bg: colors.toastSuccessBg,
+        icon: "check-circle",
+      };
+    case "error":
+      return {
+        accent: colors.danger,
+        bg: colors.toastErrorBg,
+        icon: "x-circle",
+      };
+    case "warning":
+      return {
+        accent: colors.warning,
+        bg: colors.toastWarningBg,
+        icon: "alert-triangle",
+      };
+    case "info":
+      return {
+        accent: colors.primary,
+        bg:
+          resolvedMode === "dark"
+            ? colors.backgroundElevated
+            : colors.backgroundElement,
+        icon: "sparkles",
+      };
   }
-> = {
-  success: {
-    accent: "#10B981",
-    bgDark: "#0D261D",
-    bgLight: "#ECFDF5",
-    icon: "check-circle",
-  },
-  error: {
-    accent: "#F43F5E",
-    bgDark: "#2A1219",
-    bgLight: "#FFF1F2",
-    icon: "x-circle",
-  },
-  warning: {
-    accent: "#F59E0B",
-    bgDark: "#291E0C",
-    bgLight: "#FFFBEB",
-    icon: "alert-triangle",
-  },
-  info: {
-    accent: "#34D399",
-    bgDark: "#10241E",
-    bgLight: "#F0FDF4",
-    icon: "sparkles",
-  },
-};
+}
 
 export function AnimatedToast({ toast, onHide }: AnimatedToastProps) {
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const colors = Colors[scheme];
+  const { colors, resolvedMode } = useAppTheme();
 
   const translateY = useRef(new Animated.Value(-130)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -131,7 +136,7 @@ export function AnimatedToast({ toast, onHide }: AnimatedToastProps) {
 
   if (!toast.visible) return null;
 
-  const theme = TOAST_THEMES[toast.type];
+  const theme = getToastTheme(toast.type, colors, resolvedMode);
   const progressWidth = progress.interpolate({
     inputRange: [0, 1],
     outputRange: ["0%", "100%"],
@@ -152,8 +157,9 @@ export function AnimatedToast({ toast, onHide }: AnimatedToastProps) {
         style={[
           styles.container,
           {
-            backgroundColor: scheme === "dark" ? theme.bgDark : theme.bgLight,
+            backgroundColor: theme.bg,
             borderColor: theme.accent + "55",
+            shadowOpacity: resolvedMode === "dark" ? 0.3 : 0.14,
           },
         ]}
       >

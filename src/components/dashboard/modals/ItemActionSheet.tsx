@@ -11,7 +11,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GymIcon, IconName } from "@/components/ui/GymIcon";
-import { Palette, Radius } from "@/constants/theme";
+import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 import { DashboardColors } from "../types";
 
 export interface ItemActionSheetProps {
@@ -48,6 +49,7 @@ export const ItemActionSheet: React.FC<ItemActionSheetProps> = ({
   onDelete,
   onClose,
 }) => {
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(300)).current;
 
@@ -68,30 +70,36 @@ export const ItemActionSheet: React.FC<ItemActionSheetProps> = ({
   }, [visible, translateY]);
 
   const meta = TYPE_META[itemType];
+  const typeLabelMap: Record<ItemActionSheetProps["itemType"], string> = {
+    routine: t("modals.typeRoutine"),
+    exercise: t("modals.typeExercise"),
+    marca: t("modals.typeMarca"),
+    equipment: t("modals.typeEquipment"),
+  };
 
   const getEditSubtitle = () => {
     switch (itemType) {
       case "routine":
-        return "Modificar nombre, enfoque o ejercicios asignados";
+        return t("modals.editSubRoutine");
       case "exercise":
-        return "Cambiar nombre, grupo muscular, máquina o técnica";
+        return t("modals.editSubExercise");
       case "equipment":
-        return "Modificar nombre, categoría, marca o guía de ajuste";
+        return t("modals.editSubEquipment");
       default:
-        return "Corregir peso levantado, repeticiones o RPE";
+        return t("modals.editSubMarca");
     }
   };
 
   const getDeleteTitle = () => {
     switch (itemType) {
       case "routine":
-        return "Eliminar rutina";
+        return t("modals.deleteTitleRoutine");
       case "exercise":
-        return "Eliminar ejercicio";
+        return t("modals.deleteTitleExercise");
       case "equipment":
-        return "Eliminar máquina";
+        return t("modals.deleteTitleEquipment");
       default:
-        return "Eliminar marca";
+        return t("modals.deleteTitleMarca");
     }
   };
 
@@ -117,7 +125,9 @@ export const ItemActionSheet: React.FC<ItemActionSheetProps> = ({
             },
           ]}
         >
-          <View style={styles.handleBar} />
+          <View
+            style={[styles.handleBar, { backgroundColor: colors.handleBar }]}
+          />
 
           {/* Cabecera */}
           <View
@@ -139,7 +149,7 @@ export const ItemActionSheet: React.FC<ItemActionSheetProps> = ({
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.typeBadge, { color: colors.primary }]}>
-                {meta.label}
+                {typeLabelMap[itemType] ?? meta.label}
               </Text>
               <Text
                 style={[styles.title, { color: colors.text }]}
@@ -184,7 +194,7 @@ export const ItemActionSheet: React.FC<ItemActionSheetProps> = ({
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.optionTitle, { color: colors.text }]}>
-                    Editar información
+                    {t("modals.editInfoTitle")}
                   </Text>
                   <Text
                     style={[
@@ -235,7 +245,7 @@ export const ItemActionSheet: React.FC<ItemActionSheetProps> = ({
                       { color: colors.textSecondary },
                     ]}
                   >
-                    Borrar permanentemente de la base de datos
+                    {t("modals.deletePermanentSub")}
                   </Text>
                 </View>
                 <GymIcon
@@ -258,7 +268,7 @@ export const ItemActionSheet: React.FC<ItemActionSheetProps> = ({
             ]}
           >
             <Text style={[styles.cancelText, { color: colors.text }]}>
-              Cancelar
+              {t("common.cancel")}
             </Text>
           </Pressable>
         </Animated.View>
@@ -283,7 +293,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: 3,
-    backgroundColor: Palette.lilacBorder,
     alignSelf: "center",
     marginBottom: 14,
   },

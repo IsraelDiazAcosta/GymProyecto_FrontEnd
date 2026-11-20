@@ -5,6 +5,13 @@ import { AppButton } from "@/components/ui/AppButton";
 import { AppInput } from "@/components/ui/AppInput";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
+import {
+  getExperienceLevelLabel,
+  getTrainingGoalLabel,
+  ResolvedLanguage,
+  translate,
+} from "@/i18n";
 import {
   api,
   ApiError,
@@ -38,14 +45,21 @@ const toInputValue = (v?: number | string | null) =>
 function parseDecimal(
   raw: string,
   label: string,
+  lang: ResolvedLanguage,
 ): { value: string | null } | { error: string } {
   const clean = raw.trim().replace(",", ".");
   if (!clean) return { value: null };
   const num = Number(clean);
   if (!Number.isFinite(num) || num <= 0) {
-    return { error: `${label} debe ser un número mayor a 0` };
+    return {
+      error: translate(lang, "editProfile.errorMustBePositive", { label }),
+    };
   }
-  if (num >= 1000) return { error: `${label} debe ser menor a 1000` };
+  if (num >= 1000) {
+    return {
+      error: translate(lang, "editProfile.errorMustBeLessThan1000", { label }),
+    };
+  }
   return { value: num.toFixed(2) };
 }
 
@@ -56,6 +70,7 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
   onSaved,
 }) => {
   const { updateProfile } = useAuth();
+  const { language, t } = useLanguage();
   const [username, setUsername] = useState(user.username ?? "");
   const [level, setLevel] = useState<ExperienceLevel>(
     user.experience_level ?? "beginner",
@@ -71,12 +86,20 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
 
   const handleSave = async () => {
     const nextErrors: FieldErrors = {};
-    const w = parseDecimal(weight, "El peso");
-    const h = parseDecimal(height, "La estatura");
+    const w = parseDecimal(
+      weight,
+      t("editProfile.errorWeightSubject"),
+      language,
+    );
+    const h = parseDecimal(
+      height,
+      t("editProfile.errorHeightSubject"),
+      language,
+    );
     if ("error" in w) nextErrors.current_weight = w.error;
     if ("error" in h) nextErrors.height = h.error;
     if (username.trim().length > 50) {
-      nextErrors.username = "Máximo 50 caracteres";
+      nextErrors.username = t("editProfile.errorMaxUsername");
     }
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
@@ -116,7 +139,7 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
         current_weight: fieldErr("current_weight"),
         height: fieldErr("height"),
         bio: fieldErr("bio"),
-        general: (err as Error).message || "No se pudo guardar el perfil",
+        general: (err as Error).message || t("editProfile.errorSaveFallback"),
       });
     } finally {
       setSaving(false);
@@ -126,18 +149,18 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
   return (
     <View style={styles.form}>
       <AppInput
-        label="Nombre de usuario"
+        label={t("editProfile.usernameLabel")}
         leftIcon="user"
         value={username}
         onChangeText={setUsername}
-        placeholder="Tu nombre"
+        placeholder={t("editProfile.usernamePlaceholder")}
         maxLength={50}
         autoCapitalize="none"
         error={errors.username}
       />
 
       <Text style={[styles.label, { color: colors.textSecondary }]}>
-        Nivel de experiencia
+        {t("editProfile.experienceLabel")}
       </Text>
       <View style={styles.levelRow}>
         {EXPERIENCE_LEVELS.map((opt) => {
@@ -162,7 +185,7 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
                   { color: active ? colors.onPrimary : colors.text },
                 ]}
               >
-                {opt.label}
+                {getExperienceLevelLabel(language, opt.value)}
               </Text>
             </Pressable>
           );
@@ -170,7 +193,7 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
       </View>
 
       <Text style={[styles.label, { color: colors.textSecondary }]}>
-        Objetivo de entrenamiento
+        {t("editProfile.goalLabel")}
       </Text>
       <View style={styles.goalWrap}>
         {TRAINING_GOALS.map((opt) => {
@@ -195,7 +218,7 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
                   { color: active ? colors.onPrimary : colors.text },
                 ]}
               >
-                {opt.label}
+                {getTrainingGoalLabel(language, opt.value)}
               </Text>
             </Pressable>
           );
@@ -205,7 +228,7 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
       <View style={styles.row}>
         <View style={styles.half}>
           <AppInput
-            label="Peso (kg)"
+            label={t("editProfile.weightLabel")}
             leftIcon="activity"
             value={weight}
             onChangeText={setWeight}
@@ -216,7 +239,7 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
         </View>
         <View style={styles.half}>
           <AppInput
-            label="Estatura (cm)"
+            label={t("editProfile.heightLabel")}
             leftIcon="trending-up"
             value={height}
             onChangeText={setHeight}
@@ -228,10 +251,10 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
       </View>
 
       <AppInput
-        label="Biografía / Objetivos"
+        label={t("editProfile.bioLabel")}
         value={bio}
         onChangeText={setBio}
-        placeholder="Ej: ganar fuerza en sentadilla"
+        placeholder={t("editProfile.bioPlaceholder")}
         multiline
         style={styles.bioInput}
         error={errors.bio}
@@ -245,14 +268,14 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
 
       <View style={styles.row}>
         <AppButton
-          title="Cancelar"
+          title={t("common.cancel")}
           variant="outline"
           onPress={onCancel}
           disabled={saving}
           style={styles.half}
         />
         <AppButton
-          title="Guardar"
+          title={t("common.save")}
           icon="check"
           onPress={handleSave}
           loading={saving}

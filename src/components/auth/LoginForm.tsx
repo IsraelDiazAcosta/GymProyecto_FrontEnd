@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import { StyleSheet, Text, useColorScheme, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/ui/AppButton";
 import { AppInput } from "@/components/ui/AppInput";
 import { GymIcon } from "@/components/ui/GymIcon";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Radius, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { useAppTheme } from "@/context/ThemeContext";
 
 /**
  * Formulario de acceso con diseño deportivo de lujo "Apex Emerald Gym",
@@ -13,8 +15,8 @@ import { useAuth } from "@/context/AuthContext";
  */
 export function LoginForm() {
   const { login, error, isAuthenticating, clearError } = useAuth();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const colors = Colors[scheme];
+  const { colors, resolvedMode } = useAppTheme();
+  const { t } = useLanguage();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,12 +27,12 @@ export function LoginForm() {
     clearError();
 
     if (!email.trim()) {
-      setLocalError("Por favor ingresa tu correo o nombre de usuario.");
+      setLocalError(t("auth.emailRequired"));
       return;
     }
 
     if (!password) {
-      setLocalError("Por favor ingresa tu contraseña.");
+      setLocalError(t("auth.passwordRequired"));
       return;
     }
 
@@ -47,6 +49,7 @@ export function LoginForm() {
         {
           backgroundColor: colors.backgroundElement,
           borderColor: colors.border,
+          shadowOpacity: resolvedMode === "dark" ? 0.18 : 0.08,
         },
       ]}
     >
@@ -66,17 +69,16 @@ export function LoginForm() {
         <View style={[styles.statusPill, { backgroundColor: colors.primaryGlow }]}>
           <GymIcon name="zap" size={13} color={colors.primary} />
           <Text style={[styles.statusText, { color: colors.primary }]}>
-            APEX PERFORMANCE
+            {t("auth.apexPill")}
           </Text>
         </View>
       </View>
 
       <Text style={[styles.title, { color: colors.text }]}>
-        Bienvenido al Club
+        {t("auth.welcomeTitle")}
       </Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        Inicia sesión para gestionar tus rutinas, catálogo biomecánico y récords
-        de fuerza (1RM).
+        {t("auth.welcomeSubtitle")}
       </Text>
 
       {displayError ? (
@@ -97,8 +99,8 @@ export function LoginForm() {
       ) : null}
 
       <AppInput
-        label="Correo o Usuario"
-        placeholder="ej. atleta@gym.com"
+        label={t("auth.emailOrUserLabel")}
+        placeholder={t("auth.emailOrUserPlaceholder")}
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
@@ -111,7 +113,7 @@ export function LoginForm() {
       />
 
       <AppInput
-        label="Contraseña"
+        label={t("auth.passwordLabel")}
         placeholder="••••••••"
         secureTextEntry
         autoCapitalize="none"
@@ -125,7 +127,7 @@ export function LoginForm() {
       />
 
       <AppButton
-        title="Entrar al Gimnasio"
+        title={t("auth.loginBtn")}
         icon="chevron-right"
         onPress={handleSubmit}
         loading={isAuthenticating}

@@ -19,6 +19,7 @@ import Svg, {
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 import { ProgressionItem, Routine } from "@/services/api";
 import { DashboardColors } from "../types";
 
@@ -50,6 +51,7 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
   onSelectRoutine,
   onSelectExercise,
 }) => {
+  const { locale, t } = useLanguage();
   const [chartSize, setChartSize] = useState<LayoutRectangle | null>(null);
 
   const validHistory = (marcaHistory || []).filter(
@@ -66,8 +68,8 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
     const oneRm =
       reps > 0 && reps < 37 ? weight * (36 / (37 - reps)) : weight;
     const dateLabel = item.logged_at
-      ? new Date(item.logged_at).toLocaleDateString()
-      : "Reciente";
+      ? new Date(item.logged_at).toLocaleDateString(locale)
+      : t("common.recent");
 
     return {
       oneRm: Number(oneRm.toFixed(1)),
@@ -136,11 +138,11 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
           <View style={styles.kickerRow}>
             <GymIcon name="trending-up" size={15} color={colors.primary} />
             <Text style={[styles.kickerText, { color: colors.primary }]}>
-              ANALÍTICA DE FUERZA
+              {t("tracking.chartKicker")}
             </Text>
           </View>
           <Text style={[styles.title, { color: colors.text }]}>
-            Evolución de 1RM Estimado
+            {t("tracking.chartTitle")}
           </Text>
         </View>
 
@@ -157,7 +159,7 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
             <View style={styles.prHeader}>
               <GymIcon name="award" size={12} color={colors.primary} />
               <Text style={[styles.prBadgeLabel, { color: colors.primary }]}>
-                RÉCORD 1RM
+                {t("tracking.prBadgeLabel")}
               </Text>
             </View>
             <Text style={[styles.prBadgeValue, { color: colors.primary }]}>
@@ -169,7 +171,7 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
 
       {/* Selector de rutina */}
       <Text style={[styles.selectorLabel, { color: colors.textSecondary }]}>
-        Rutina activa
+        {t("tracking.activeRoutineLabel")}
       </Text>
       <ScrollView
         horizontal
@@ -200,7 +202,7 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
                   { color: active ? colors.onPrimary : colors.textSecondary },
                 ]}
               >
-                {r.title || (r as any).name || "Rutina"}
+                {r.title || (r as any).name || t("common.routineFallback")}
               </Text>
             </Pressable>
           );
@@ -209,7 +211,7 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
 
       {/* Selector de ejercicio */}
       <Text style={[styles.selectorLabel, { color: colors.textSecondary }]}>
-        Ejercicio a graficar
+        {t("tracking.exerciseToPlotLabel")}
       </Text>
       {exercises.length > 0 ? (
         <ScrollView
@@ -250,7 +252,7 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
         </ScrollView>
       ) : (
         <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
-          Esta rutina aún no tiene ejercicios asignados.
+          {t("tracking.routineNoExercisesHint")}
         </Text>
       )}
 
@@ -269,7 +271,7 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
           <View style={styles.emptyChartState}>
             <GymIcon name="activity" size={28} color={colors.textSecondary} />
             <Text style={[styles.emptyChartText, { color: colors.textSecondary }]}>
-              Registra al menos un levantamiento para visualizar la curva 1RM.
+              {t("tracking.emptyChartText")}
             </Text>
           </View>
         ) : (
@@ -352,10 +354,14 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
         >
           <View style={styles.statColumn}>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-              Último registro ({lastRM.dateLabel})
+              {t("tracking.lastRecordLabel", { date: lastRM.dateLabel })}
             </Text>
             <Text style={[styles.statValue, { color: colors.text }]}>
-              {lastRM.weight} kg × {lastRM.reps} reps ({lastRM.oneRm} kg 1RM)
+              {t("tracking.lastRecordValue", {
+                weight: lastRM.weight,
+                reps: lastRM.reps,
+                oneRm: lastRM.oneRm,
+              })}
             </Text>
           </View>
 

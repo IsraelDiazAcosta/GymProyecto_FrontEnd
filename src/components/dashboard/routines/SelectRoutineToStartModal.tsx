@@ -4,6 +4,8 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { getMuscleFocusLabel } from "@/i18n";
 import { Routine } from "@/services/api";
 import { DashboardColors, RoutineExerciseItem } from "../types";
 
@@ -30,6 +32,8 @@ export const SelectRoutineToStartModal: React.FC<SelectRoutineToStartModalProps>
   getExercisesOfRoutine,
   onGoToCreate,
 }) => {
+  const { language, t } = useLanguage();
+
   const getCount = (r: Routine): number => {
     if (getExercisesCount) return getExercisesCount(r);
     if (getExercisesOfRoutine) return getExercisesOfRoutine(r).length;
@@ -60,7 +64,7 @@ export const SelectRoutineToStartModal: React.FC<SelectRoutineToStartModalProps>
         >
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
-              Elegir rutina a iniciar
+              {t("routines.startModalTitle")}
             </Text>
             <Pressable onPress={onClose} hitSlop={8}>
               <GymIcon name="x" size={18} color={colors.textSecondary} />
@@ -75,10 +79,10 @@ export const SelectRoutineToStartModal: React.FC<SelectRoutineToStartModalProps>
                   { color: colors.textSecondary },
                 ]}
               >
-                Primero crea una rutina para poder iniciar una sesión.
+                {t("routines.startModalEmpty")}
               </Text>
               <AppButton
-                title="Ir a Crear"
+                title={t("routines.goToCreateBtn")}
                 icon="plus"
                 onPress={() => {
                   onClose();
@@ -120,8 +124,13 @@ export const SelectRoutineToStartModal: React.FC<SelectRoutineToStartModalProps>
                         { color: colors.textSecondary },
                       ]}
                     >
-                      {(r.focus || "fullbody").toUpperCase()} •{" "}
-                      {getCount(r)} ejercicio(s)
+                      {t("routines.startModalMeta", {
+                        focus: getMuscleFocusLabel(
+                          language,
+                          r.focus || "fullbody",
+                        ).toUpperCase(),
+                        count: getCount(r),
+                      })}
                     </Text>
                   </View>
                   <View

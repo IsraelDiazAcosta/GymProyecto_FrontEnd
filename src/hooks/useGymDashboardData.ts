@@ -7,6 +7,8 @@ import {
 } from "@/components/dashboard/muscleValidation";
 import { RoutineExerciseItem, TabType } from "@/components/dashboard/types";
 import { ToastConfig, ToastType } from "@/components/ui/AnimatedToast";
+import { useLanguage } from "@/context/LanguageContext";
+import { getEquipmentTypeLabel, getMuscleFocusLabel } from "@/i18n";
 import {
   api,
   Equipment,
@@ -22,6 +24,7 @@ import {
  * y estados interactivos del Dashboard del Gimnasio.
  */
 export function useGymDashboardData() {
+  const { language, locale, t } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabType>("routines");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastConfig>({
@@ -31,12 +34,18 @@ export function useGymDashboardData() {
     message: "",
   });
 
-  const showToast = (type: ToastType, title: string, message = "") => {
+  const showToast = (
+    type: ToastType,
+    title: string,
+    message = "",
+    code?: string,
+  ) => {
     setToast({
       visible: true,
       type,
       title,
       message,
+      code,
     });
   };
 
@@ -122,7 +131,7 @@ export function useGymDashboardData() {
         const firstSet = e.target_sets?.[0];
         list.push({
           id: e.exercise,
-          name: e.exercise_detail?.name || "Ejercicio",
+          name: e.exercise_detail?.name || t("common.exerciseFallback"),
           routineExerciseId: e.id,
           equipmentName: e.exercise_detail?.equipment_name,
           setsCount: sc,
@@ -161,7 +170,7 @@ export function useGymDashboardData() {
         }
       }
     } catch (e: any) {
-      showToast("error", "Error de conexión", e.message);
+      showToast("error", t("toasts.connectionError"), e.message);
     } finally {
       setLoading(false);
     }
@@ -189,7 +198,7 @@ export function useGymDashboardData() {
       setSelectedExercise(detail);
       setModalExerciseVisible(true);
     } catch (e: any) {
-      showToast("error", "Error al cargar ejercicio", e.message);
+      showToast("error", t("toasts.loadExerciseError"), e.message);
     } finally {
       setLoading(false);
     }
@@ -199,22 +208,22 @@ export function useGymDashboardData() {
     if (!newExName.trim()) {
       return showToast(
         "warning",
-        "Nombre Requerido",
-        "Ingresa el nombre del ejercicio.",
+        t("toasts.nameRequiredTitle"),
+        t("toasts.exerciseNameRequiredMsg"),
       );
     }
     if (!newExMuscle) {
       return showToast(
         "warning",
-        "Grupo Muscular Requerido",
-        "Selecciona el grupo muscular correspondiente al ejercicio.",
+        t("toasts.muscleRequiredTitle"),
+        t("toasts.muscleRequiredMsg"),
       );
     }
     try {
       setLoading(true);
       await api.createExercise({
         name: newExName.trim(),
-        instructions: newExInstructions || "Ejecución estándar.",
+        instructions: newExInstructions || t("toasts.defaultInstructions"),
         video_url: newExVideo,
         equipment_id: newExEquipment,
         muscle_id: newExMuscle,
@@ -222,8 +231,8 @@ export function useGymDashboardData() {
       });
       showToast(
         "success",
-        "Ejercicio Publicado",
-        `"${newExName.trim()}" se guardó en el catálogo con su grupo muscular.`,
+        t("toasts.exercisePublishedTitle"),
+        t("toasts.exercisePublishedMsg", { name: newExName.trim() }),
       );
       setShowAddExerciseModal(false);
       setNewExName("");
@@ -235,7 +244,7 @@ export function useGymDashboardData() {
       const updated = await api.getExercises();
       setExercises(updated);
     } catch (e: any) {
-      showToast("error", "Error al publicar ejercicio", e.message);
+      showToast("error", t("toasts.publishExerciseError"), e.message);
     } finally {
       setLoading(false);
     }
@@ -245,8 +254,8 @@ export function useGymDashboardData() {
     if (!newRoutineTitle.trim()) {
       return showToast(
         "warning",
-        "Nombre Requerido",
-        "Ingresa el nombre de la rutina (ej. Lunes - Pecho).",
+        t("toasts.nameRequiredTitle"),
+        t("toasts.routineNameRequiredMsg"),
       );
     }
 
@@ -264,7 +273,7 @@ export function useGymDashboardData() {
       const created = await api.createRoutine(
         newRoutineTitle.trim(),
         newRoutineFocus,
-        "Rutina personalizada",
+        t("toasts.routineDefaultDescription"),
         validExerciseIds,
         sc,
         minR,
@@ -290,13 +299,17 @@ export function useGymDashboardData() {
       setRoutines(updated);
       showToast(
         "success",
-        "Rutina Creada",
+        t("toasts.routineCreatedTitle"),
         validExerciseIds.length > 0
-          ? `"${createdTitle}" creada con ${validExerciseIds.length} ejercicio(s).`
-          : `"${createdTitle}" se creó y guardó correctamente.`,
+          ? t("toasts.routineCreatedWithCountMsg", {
+              title: createdTitle,
+              count: validExerciseIds.length,
+            })
+          : t("toasts.routineCreatedMsg", { title: createdTitle }),
+        "routine_created",
       );
     } catch (e: any) {
-      showToast("error", "Error al crear rutina", e.message);
+      showToast("error", t("toasts.createRoutineError"), e.message);
     } finally {
       setLoading(false);
     }
@@ -313,8 +326,8 @@ export function useGymDashboardData() {
     if (idsToProcess.length === 0) {
       return showToast(
         "warning",
-        "Selecciona un ejercicio",
-        "Elige al menos un ejercicio antes de añadir.",
+        t("toasts.selectExerciseTitle"),
+        t("toasts.selectExerciseMsg"),
       );
     }
     const routine = routines.find((r) => r.id === routineId);
@@ -330,10 +343,19 @@ export function useGymDashboardData() {
 
       if (routine.focus && routine.focus.toLowerCase() !== "fullbody") {
         if (!isExerciseCompatibleWithFocus(selectedEx, routine.focus)) {
+          const rawMuscle = getExerciseMuscleLabel(selectedEx);
+          const translatedMuscle = getMuscleFocusLabel(
+            language,
+            rawMuscle.toLowerCase() === "full body" ? "fullbody" : rawMuscle,
+          );
           return showToast(
             "error",
-            "Grupo muscular incompatible",
-            `No se permite añadir "${selectedEx.name}" (${getExerciseMuscleLabel(selectedEx)}) a una rutina de ${routine.focus.toUpperCase()}.`,
+            t("toasts.incompatibleMuscleTitle"),
+            t("toasts.incompatibleMuscleMsg", {
+              name: selectedEx.name,
+              muscle: translatedMuscle,
+              focus: getMuscleFocusLabel(language, routine.focus).toUpperCase(),
+            }),
           );
         }
       }
@@ -342,8 +364,8 @@ export function useGymDashboardData() {
         if (idsToProcess.length === 1) {
           return showToast(
             "warning",
-            "Ejercicio duplicado",
-            "Este ejercicio ya existe en la rutina seleccionada.",
+            t("toasts.duplicateExerciseTitle"),
+            t("toasts.duplicateExerciseMsg"),
           );
         }
         continue;
@@ -355,8 +377,8 @@ export function useGymDashboardData() {
     if (validExerciseIds.length === 0) {
       return showToast(
         "warning",
-        "Ejercicios ya agregados",
-        "Los ejercicios seleccionados ya están en la rutina.",
+        t("toasts.alreadyAddedTitle"),
+        t("toasts.alreadyAddedMsg"),
       );
     }
 
@@ -376,11 +398,11 @@ export function useGymDashboardData() {
       setRoutines(updated);
       showToast(
         "success",
-        "Ejercicios Añadidos",
-        `Se agregaron ${validExerciseIds.length} ejercicio(s) a tu rutina.`,
+        t("toasts.exercisesAddedTitle"),
+        t("toasts.exercisesAddedMsg", { count: validExerciseIds.length }),
       );
     } catch (e: any) {
-      showToast("error", "Error al añadir ejercicio", e.message);
+      showToast("error", t("toasts.addExerciseError"), e.message);
     } finally {
       setLoading(false);
     }
@@ -413,8 +435,8 @@ export function useGymDashboardData() {
     if (!trackingExerciseId) {
       showToast(
         "warning",
-        "Selecciona Ejercicio",
-        "Elige un ejercicio de tu rutina antes de registrar marca.",
+        t("toasts.selectExerciseForMarcaTitle"),
+        t("toasts.selectExerciseForMarcaMsg"),
       );
       return false;
     }
@@ -425,8 +447,8 @@ export function useGymDashboardData() {
     if (isNaN(w) || isNaN(r)) {
       showToast(
         "warning",
-        "Datos Inválidos",
-        "Ingresa peso y repeticiones válidos.",
+        t("toasts.invalidDataTitle"),
+        t("toasts.invalidDataMsg"),
       );
       return false;
     }
@@ -435,17 +457,25 @@ export function useGymDashboardData() {
       setSavingMarca(true);
       const res = await api.saveMarca(trackingExerciseId, w, r, rpe);
       setLastSavedSummary(
-        `Guardado: ${w} kg × ${r} reps (1RM estimado: ${res.estimated_1rm} kg)`,
+        t("toasts.lastSavedSummary", {
+          weight: w,
+          reps: r,
+          oneRm: res.estimated_1rm,
+        }),
       );
       showToast(
         "success",
-        "Marca Registrada",
-        `${w} kg × ${r} reps (1RM est: ${res.estimated_1rm} kg)`,
+        t("toasts.marcaSavedTitle"),
+        t("toasts.marcaSavedMsg", {
+          weight: w,
+          reps: r,
+          oneRm: res.estimated_1rm,
+        }),
       );
       await loadProgressionHistory(trackingExerciseId);
       return true;
     } catch (e: any) {
-      showToast("error", "Error al guardar marca", e.message);
+      showToast("error", t("toasts.saveMarcaError"), e.message);
       return false;
     } finally {
       setSavingMarca(false);
@@ -463,7 +493,7 @@ export function useGymDashboardData() {
       setAdminUsers(users);
       setShowAdminUsers(true);
     } catch (e: any) {
-      showToast("error", "Error al cargar usuarios", e.message);
+      showToast("error", t("toasts.loadUsersError"), e.message);
     } finally {
       setLoading(false);
     }
@@ -476,7 +506,13 @@ export function useGymDashboardData() {
     setActionSheetItem({
       type: "routine",
       title: routine.title,
-      subtitle: `Enfoque: ${(routine.focus || "fullbody").toUpperCase()} • ${routine.days?.[0]?.exercises?.length || 0} ejercicio(s)`,
+      subtitle: t("toasts.routineOptionsSub", {
+        focus: getMuscleFocusLabel(
+          language,
+          routine.focus || "fullbody",
+        ).toUpperCase(),
+        count: routine.days?.[0]?.exercises?.length || 0,
+      }),
       data: routine,
     });
   };
@@ -488,7 +524,12 @@ export function useGymDashboardData() {
     setActionSheetItem({
       type: "exercise",
       title: exercise.name,
-      subtitle: `Máquina: ${exercise.equipment_name || "Peso libre"} • ${exercise.primary_muscle || "General"}`,
+      subtitle: t("toasts.exerciseOptionsSub", {
+        machine: exercise.equipment_name || t("common.freeWeight"),
+        muscle: exercise.primary_muscle
+          ? getMuscleFocusLabel(language, exercise.primary_muscle)
+          : t("common.general"),
+      }),
       data: exercise,
     });
   };
@@ -498,12 +539,12 @@ export function useGymDashboardData() {
       Vibration.vibrate(45);
     } catch {}
     const dateStr = item.logged_at
-      ? new Date(item.logged_at).toLocaleDateString()
-      : "Reciente";
+      ? new Date(item.logged_at).toLocaleDateString(locale)
+      : t("common.recent");
     setActionSheetItem({
       type: "marca",
       title: `${item.weight} kg × ${item.reps} reps`,
-      subtitle: `Fecha: ${dateStr}${item.rpe ? ` • RPE ${item.rpe}` : ""}`,
+      subtitle: `${t("toasts.marcaOptionsSub", { date: dateStr })}${item.rpe ? ` • RPE ${item.rpe}` : ""}`,
       data: item,
     });
   };
@@ -512,10 +553,13 @@ export function useGymDashboardData() {
     try {
       Vibration.vibrate(45);
     } catch {}
+    const typeLabel = eq.equipment_type
+      ? getEquipmentTypeLabel(language, eq.equipment_type).toUpperCase()
+      : t("common.equipmentFallback");
     setActionSheetItem({
       type: "equipment",
       title: eq.name,
-      subtitle: `${eq.equipment_type ? eq.equipment_type.replace("_", " ").toUpperCase() : "EQUIPO"} • ${eq.brand || "Genérica"}`,
+      subtitle: `${typeLabel} • ${eq.brand || t("common.genericBrand")}`,
       data: eq,
     });
   };
@@ -532,11 +576,11 @@ export function useGymDashboardData() {
       await loadProgressionHistory(trackingExerciseId);
       showToast(
         "success",
-        "Marca Actualizada",
-        `Se actualizó el registro a ${weight} kg × ${reps} reps.`,
+        t("toasts.marcaUpdatedTitle"),
+        t("toasts.marcaUpdatedMsg", { weight, reps }),
       );
     } catch (e: any) {
-      showToast("error", "Error al actualizar marca", e.message);
+      showToast("error", t("toasts.updateMarcaError"), e.message);
     } finally {
       setLoading(false);
     }
@@ -554,11 +598,11 @@ export function useGymDashboardData() {
       setRoutines(updated);
       showToast(
         "success",
-        "Rutina Actualizada",
-        `Se guardaron los cambios en "${title}".`,
+        t("toasts.routineUpdatedTitle"),
+        t("toasts.routineUpdatedMsg", { title }),
       );
     } catch (e: any) {
-      showToast("error", "Error al actualizar rutina", e.message);
+      showToast("error", t("toasts.updateRoutineError"), e.message);
     } finally {
       setLoading(false);
     }
@@ -586,11 +630,11 @@ export function useGymDashboardData() {
       }
       showToast(
         "success",
-        "Ejercicio Removido",
-        `Se quitó "${exerciseName}" de la rutina.`,
+        t("toasts.exerciseRemovedTitle"),
+        t("toasts.exerciseRemovedMsg", { name: exerciseName }),
       );
     } catch (e: any) {
-      showToast("error", "Error al quitar ejercicio", e.message);
+      showToast("error", t("toasts.removeExerciseError"), e.message);
     } finally {
       setLoading(false);
     }
@@ -625,11 +669,13 @@ export function useGymDashboardData() {
       const ex = exercises.find((e) => e.id === exerciseId);
       showToast(
         "success",
-        "Ejercicio Añadido",
-        `"${ex?.name || "Ejercicio"}" asignado a la rutina.`,
+        t("toasts.exerciseAssignedTitle"),
+        t("toasts.exerciseAssignedMsg", {
+          name: ex?.name || t("common.exerciseFallback"),
+        }),
       );
     } catch (e: any) {
-      showToast("error", "Error al añadir ejercicio", e.message);
+      showToast("error", t("toasts.addExerciseError"), e.message);
     } finally {
       setLoading(false);
     }
@@ -644,8 +690,8 @@ export function useGymDashboardData() {
     if (!Number.isInteger(sc) || sc < 1 || !Number.isInteger(minR) || minR < 1 || !Number.isInteger(maxR) || maxR < 1) {
       showToast(
         "warning",
-        "Valores Inválidos",
-        "Series y repeticiones deben ser números enteros positivos.",
+        t("toasts.invalidValuesTitle"),
+        t("toasts.invalidValuesMsg"),
       );
       return;
     }
@@ -671,11 +717,15 @@ export function useGymDashboardData() {
       }
       showToast(
         "success",
-        "Series / Reps Actualizadas",
-        `Configuración actualizada a ${sc} series × ${minR}-${Math.max(minR, maxR)} reps.`,
+        t("toasts.setsRepsUpdatedTitle"),
+        t("toasts.setsRepsUpdatedMsg", {
+          sets: sc,
+          min: minR,
+          max: Math.max(minR, maxR),
+        }),
       );
     } catch (e: any) {
-      showToast("error", "Error al actualizar series", e.message);
+      showToast("error", t("toasts.updateSetsError"), e.message);
     } finally {
       setLoading(false);
     }
@@ -704,11 +754,11 @@ export function useGymDashboardData() {
       setExercises(updated);
       showToast(
         "success",
-        "Ejercicio Actualizado",
-        `Se guardaron los cambios en "${name}".`,
+        t("toasts.exerciseUpdatedTitle"),
+        t("toasts.exerciseUpdatedMsg", { name }),
       );
     } catch (e: any) {
-      showToast("error", "Error al actualizar ejercicio", e.message);
+      showToast("error", t("toasts.updateExerciseError"), e.message);
     } finally {
       setLoading(false);
     }
@@ -729,11 +779,11 @@ export function useGymDashboardData() {
       setEquipmentList(updated);
       showToast(
         "success",
-        "Máquina Registrada",
-        `"${data.name}" se guardó en el inventario del gimnasio.`,
+        t("toasts.equipmentCreatedTitle"),
+        t("toasts.equipmentCreatedMsg", { name: data.name }),
       );
     } catch (e: any) {
-      showToast("error", "Error al registrar máquina", e.message);
+      showToast("error", t("toasts.createEquipmentError"), e.message);
       throw e;
     } finally {
       setLoading(false);
@@ -762,11 +812,11 @@ export function useGymDashboardData() {
       setExercises(updatedExercises);
       showToast(
         "success",
-        "Máquina Actualizada",
-        `Se guardaron los cambios en "${data.name}".`,
+        t("toasts.equipmentUpdatedTitle"),
+        t("toasts.equipmentUpdatedMsg", { name: data.name }),
       );
     } catch (e: any) {
-      showToast("error", "Error al actualizar máquina", e.message);
+      showToast("error", t("toasts.updateEquipmentError"), e.message);
     } finally {
       setLoading(false);
     }
@@ -794,7 +844,7 @@ export function useGymDashboardData() {
           eq.id === equipmentId ? { ...eq, is_favorite: !eq.is_favorite } : eq,
         ),
       );
-      showToast("error", "Error en favoritos", e.message);
+      showToast("error", t("toasts.favoritesError"), e.message);
     }
   };
 
@@ -820,7 +870,7 @@ export function useGymDashboardData() {
           ex.id === exerciseId ? { ...ex, is_favorite: !ex.is_favorite } : ex,
         ),
       );
-      showToast("error", "Error en favoritos", e.message);
+      showToast("error", t("toasts.favoritesError"), e.message);
     }
   };
 
@@ -837,16 +887,16 @@ export function useGymDashboardData() {
         }
         showToast(
           "success",
-          "Rutina Eliminada",
-          `"${deleteConfirmItem.title}" fue eliminada de la base de datos.`,
+          t("toasts.routineDeletedTitle"),
+          t("toasts.routineDeletedMsg", { title: deleteConfirmItem.title }),
         );
       } else if (deleteConfirmItem.type === "marca") {
         await api.deleteMarca(deleteConfirmItem.id);
         await loadProgressionHistory(trackingExerciseId);
         showToast(
           "success",
-          "Marca Eliminada",
-          `El registro "${deleteConfirmItem.title}" fue eliminado.`,
+          t("toasts.marcaDeletedTitle"),
+          t("toasts.marcaDeletedMsg", { title: deleteConfirmItem.title }),
         );
       } else if (deleteConfirmItem.type === "equipment") {
         await api.deleteEquipment(parseInt(deleteConfirmItem.id, 10));
@@ -854,8 +904,8 @@ export function useGymDashboardData() {
         setEquipmentList(updated);
         showToast(
           "success",
-          "Máquina Eliminada",
-          `"${deleteConfirmItem.title}" fue eliminada del inventario.`,
+          t("toasts.equipmentDeletedTitle"),
+          t("toasts.equipmentDeletedMsg", { title: deleteConfirmItem.title }),
         );
       } else {
         await api.deleteExercise(deleteConfirmItem.id);
@@ -867,12 +917,12 @@ export function useGymDashboardData() {
         setRoutines(updatedRoutines);
         showToast(
           "success",
-          "Ejercicio Eliminado",
-          `"${deleteConfirmItem.title}" fue eliminado del catálogo.`,
+          t("toasts.exerciseDeletedTitle"),
+          t("toasts.exerciseDeletedMsg", { title: deleteConfirmItem.title }),
         );
       }
     } catch (e: any) {
-      showToast("error", "Error al eliminar", e.message);
+      showToast("error", t("toasts.deleteError"), e.message);
     } finally {
       setLoading(false);
     }

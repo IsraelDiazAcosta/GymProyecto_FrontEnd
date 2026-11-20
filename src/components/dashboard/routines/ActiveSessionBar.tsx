@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 import { WorkoutSessionItem } from "@/services/api";
 import { DashboardColors } from "../types";
 
@@ -45,6 +46,7 @@ export const ActiveSessionBar: React.FC<ActiveSessionBarProps> = ({
   onDismissFinishedBanner,
   formatDurationHMS = defaultFormatDurationHMS,
 }) => {
+  const { t } = useLanguage();
   const handleStart = onStartPress || onStartSessionPress || (() => {});
   const handleFinish = onFinishPress || onFinishSessionPress || (() => {});
   const handleDismiss =
@@ -74,7 +76,7 @@ export const ActiveSessionBar: React.FC<ActiveSessionBarProps> = ({
                 <Text
                   style={[styles.sessionLiveLabel, { color: colors.primary }]}
                 >
-                  SESIÓN EN CURSO
+                  {t("routines.sessionLiveLabel")}
                 </Text>
               </View>
               <Text
@@ -83,7 +85,7 @@ export const ActiveSessionBar: React.FC<ActiveSessionBarProps> = ({
               >
                 {activeSession.routine_title ||
                   activeSession.title ||
-                  "Rutina"}
+                  t("common.routineFallback")}
               </Text>
             </View>
 
@@ -122,7 +124,7 @@ export const ActiveSessionBar: React.FC<ActiveSessionBarProps> = ({
                   { color: colors.textSecondary },
                 ]}
               >
-                Cancelar sesión
+                {t("routines.cancelSessionBtn")}
               </Text>
             </Pressable>
 
@@ -141,7 +143,7 @@ export const ActiveSessionBar: React.FC<ActiveSessionBarProps> = ({
                   { color: colors.onPrimary },
                 ]}
               >
-                Finalizar
+                {t("routines.finishSessionBtn")}
               </Text>
             </Pressable>
           </View>
@@ -173,7 +175,7 @@ export const ActiveSessionBar: React.FC<ActiveSessionBarProps> = ({
                 <Text
                   style={[styles.sessionIdleTitle, { color: colors.text }]}
                 >
-                  Entrenamiento de hoy
+                  {t("routines.idleTitle")}
                 </Text>
                 <Text
                   style={[
@@ -181,7 +183,7 @@ export const ActiveSessionBar: React.FC<ActiveSessionBarProps> = ({
                     { color: colors.textSecondary },
                   ]}
                 >
-                  Inicia el cronómetro al comenzar tu rutina
+                  {t("routines.idleSubtitle")}
                 </Text>
               </View>
             </View>
@@ -201,7 +203,7 @@ export const ActiveSessionBar: React.FC<ActiveSessionBarProps> = ({
                   { color: colors.onPrimary },
                 ]}
               >
-                Iniciar rutina
+                {t("routines.startRoutineBtn")}
               </Text>
             </Pressable>
           </View>
@@ -227,8 +229,9 @@ export const ActiveSessionBar: React.FC<ActiveSessionBarProps> = ({
                   { color: colors.primary },
                 ]}
               >
-                Sesión completada • Duración total:{" "}
-                {formatDurationHMS(finishedSummaryDuration)}
+                {t("routines.sessionCompletedBanner", {
+                  duration: formatDurationHMS(finishedSummaryDuration),
+                })}
               </Text>
               <Pressable
                 onPress={handleDismiss}

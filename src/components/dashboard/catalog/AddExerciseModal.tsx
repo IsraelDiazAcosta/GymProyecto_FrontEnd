@@ -13,6 +13,8 @@ import { AppButton } from "@/components/ui/AppButton";
 import { AppInput } from "@/components/ui/AppInput";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { getEquipmentTypeLabel } from "@/i18n";
 import {
   Equipment,
   MuscleGroup,
@@ -67,6 +69,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
   onSubmit,
   onClose,
 }) => {
+  const { language, t } = useLanguage();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [muscleDropdownOpen, setMuscleDropdownOpen] = useState(false);
 
@@ -102,11 +105,11 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
               <View style={styles.kickerRow}>
                 <GymIcon name="sparkles" size={13} color={colors.primary} />
                 <Text style={[styles.kicker, { color: colors.primary }]}>
-                  CATÁLOGO DE ADMINISTRADOR
+                  {t("catalog.addKicker")}
                 </Text>
               </View>
               <Text style={[styles.title, { color: colors.text }]}>
-                Nuevo Ejercicio
+                {t("catalog.addTitle")}
               </Text>
             </View>
 
@@ -126,8 +129,8 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
             keyboardShouldPersistTaps="handled"
           >
             <AppInput
-              label="Nombre del Ejercicio"
-              placeholder="Ej: Press Banca Inclinado con Mancuernas"
+              label={t("catalog.exNameLabel")}
+              placeholder={t("catalog.exNamePlaceholder")}
               leftIcon="dumbbell"
               value={newExName}
               onChangeText={setNewExName}
@@ -135,7 +138,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
 
             {/* Selector de Grupo Muscular Principal */}
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-              Grupo Muscular Principal
+              {t("catalog.muscleLabel")}
             </Text>
             <Pressable
               onPress={() => setMuscleDropdownOpen((prev) => !prev)}
@@ -164,7 +167,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
                   >
                     {selectedMuscleObj
                       ? selectedMuscleObj.name
-                      : "Sin grupo muscular asignado"}
+                      : t("catalog.noMuscleAssigned")}
                   </Text>
                   <Text
                     style={[
@@ -173,8 +176,8 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
                     ]}
                   >
                     {selectedMuscleObj
-                      ? "Se guardará como músculo primario en la BD"
-                      : "Toca para elegir un grupo muscular"}
+                      ? t("catalog.muscleHintSelected")
+                      : t("catalog.muscleHintSelect")}
                   </Text>
                 </View>
               </View>
@@ -224,7 +227,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
                         },
                       ]}
                     >
-                      Sin grupo muscular específico
+                      {t("catalog.noSpecificMuscle")}
                     </Text>
                     {selectedMuscle === null && (
                       <GymIcon name="check" size={16} color={colors.primary} />
@@ -274,7 +277,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
 
             {/* Selector de Máquina */}
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-              Máquina o Equipo Asignado
+              {t("catalog.machineAssignedLabel")}
             </Text>
             <Pressable
               onPress={() => setDropdownOpen((prev) => !prev)}
@@ -303,7 +306,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
                   >
                     {selectedEquipObj
                       ? selectedEquipObj.name
-                      : "Peso Libre / Sin máquina específica"}
+                      : t("catalog.noMachineAssigned")}
                   </Text>
                   <Text
                     style={[
@@ -312,9 +315,12 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
                     ]}
                   >
                     {selectedEquipObj
-                      ? selectedEquipObj.type_display ||
-                        selectedEquipObj.equipment_type
-                      : "Toca para elegir una máquina del gimnasio"}
+                      ? getEquipmentTypeLabel(
+                          language,
+                          selectedEquipObj.equipment_type,
+                          selectedEquipObj.type_display,
+                        )
+                      : t("catalog.machineHintSelect")}
                   </Text>
                 </View>
               </View>
@@ -364,7 +370,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
                         },
                       ]}
                     >
-                      Peso Libre / Sin máquina específica
+                      {t("catalog.noMachineAssigned")}
                     </Text>
                     {selectedEquipment === null && (
                       <GymIcon name="check" size={16} color={colors.primary} />
@@ -407,7 +413,11 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
                               color: colors.textSecondary,
                             }}
                           >
-                            {eq.type_display || eq.equipment_type}
+                            {getEquipmentTypeLabel(
+                              language,
+                              eq.equipment_type,
+                              eq.type_display,
+                            )}
                           </Text>
                         </View>
                         {isSelected && (
@@ -425,7 +435,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
             )}
 
             <AppInput
-              label="URL de Video Demostrativo (Opcional)"
+              label={t("catalog.videoUrlLabel")}
               placeholder="https://youtube.com/watch?v=..."
               leftIcon="video"
               value={newExVideo}
@@ -433,15 +443,15 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
             />
 
             <AppInput
-              label="Instrucciones Técnicas (una por línea)"
-              placeholder="1. Ajusta el respaldo a 30 grados..."
+              label={t("catalog.instructionsLabel")}
+              placeholder={t("catalog.instructionsPlaceholder")}
               value={newExInstructions}
               onChangeText={setNewExInstructions}
               multiline
             />
 
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-              Fotografía Propia (Opcional — si no, hereda de la máquina)
+              {t("catalog.ownPhotoLabel")}
             </Text>
             <View style={styles.imagePickerRow}>
               <Pressable
@@ -456,7 +466,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
               >
                 <GymIcon name="camera" size={16} color={colors.primary} />
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  Cámara
+                  {t("common.camera")}
                 </Text>
               </Pressable>
               <Pressable
@@ -471,7 +481,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
               >
                 <GymIcon name="image" size={16} color={colors.primary} />
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  Galería
+                  {t("common.gallery")}
                 </Text>
               </Pressable>
               {newExImage && (
@@ -497,13 +507,13 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
 
             <View style={styles.actionsRow}>
               <AppButton
-                title="Guardar Ejercicio"
+                title={t("catalog.saveExBtn")}
                 icon="check"
                 onPress={onSubmit}
                 style={{ flex: 1 }}
               />
               <AppButton
-                title="Cancelar"
+                title={t("common.cancel")}
                 variant="outline"
                 onPress={onClose}
                 style={{ flex: 1 }}

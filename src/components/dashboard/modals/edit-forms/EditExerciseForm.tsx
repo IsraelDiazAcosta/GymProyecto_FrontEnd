@@ -5,6 +5,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { AppInput } from "@/components/ui/AppInput";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { getEquipmentTypeLabel, getMuscleFocusLabel } from "@/i18n";
 import {
   Equipment,
   MuscleGroup,
@@ -55,6 +57,7 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
   pickedImage,
   setPickedImage,
 }) => {
+  const { language, t } = useLanguage();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [muscleDropdownOpen, setMuscleDropdownOpen] = useState(false);
 
@@ -74,8 +77,8 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
   return (
     <View style={styles.container}>
       <AppInput
-        label="Nombre del Ejercicio"
-        placeholder="Ej: Press Banca con Barra"
+        label={t("modals.editExNameLabel")}
+        placeholder={t("modals.editExNamePlaceholder")}
         leftIcon="dumbbell"
         value={exName}
         onChangeText={setExName}
@@ -83,7 +86,7 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
 
       {/* Selector de Grupo Muscular */}
       <Text style={[styles.label, { color: colors.textSecondary }]}>
-        Grupo Muscular Principal
+        {t("catalog.muscleLabel")}
       </Text>
       <Pressable
         onPress={() => setMuscleDropdownOpen((prev) => !prev)}
@@ -109,11 +112,11 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
           <View style={{ flex: 1 }}>
             <Text style={[styles.mainText, { color: colors.text }]}>
               {selectedMuscleObj
-                ? selectedMuscleObj.name
-                : "Sin grupo muscular específico"}
+                ? getMuscleFocusLabel(language, selectedMuscleObj.name)
+                : t("catalog.noSpecificMuscle")}
             </Text>
             <Text style={[styles.subText, { color: colors.textSecondary }]}>
-              Relación directa en base de datos
+              {t("modals.editExMuscleDbSub")}
             </Text>
           </View>
         </View>
@@ -152,7 +155,7 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
                 { color: exMuscle === null ? colors.primary : colors.text },
               ]}
             >
-              Sin grupo muscular específico
+              {t("catalog.noSpecificMuscle")}
             </Text>
             {exMuscle === null && (
               <GymIcon name="check" size={15} color={colors.primary} />
@@ -180,7 +183,7 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
                     { color: isSel ? colors.primary : colors.text },
                   ]}
                 >
-                  {m.name}
+                  {getMuscleFocusLabel(language, m.name)}
                 </Text>
                 {isSel && (
                   <GymIcon name="check" size={15} color={colors.primary} />
@@ -193,7 +196,7 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
 
       {/* Selector de Máquina */}
       <Text style={[styles.label, { color: colors.textSecondary }]}>
-        Máquina o Equipo Asignado
+        {t("catalog.machineAssignedLabel")}
       </Text>
       <Pressable
         onPress={() => setDropdownOpen((prev) => !prev)}
@@ -218,13 +221,16 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
             <Text style={[styles.mainText, { color: colors.text }]}>
               {selectedEquipObj
                 ? selectedEquipObj.name
-                : "Peso Libre / Sin máquina específica"}
+                : t("catalog.noMachineAssigned")}
             </Text>
             <Text style={[styles.subText, { color: colors.textSecondary }]}>
               {selectedEquipObj
-                ? selectedEquipObj.type_display ||
-                  selectedEquipObj.equipment_type
-                : "Toca para cambiar de máquina"}
+                ? getEquipmentTypeLabel(
+                    language,
+                    selectedEquipObj.equipment_type,
+                    selectedEquipObj.type_display,
+                  )
+                : t("modals.editExEquipSub")}
             </Text>
           </View>
         </View>
@@ -263,7 +269,7 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
                 { color: exEquipment === null ? colors.primary : colors.text },
               ]}
             >
-              Peso Libre / Sin máquina específica
+              {t("catalog.noMachineAssigned")}
             </Text>
             {exEquipment === null && (
               <GymIcon name="check" size={15} color={colors.primary} />
@@ -303,7 +309,7 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
       )}
 
       <AppInput
-        label="URL del Video Demostrativo"
+        label={t("modals.editExVideoLabel")}
         placeholder="https://youtube.com/watch?v=..."
         leftIcon="video"
         value={exVideo}
@@ -311,15 +317,15 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
       />
 
       <AppInput
-        label="Instrucciones Paso a Paso (una por línea)"
-        placeholder="1. Ajustar banco..."
+        label={t("modals.editExInstructionsLabel")}
+        placeholder={t("modals.editExInstructionsPlaceholder")}
         value={exInstructions}
         onChangeText={setExInstructions}
         multiline
       />
 
       <Text style={[styles.label, { color: colors.textSecondary }]}>
-        Imagen del Ejercicio (Propia o hereda de su máquina)
+        {t("modals.editExImageLabel")}
       </Text>
       <View style={styles.imagePickerRow}>
         <Pressable
@@ -333,7 +339,9 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
           ]}
         >
           <GymIcon name="camera" size={15} color={colors.primary} />
-          <Text style={[styles.optionText, { color: colors.text }]}>Cámara</Text>
+          <Text style={[styles.optionText, { color: colors.text }]}>
+            {t("common.camera")}
+          </Text>
         </Pressable>
         <Pressable
           onPress={() => handlePickImage("gallery")}
@@ -346,7 +354,9 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
           ]}
         >
           <GymIcon name="image" size={15} color={colors.primary} />
-          <Text style={[styles.optionText, { color: colors.text }]}>Galería</Text>
+          <Text style={[styles.optionText, { color: colors.text }]}>
+            {t("common.gallery")}
+          </Text>
         </Pressable>
       </View>
       {previewUri && (

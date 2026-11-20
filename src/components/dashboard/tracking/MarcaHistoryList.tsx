@@ -19,6 +19,8 @@ import {
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { MONTHS_SHORT_BY_LANG, ResolvedLanguage } from "@/i18n";
 import {
   api,
   ProgressionItem,
@@ -50,6 +52,8 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
   trackingExerciseId = "",
   onSelectExercise,
 }) => {
+  const { locale, t } = useLanguage();
+
   const handleTriggerOptions = (item: ProgressionItem) => {
     try {
       Vibration.vibrate(45);
@@ -71,7 +75,7 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
         <View style={styles.titleRow}>
           <GymIcon name="activity" size={18} color={colors.primary} />
           <Text style={[styles.title, { color: colors.text }]}>
-            Historial de Levantamientos
+            {t("tracking.historyTitle")}
           </Text>
         </View>
         <View
@@ -84,7 +88,7 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
       </View>
 
       <Text style={[styles.stepLabel, { color: colors.textSecondary }]}>
-        Selecciona el Ejercicio
+        {t("tracking.selectExercise")}
       </Text>
       {currentRoutineExercises.length > 0 ? (
         <ScrollView
@@ -138,7 +142,7 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
           <Text
             style={[styles.emptyNoticeText, { color: colors.textSecondary }]}
           >
-            No hay ejercicios disponibles en la rutina seleccionada
+            {t("tracking.noExercisesInRoutine")}
           </Text>
         </View>
       )}
@@ -157,8 +161,8 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
                 ? (item.weight * (36 / (37 - item.reps))).toFixed(1)
                 : item.weight;
             const fecha = item.logged_at
-              ? new Date(item.logged_at).toLocaleDateString()
-              : "Reciente";
+              ? new Date(item.logged_at).toLocaleDateString(locale)
+              : t("common.recent");
 
             return (
               <Pressable
@@ -184,7 +188,10 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
 
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={[styles.weightText, { color: colors.text }]}>
-                    {item.weight} kg × {item.reps} reps
+                    {t("tracking.weightRepsLine", {
+                      weight: item.weight,
+                      reps: item.reps,
+                    })}
                   </Text>
                   <View style={styles.metaRow}>
                     <GymIcon
@@ -195,7 +202,10 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
                     <Text
                       style={[styles.metaText, { color: colors.textSecondary }]}
                     >
-                      {fecha} • RPE {item.rpe || 8}
+                      {t("tracking.dateRpeLine", {
+                        date: fecha,
+                        rpe: item.rpe || 8,
+                      })}
                     </Text>
                   </View>
                 </View>
@@ -246,7 +256,7 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
         >
           <GymIcon name="trending-up" size={22} color={colors.textSecondary} />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            Aún no hay levantamientos registrados para este ejercicio.
+            {t("tracking.emptyHistory")}
           </Text>
         </View>
       )}
@@ -395,21 +405,6 @@ export interface RoutineSessionHistorySectionProps {
 type PeriodFilter = "week" | "month" | "all";
 type HistoryViewMode = "sessions" | "by_routine";
 
-const MONTHS_SHORT_ES = [
-  "ene",
-  "feb",
-  "mar",
-  "abr",
-  "may",
-  "jun",
-  "jul",
-  "ago",
-  "sep",
-  "oct",
-  "nov",
-  "dic",
-] as const;
-
 const formatReadableDuration = (seconds?: number | null): string => {
   const safe = Math.max(0, Math.floor(seconds ?? 0));
   if (safe === 0) return "0 min";
@@ -428,22 +423,32 @@ const parseSessionDate = (raw?: string | null): Date | null => {
   return isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const formatLocalDateTime = (raw?: string | null): string => {
+const formatLocalDateTime = (
+  raw?: string | null,
+  language: ResolvedLanguage = "es",
+  recentFallback = "Fecha reciente",
+): string => {
   const dt = parseSessionDate(raw);
-  if (!dt) return "Fecha reciente";
+  if (!dt) return recentFallback;
+  const months = MONTHS_SHORT_BY_LANG[language] || MONTHS_SHORT_BY_LANG.es;
   const day = dt.getDate();
-  const month = MONTHS_SHORT_ES[dt.getMonth()];
+  const month = months[dt.getMonth()];
   const year = dt.getFullYear();
   const hh = String(dt.getHours()).padStart(2, "0");
   const mm = String(dt.getMinutes()).padStart(2, "0");
   return `${day} ${month} ${year} • ${hh}:${mm}`;
 };
 
-const formatLocalDateOnly = (raw?: string | null): string => {
+const formatLocalDateOnly = (
+  raw?: string | null,
+  language: ResolvedLanguage = "es",
+  noDateFallback = "Sin fecha",
+): string => {
   const dt = parseSessionDate(raw);
-  if (!dt) return "Sin fecha";
+  if (!dt) return noDateFallback;
+  const months = MONTHS_SHORT_BY_LANG[language] || MONTHS_SHORT_BY_LANG.es;
   const day = dt.getDate();
-  const month = MONTHS_SHORT_ES[dt.getMonth()];
+  const month = months[dt.getMonth()];
   const year = dt.getFullYear();
   return `${day} ${month} ${year}`;
 };
@@ -492,14 +497,17 @@ const getLocalPeriodBounds = (period: PeriodFilter) => {
   };
 };
 
-const resolveSessionRoutineName = (item: WorkoutSessionItem): string => {
+const resolveSessionRoutineName = (
+  item: WorkoutSessionItem,
+  fallback = "Rutina",
+): string => {
   if (item.routine && typeof item.routine === "object") {
-    return item.routine.name || item.routine.title || "Rutina";
+    return item.routine.name || item.routine.title || fallback;
   }
   if (item.routine_detail) {
-    return item.routine_detail.name || item.routine_detail.title || "Rutina";
+    return item.routine_detail.name || item.routine_detail.title || fallback;
   }
-  return item.routine_title || item.title || "Rutina";
+  return item.routine_title || item.title || fallback;
 };
 
 const resolveSessionDurationSeconds = (item: WorkoutSessionItem): number => {
@@ -520,6 +528,7 @@ const resolveSessionDurationSeconds = (item: WorkoutSessionItem): number => {
 export const RoutineSessionHistorySection: React.FC<
   RoutineSessionHistorySectionProps
 > = ({ colors, routines, refreshTrigger }) => {
+  const { language, t } = useLanguage();
   const [viewMode, setViewMode] = useState<HistoryViewMode>("sessions");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("all");
   const [selectedRoutineId, setSelectedRoutineId] = useState<string>("all");
@@ -539,13 +548,13 @@ export const RoutineSessionHistorySection: React.FC<
   const [hasNextPage, setHasNextPage] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [hasLoadError, setHasLoadError] = useState(false);
 
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailSession, setDetailSession] =
     useState<WorkoutSessionDetail | null>(null);
-  const [detailError, setDetailError] = useState<string | null>(null);
+  const [hasDetailError, setHasDetailError] = useState(false);
 
   const requestSeqRef = useRef(0);
 
@@ -561,7 +570,7 @@ export const RoutineSessionHistorySection: React.FC<
   const loadHistoryInitial = useCallback(async () => {
     const seq = ++requestSeqRef.current;
     setLoadingInitial(true);
-    setLoadError(null);
+    setHasLoadError(false);
     try {
       const [paginatedRes, routineSummaryRes] = await Promise.all([
         api.getCompletedSessionsPaginated({
@@ -597,7 +606,7 @@ export const RoutineSessionHistorySection: React.FC<
       }
     } catch {
       if (seq !== requestSeqRef.current) return;
-      setLoadError("No se pudo cargar el historial de rutinas.");
+      setHasLoadError(true);
     } finally {
       if (seq === requestSeqRef.current) {
         setLoadingInitial(false);
@@ -641,7 +650,7 @@ export const RoutineSessionHistorySection: React.FC<
   const handleOpenSessionDetail = async (sessionItem: WorkoutSessionItem) => {
     setDetailModalVisible(true);
     setDetailLoading(true);
-    setDetailError(null);
+    setHasDetailError(false);
     setDetailSession({
       ...sessionItem,
       has_logged_sets: false,
@@ -652,16 +661,16 @@ export const RoutineSessionHistorySection: React.FC<
       const detail = await api.getWorkoutSessionDetail(sessionItem.id);
       setDetailSession(detail);
     } catch {
-      setDetailError("No se pudo cargar el detalle de esta sesión.");
+      setHasDetailError(true);
     } finally {
       setDetailLoading(false);
     }
   };
 
   const periodOptions: { key: PeriodFilter; label: string }[] = [
-    { key: "week", label: "Esta semana" },
-    { key: "month", label: "Este mes" },
-    { key: "all", label: "Todo" },
+    { key: "week", label: t("tracking.periodWeek") },
+    { key: "month", label: t("tracking.periodMonth") },
+    { key: "all", label: t("tracking.periodAll") },
   ];
 
   const isEmpty =
@@ -696,7 +705,7 @@ export const RoutineSessionHistorySection: React.FC<
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[historySectionStyles.title, { color: colors.text }]}>
-              Historial de rutinas
+              {t("tracking.sessionsTitle")}
             </Text>
             <Text
               style={[
@@ -704,7 +713,7 @@ export const RoutineSessionHistorySection: React.FC<
                 { color: colors.textSecondary },
               ]}
             >
-              Sesiones completadas, duración y detalle por rutina
+              {t("tracking.sessionsSubtitle")}
             </Text>
           </View>
         </View>
@@ -727,7 +736,7 @@ export const RoutineSessionHistorySection: React.FC<
               { color: colors.textSecondary },
             ]}
           >
-            Sesiones
+            {t("tracking.summarySessions")}
           </Text>
           <Text
             style={[
@@ -754,7 +763,7 @@ export const RoutineSessionHistorySection: React.FC<
               { color: colors.textSecondary },
             ]}
           >
-            Tiempo total
+            {t("tracking.summaryTotalTime")}
           </Text>
           <Text
             style={[historySectionStyles.summaryValue, { color: colors.text }]}
@@ -778,7 +787,7 @@ export const RoutineSessionHistorySection: React.FC<
               { color: colors.textSecondary },
             ]}
           >
-            Promedio
+            {t("tracking.summaryAverage")}
           </Text>
           <Text
             style={[historySectionStyles.summaryValue, { color: colors.text }]}
@@ -800,8 +809,8 @@ export const RoutineSessionHistorySection: React.FC<
       >
         {(
           [
-            { key: "sessions", label: "Sesiones" },
-            { key: "by_routine", label: "Por rutina" },
+            { key: "sessions", label: t("tracking.viewSessions") },
+            { key: "by_routine", label: t("tracking.viewByRoutine") },
           ] as const
         ).map((tab) => {
           const active = viewMode === tab.key;
@@ -837,7 +846,7 @@ export const RoutineSessionHistorySection: React.FC<
               { color: colors.textSecondary },
             ]}
           >
-            Periodo
+            {t("tracking.periodLabel")}
           </Text>
         </View>
         <View style={historySectionStyles.periodRow}>
@@ -884,7 +893,7 @@ export const RoutineSessionHistorySection: React.FC<
                 { color: colors.textSecondary },
               ]}
             >
-              Rutina
+              {t("tracking.routineFilterLabel")}
             </Text>
           </View>
           <ScrollView
@@ -919,7 +928,7 @@ export const RoutineSessionHistorySection: React.FC<
                   },
                 ]}
               >
-                Todas
+                {t("common.allFem")}
               </Text>
             </Pressable>
 
@@ -968,10 +977,10 @@ export const RoutineSessionHistorySection: React.FC<
               { color: colors.textSecondary },
             ]}
           >
-            Cargando historial...
+            {t("tracking.loadingHistory")}
           </Text>
         </View>
-      ) : loadError ? (
+      ) : hasLoadError ? (
         <View
           style={[
             historySectionStyles.emptyBox,
@@ -988,7 +997,7 @@ export const RoutineSessionHistorySection: React.FC<
               { color: colors.textSecondary },
             ]}
           >
-            {loadError}
+            {t("tracking.loadError")}
           </Text>
           <Pressable
             onPress={loadHistoryInitial}
@@ -1006,7 +1015,7 @@ export const RoutineSessionHistorySection: React.FC<
                 { color: colors.primary },
               ]}
             >
-              Reintentar
+              {t("common.retry")}
             </Text>
           </Pressable>
         </View>
@@ -1027,7 +1036,7 @@ export const RoutineSessionHistorySection: React.FC<
               { color: colors.textSecondary },
             ]}
           >
-            Aún no has completado rutinas
+            {t("tracking.emptySessions")}
           </Text>
         </View>
       ) : viewMode === "sessions" ? (
@@ -1039,7 +1048,10 @@ export const RoutineSessionHistorySection: React.FC<
           keyboardShouldPersistTaps="handled"
         >
           {sessions.map((item) => {
-            const routineName = resolveSessionRoutineName(item);
+            const routineName = resolveSessionRoutineName(
+              item,
+              t("common.routineFallback"),
+            );
             const durationSec = resolveSessionDurationSeconds(item);
             const rawDate =
               item.ended_at ||
@@ -1085,7 +1097,11 @@ export const RoutineSessionHistorySection: React.FC<
                           { color: colors.textSecondary },
                         ]}
                       >
-                        {formatLocalDateTime(rawDate)}
+                        {formatLocalDateTime(
+                          rawDate,
+                          language,
+                          t("common.recentDate"),
+                        )}
                       </Text>
                     </View>
                   </View>
@@ -1127,7 +1143,10 @@ export const RoutineSessionHistorySection: React.FC<
                         { color: colors.textSecondary },
                       ]}
                     >
-                      {totalEx} {totalEx === 1 ? "ejercicio" : "ejercicios"}
+                      {totalEx}{" "}
+                      {totalEx === 1
+                        ? t("routines.exerciseSingular")
+                        : t("routines.exercisePlural")}
                     </Text>
                   </View>
 
@@ -1146,7 +1165,10 @@ export const RoutineSessionHistorySection: React.FC<
                         { color: colors.textSecondary },
                       ]}
                     >
-                      {totalSets} {totalSets === 1 ? "serie" : "series"}
+                      {totalSets}{" "}
+                      {totalSets === 1
+                        ? t("tracking.setSingular")
+                        : t("tracking.setPlural")}
                     </Text>
                   </View>
 
@@ -1166,7 +1188,9 @@ export const RoutineSessionHistorySection: React.FC<
                           { color: colors.textSecondary },
                         ]}
                       >
-                        {Math.round(totalVol)} kg vol.
+                        {t("tracking.volSuffix", {
+                          vol: Math.round(totalVol),
+                        })}
                       </Text>
                     </View>
                   )}
@@ -1203,7 +1227,10 @@ export const RoutineSessionHistorySection: React.FC<
                     { color: colors.primary },
                   ]}
                 >
-                  Cargar más sesiones ({sessions.length} de {totalCount})
+                  {t("tracking.loadMore", {
+                    loaded: sessions.length,
+                    total: totalCount,
+                  })}
                 </Text>
               )}
             </Pressable>
@@ -1245,7 +1272,13 @@ export const RoutineSessionHistorySection: React.FC<
                       { color: colors.textSecondary },
                     ]}
                   >
-                    Última vez: {formatLocalDateOnly(entry.last_session_at)}
+                    {t("tracking.lastTime", {
+                      date: formatLocalDateOnly(
+                        entry.last_session_at,
+                        language,
+                        t("common.noDate"),
+                      ),
+                    })}
                   </Text>
                 </View>
 
@@ -1262,7 +1295,9 @@ export const RoutineSessionHistorySection: React.FC<
                     ]}
                   >
                     {entry.sessions_count}{" "}
-                    {entry.sessions_count === 1 ? "sesión" : "sesiones"}
+                    {entry.sessions_count === 1
+                      ? t("tracking.sessionSingular")
+                      : t("tracking.sessionPlural")}
                   </Text>
                 </View>
               </View>
@@ -1283,7 +1318,7 @@ export const RoutineSessionHistorySection: React.FC<
                       { color: colors.textSecondary },
                     ]}
                   >
-                    Duración promedio
+                    {t("tracking.avgDurationLabel")}
                   </Text>
                   <Text
                     style={[
@@ -1310,7 +1345,7 @@ export const RoutineSessionHistorySection: React.FC<
                       { color: colors.textSecondary },
                     ]}
                   >
-                    Tiempo acumulado
+                    {t("tracking.accumulatedTimeLabel")}
                   </Text>
                   <Text
                     style={[
@@ -1374,7 +1409,7 @@ export const RoutineSessionHistorySection: React.FC<
                     { color: colors.text },
                   ]}
                 >
-                  Volver
+                  {t("common.back")}
                 </Text>
               </Pressable>
 
@@ -1411,7 +1446,10 @@ export const RoutineSessionHistorySection: React.FC<
                     { color: colors.text },
                   ]}
                 >
-                  {resolveSessionRoutineName(detailSession)}
+                  {resolveSessionRoutineName(
+                    detailSession,
+                    t("common.routineFallback"),
+                  )}
                 </Text>
                 <Text
                   style={[
@@ -1424,6 +1462,8 @@ export const RoutineSessionHistorySection: React.FC<
                       detailSession.end_time ||
                       detailSession.started_at ||
                       detailSession.start_time,
+                    language,
+                    t("common.recentDate"),
                   )}
                 </Text>
               </View>
@@ -1438,10 +1478,10 @@ export const RoutineSessionHistorySection: React.FC<
                     { color: colors.textSecondary },
                   ]}
                 >
-                  Cargando ejercicios de la sesión...
+                  {t("tracking.loadingSessionExercises")}
                 </Text>
               </View>
-            ) : detailError ? (
+            ) : hasDetailError ? (
               <View
                 style={[
                   historySectionStyles.emptyBox,
@@ -1457,7 +1497,7 @@ export const RoutineSessionHistorySection: React.FC<
                     { color: colors.textSecondary },
                   ]}
                 >
-                  {detailError}
+                  {t("tracking.detailLoadError")}
                 </Text>
               </View>
             ) : !detailSession || detailSession.exercises.length === 0 ? (
@@ -1481,7 +1521,7 @@ export const RoutineSessionHistorySection: React.FC<
                     { color: colors.textSecondary },
                   ]}
                 >
-                  Sin registro de series
+                  {t("tracking.noSetsRecorded")}
                 </Text>
               </View>
             ) : (
@@ -1549,9 +1589,12 @@ export const RoutineSessionHistorySection: React.FC<
                             { color: colors.textSecondary },
                           ]}
                         >
-                          Sin registro de series
+                          {t("tracking.noSetsRecorded")}
                           {ex.planned_sets
-                            ? ` • Planeado: ${ex.planned_sets} × ${ex.planned_reps || "-"} reps`
+                            ? t("tracking.plannedSets", {
+                                sets: ex.planned_sets,
+                                reps: ex.planned_reps || "-",
+                              })
                             : ""}
                         </Text>
                       </View>
@@ -1574,7 +1617,7 @@ export const RoutineSessionHistorySection: React.FC<
                                 { color: colors.textSecondary },
                               ]}
                             >
-                              Serie {s.set_number}
+                              {t("tracking.setNumber", { num: s.set_number })}
                             </Text>
                             <Text
                               style={[
@@ -1582,7 +1625,10 @@ export const RoutineSessionHistorySection: React.FC<
                                 { color: colors.text },
                               ]}
                             >
-                              {s.weight} kg × {s.reps} reps
+                              {t("tracking.weightRepsLine", {
+                                weight: s.weight,
+                                reps: s.reps,
+                              })}
                             </Text>
                             {s.rpe !== null && s.rpe !== undefined && (
                               <Text

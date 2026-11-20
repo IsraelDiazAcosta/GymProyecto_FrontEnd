@@ -12,7 +12,9 @@ import {
 
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
-import { Palette, Radius } from "@/constants/theme";
+import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { getEquipmentTypeLabel } from "@/i18n";
 import {
   Equipment,
   Exercise,
@@ -40,20 +42,11 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
   equipmentList = [],
   onClose,
 }) => {
+  const { language, t } = useLanguage();
   const [imgError, setImgError] = useState(false);
 
-  if (!exercise) return null;
-
-  const imageUri = !imgError
-    ? resolveExerciseImageUrl(exercise, equipmentList)
-    : null;
-
-  const videoMedia = exercise.media?.find(
-    (m) => m.media_type === "video" || Boolean(m.external_url),
-  );
-  const videoUrl = videoMedia?.external_url || videoMedia?.file;
-
   const matchedEquipment: Equipment | null = useMemo(() => {
+    if (!exercise) return null;
     if (typeof exercise.equipment === "object" && exercise.equipment !== null) {
       return exercise.equipment;
     }
@@ -73,6 +66,17 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
     }
     return null;
   }, [exercise, equipmentList]);
+
+  if (!exercise) return null;
+
+  const imageUri = !imgError
+    ? resolveExerciseImageUrl(exercise, equipmentList)
+    : null;
+
+  const videoMedia = exercise.media?.find(
+    (m) => m.media_type === "video" || Boolean(m.external_url),
+  );
+  const videoUrl = videoMedia?.external_url || videoMedia?.file;
 
   const equipmentImageUrl = matchedEquipment?.image
     ? resolveMediaUrl(matchedEquipment.image)
@@ -108,7 +112,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
               <View style={styles.kickerRow}>
                 <GymIcon name="dumbbell" size={13} color={colors.primary} />
                 <Text style={[styles.kicker, { color: colors.primary }]}>
-                  FICHA TÉCNICA DEL EJERCICIO
+                  {t("catalog.detailKicker")}
                 </Text>
               </View>
               <Text style={[styles.title, { color: colors.text }]}>
@@ -133,7 +137,12 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
           >
             {/* Vista previa multimedia */}
             {imageUri ? (
-              <View style={styles.imageWrapper}>
+              <View
+                style={[
+                  styles.imageWrapper,
+                  { backgroundColor: colors.backgroundElevated },
+                ]}
+              >
                 <Image
                   source={{ uri: imageUri }}
                   style={styles.heroImage}
@@ -156,7 +165,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                         { color: colors.onPrimary },
                       ]}
                     >
-                      Ver Video Demostrativo
+                      {t("catalog.watchVideoBtn")}
                     </Text>
                   </Pressable>
                 )}
@@ -175,7 +184,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                 <Text
                   style={[styles.placeholderTitle, { color: colors.text }]}
                 >
-                  Demostración Técnica
+                  {t("catalog.techDemoTitle")}
                 </Text>
                 {videoUrl ? (
                   <Pressable
@@ -192,7 +201,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                         { color: colors.onPrimary },
                       ]}
                     >
-                      Abrir Video Externo
+                      {t("catalog.openExternalVideoBtn")}
                     </Text>
                   </Pressable>
                 ) : (
@@ -202,7 +211,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                       fontSize: 12,
                     }}
                   >
-                    Sin video adjunto
+                    {t("catalog.noVideoAttached")}
                   </Text>
                 )}
               </View>
@@ -223,7 +232,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                 <Text
                   style={[styles.infoLabel, { color: colors.textSecondary }]}
                 >
-                  EQUIPO / MÁQUINA REQUERIDA
+                  {t("catalog.requiredEquipHeader")}
                 </Text>
               </View>
 
@@ -274,9 +283,11 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                               { color: colors.primary },
                             ]}
                           >
-                            {matchedEquipment.type_display ||
-                              matchedEquipment.equipment_type ||
-                              "MÁQUINA"}
+                            {getEquipmentTypeLabel(
+                              language,
+                              matchedEquipment.equipment_type,
+                              matchedEquipment.type_display,
+                            )}
                           </Text>
                         </View>
                         {Boolean(matchedEquipment.brand) && (
@@ -311,7 +322,9 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                           { color: colors.textSecondary },
                         ]}
                       >
-                        Ajuste: {matchedEquipment.setup_guide}
+                        {t("catalog.setupPrefix", {
+                          guide: matchedEquipment.setup_guide ?? "",
+                        })}
                       </Text>
                     </View>
                   )}
@@ -331,7 +344,8 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={[styles.equipNameText, { color: colors.text }]}>
-                      {exercise.equipment_name || "Peso Libre / Sin máquina"}
+                      {exercise.equipment_name ||
+                        t("catalog.noMachineAssigned")}
                     </Text>
                     <Text
                       style={{
@@ -340,7 +354,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                         fontWeight: "500",
                       }}
                     >
-                      No requiere de una máquina fija específica.
+                      {t("catalog.noFixedMachineMsg")}
                     </Text>
                   </View>
                 </View>
@@ -365,7 +379,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                   <Text
                     style={[styles.infoLabel, { color: colors.textSecondary }]}
                   >
-                    MÚSCULOS TRABAJADOS
+                    {t("catalog.musclesWorkedHeader")}
                   </Text>
                 </View>
 
@@ -388,7 +402,9 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                             { color: colors.primary },
                           ]}
                         >
-                          Principal: {m.muscle_name}
+                          {t("catalog.primaryPrefix", {
+                            name: m.muscle_name ?? "",
+                          })}
                         </Text>
                       </View>
                     ))
@@ -408,7 +424,9 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                           { color: colors.primary },
                         ]}
                       >
-                        Principal: {exercise.primary_muscle}
+                        {t("catalog.primaryPrefix", {
+                          name: exercise.primary_muscle,
+                        })}
                       </Text>
                     </View>
                   ) : null}
@@ -430,7 +448,9 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                           { color: colors.textSecondary },
                         ]}
                       >
-                        Secundario: {m.muscle_name}
+                        {t("catalog.secondaryPrefix", {
+                          name: m.muscle_name ?? "",
+                        })}
                       </Text>
                     </View>
                   ))}
@@ -454,7 +474,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                   <Text
                     style={[styles.infoLabel, { color: colors.textSecondary }]}
                   >
-                    DESCRIPCIÓN GENERAL
+                    {t("catalog.generalDescHeader")}
                   </Text>
                 </View>
                 <Text
@@ -480,7 +500,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                 <Text
                   style={[styles.infoLabel, { color: colors.textSecondary }]}
                 >
-                  TÉCNICA E INSTRUCCIONES PASO A PASO
+                  {t("catalog.stepsHeader")}
                 </Text>
               </View>
 
@@ -494,7 +514,14 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                           { backgroundColor: colors.primary },
                         ]}
                       >
-                        <Text style={styles.stepNumberText}>{index + 1}</Text>
+                        <Text
+                          style={[
+                            styles.stepNumberText,
+                            { color: colors.onPrimary },
+                          ]}
+                        >
+                          {index + 1}
+                        </Text>
                       </View>
                       <Text style={[styles.stepText, { color: colors.text }]}>
                         {step}
@@ -510,15 +537,14 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                     fontSize: 13,
                   }}
                 >
-                  No se han registrado instrucciones específicas para este
-                  ejercicio.
+                  {t("catalog.noInstructions")}
                 </Text>
               )}
             </View>
           </ScrollView>
 
           <AppButton
-            title="Cerrar Ficha"
+            title={t("catalog.closeDetailBtn")}
             icon="check"
             onPress={onClose}
             style={{ marginTop: 10 }}
@@ -580,7 +606,6 @@ const styles = StyleSheet.create({
     height: 190,
     borderRadius: Radius.lg,
     overflow: "hidden",
-    backgroundColor: Palette.emeraldBase,
     position: "relative",
   },
   heroImage: {
@@ -599,7 +624,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
   },
   videoOverlayText: {
-    color: Palette.textOnVolt,
     fontWeight: "800",
     fontSize: 12,
   },
@@ -765,7 +789,6 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   stepNumberText: {
-    color: Palette.textOnVolt,
     fontSize: 12,
     fontWeight: "900",
   },

@@ -12,8 +12,10 @@ import {
 
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon } from "@/components/ui/GymIcon";
-import { Palette, Radius, Spacing } from "@/constants/theme";
+import { Radius, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { getMuscleFocusLabel } from "@/i18n";
 import { Equipment, Exercise, resolveExerciseImageUrl } from "@/services/api";
 import { isExerciseCompatibleWithFocus } from "../muscleValidation";
 import { DashboardColors } from "../types";
@@ -52,6 +54,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
   onExerciseOptionsPress,
   onToggleFavorite,
 }) => {
+  const { language, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMuscleFilter, setSelectedMuscleFilter] =
     useState<string>("all");
@@ -107,15 +110,22 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
           <View style={styles.kickerRow}>
             <GymIcon name="book-open" size={14} color={colors.primary} />
             <Text style={[styles.kickerText, { color: colors.primary }]}>
-              BIBLIOTECA BIOMECÁNICA
+              {t("catalog.kicker")}
             </Text>
           </View>
           <Text style={[styles.title, { color: colors.text }]}>
-            Catálogo de Ejercicios
+            {t("catalog.title")}
           </Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {filteredExercises.length} de {exercises.length} ejercicio
-            {exercises.length === 1 ? "" : "s"} disponibles
+            {exercises.length === 1
+              ? t("catalog.subtitleOne", {
+                  filtered: filteredExercises.length,
+                  total: exercises.length,
+                })
+              : t("catalog.subtitleMany", {
+                  filtered: filteredExercises.length,
+                  total: exercises.length,
+                })}
           </Text>
         </View>
 
@@ -132,7 +142,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
           >
             <GymIcon name="plus" size={16} color={colors.onPrimary} />
             <Text style={[styles.addBtnText, { color: colors.onPrimary }]}>
-              Nuevo
+              {t("catalog.newBtn")}
             </Text>
           </Pressable>
         )}
@@ -151,7 +161,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
         <GymIcon name="search" size={17} color={colors.textSecondary} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Buscar por nombre, máquina o músculo..."
+          placeholder={t("catalog.searchPlaceholder")}
           placeholderTextColor={colors.textSecondary}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -196,7 +206,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
               },
             ]}
           >
-            Todos ({exercises.length})
+            {t("catalog.allFilter", { count: exercises.length })}
           </Text>
         </Pressable>
 
@@ -239,7 +249,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
               },
             ]}
           >
-            Mis favoritos ({favoritesCount})
+            {t("catalog.favoritesFilter", { count: favoritesCount })}
           </Text>
         </Pressable>
 
@@ -271,7 +281,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                   },
                 ]}
               >
-                {opt.label}
+                {getMuscleFocusLabel(language, opt.value)}
               </Text>
             </Pressable>
           );
@@ -296,15 +306,15 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
           />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>
             {selectedMuscleFilter === "favorites"
-              ? "No tienes ejercicios favoritos"
-              : "Sin coincidencias"}
+              ? t("catalog.emptyFavoritesTitle")
+              : t("catalog.emptyNoMatchesTitle")}
           </Text>
           <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
             {selectedMuscleFilter === "favorites"
-              ? "Toca el corazón en cualquier ejercicio para guardarlo en tus favoritos y acceder rápido a él."
+              ? t("catalog.emptyFavoritesSub")
               : exercises.length === 0
-                ? "Aún no hay ejercicios cargados en el catálogo."
-                : "No se encontraron ejercicios con los filtros actuales."}
+                ? t("catalog.emptyCatalogSub")
+                : t("catalog.emptyFilterSub")}
           </Text>
         </View>
       ) : (
@@ -368,8 +378,10 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                         ]}
                       >
                         {ex.equipment_name
-                          ? `Máquina: ${ex.equipment_name}`
-                          : "Peso Libre / General"}
+                          ? t("catalog.machinePrefix", {
+                              name: ex.equipment_name,
+                            })
+                          : t("catalog.freeWeightGeneral")}
                       </Text>
                     </View>
 
@@ -409,8 +421,8 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                       accessibilityRole="button"
                       accessibilityLabel={
                         isFav
-                          ? `Quitar ${ex.name} de favoritos`
-                          : `Agregar ${ex.name} a favoritos`
+                          ? t("catalog.favRemoveLabel", { name: ex.name })
+                          : t("catalog.favAddLabel", { name: ex.name })
                       }
                       style={[
                         styles.favBtn,
@@ -453,7 +465,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                         { color: colors.primary },
                       ]}
                     >
-                      Ficha
+                      {t("catalog.detailPill")}
                     </Text>
                     <GymIcon
                       name="chevron-right"
@@ -531,7 +543,6 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   addBtnText: {
-    color: Palette.textOnVolt,
     fontWeight: "800",
     fontSize: 13,
   },

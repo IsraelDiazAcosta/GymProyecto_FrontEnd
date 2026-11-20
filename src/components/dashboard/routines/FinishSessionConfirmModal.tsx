@@ -3,6 +3,7 @@ import { Modal, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 import { DashboardColors } from "../types";
 
 export interface FinishSessionConfirmModalProps {
@@ -41,6 +42,8 @@ export const FinishSessionConfirmModal: React.FC<
   onCancel,
   onConfirm,
 }) => {
+  const { t } = useLanguage();
+
   return (
     <Modal
       visible={visible}
@@ -72,22 +75,27 @@ export const FinishSessionConfirmModal: React.FC<
             <GymIcon name="check-circle" size={28} color={colors.primary} />
           </View>
           <Text style={[styles.modalTitle, { color: colors.text }]}>
-            ¿Finalizar sesión?
+            {t("routines.finishModalTitle")}
           </Text>
           <Text style={[styles.modalEmptyText, { color: colors.textSecondary }]}>
-            {activeSession?.routine_title || activeSession?.title || "Rutina"} •
-            Tiempo transcurrido: {formatDurationHMS(elapsedSeconds)}
+            {t("routines.finishModalElapsed", {
+              title:
+                activeSession?.routine_title ||
+                activeSession?.title ||
+                t("common.routineFallback"),
+              time: formatDurationHMS(elapsedSeconds),
+            })}
           </Text>
           <View style={styles.confirmActionsRow}>
             <AppButton
-              title="Seguir"
+              title={t("routines.continueBtn")}
               variant="outline"
               onPress={onCancel}
               disabled={sessionActionLoading}
               style={{ flex: 1 }}
             />
             <AppButton
-              title="Finalizar"
+              title={t("routines.finishSessionBtn")}
               icon="check"
               loading={sessionActionLoading}
               onPress={onConfirm}

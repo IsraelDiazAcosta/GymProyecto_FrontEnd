@@ -10,6 +10,7 @@ import {
 
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon, IconName } from "@/components/ui/GymIcon";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   Equipment,
   Exercise,
@@ -152,6 +153,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   onUpdateRoutineExercise,
   onClose,
 }) => {
+  const { t } = useLanguage();
   const [routineTitle, setRoutineTitle] = useState("");
   const [routineFocus, setRoutineFocus] = useState("fullbody");
 
@@ -254,6 +256,28 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   };
 
   const meta = HEADER_META[itemType];
+  const localizedMeta: Record<
+    EditItemModalProps["itemType"],
+    { title: string; kicker: string }
+  > = {
+    routine: {
+      title: t("modals.editRoutineTitle"),
+      kicker: t("modals.editRoutineKicker"),
+    },
+    exercise: {
+      title: t("modals.editExerciseTitle"),
+      kicker: t("modals.editExerciseKicker"),
+    },
+    equipment: {
+      title: t("modals.editEquipmentTitle"),
+      kicker: t("modals.editEquipmentKicker"),
+    },
+    marca: {
+      title: t("modals.editMarcaTitle"),
+      kicker: t("modals.editMarcaKicker"),
+    },
+  };
+  const headerTexts = localizedMeta[itemType] ?? meta;
 
   return (
     <Modal
@@ -278,11 +302,11 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
               <View style={styles.kickerRow}>
                 <GymIcon name={meta.icon} size={13} color={colors.primary} />
                 <Text style={[styles.kicker, { color: colors.primary }]}>
-                  {meta.kicker}
+                  {headerTexts.kicker}
                 </Text>
               </View>
               <Text style={[styles.title, { color: colors.text }]}>
-                {meta.title}
+                {headerTexts.title}
               </Text>
             </View>
 
@@ -370,14 +394,14 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
 
             <View style={styles.actionsRow}>
               <AppButton
-                title="Guardar Cambios"
+                title={t("modals.saveChangesBtn")}
                 icon="check"
                 loading={saving}
                 onPress={handleSave}
                 style={{ flex: 1 }}
               />
               <AppButton
-                title="Cancelar"
+                title={t("common.cancel")}
                 variant="outline"
                 onPress={onClose}
                 disabled={saving}

@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,13 +13,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { GymDashboard } from "@/components/dashboard/GymDashboard";
 import { GymIcon } from "@/components/ui/GymIcon";
-import { Colors, Spacing } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { useAppTheme } from "@/context/ThemeContext";
 
 export default function HomeScreen() {
   const { user, isLoading } = useAuth();
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const colors = Colors[scheme];
+  const { colors } = useAppTheme();
+  const { t } = useLanguage();
 
   if (isLoading) {
     return (
@@ -41,7 +42,7 @@ export default function HomeScreen() {
           </View>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-            Sincronizando plataforma deportiva...
+            {t("auth.syncingPlatform")}
           </Text>
         </View>
       </SafeAreaView>
@@ -75,10 +76,10 @@ export default function HomeScreen() {
         >
           <View style={styles.headerBlock}>
             <Text style={[styles.kicker, { color: colors.primary }]}>
-              SISTEMA INTELIGENTE DE ENTRENAMIENTO
+              {t("auth.systemKicker")}
             </Text>
             <Text style={[styles.brandTitle, { color: colors.text }]}>
-              GYM PROYECTO
+              {t("auth.brandTitle")}
             </Text>
           </View>
 

@@ -1,4 +1,4 @@
-import { Colors } from "@/constants/theme";
+import { ThemeColors } from "@/constants/theme";
 
 export type TabType =
   | "routines"
@@ -7,7 +7,7 @@ export type TabType =
   | "equipment"
   | "profile";
 
-export type DashboardColors = (typeof Colors)["light" | "dark"];
+export type DashboardColors = ThemeColors;
 
 export type RoutineExerciseItem = {
   id: string; // Catalog Exercise UUID

@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GymIcon, IconName } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { TranslationKey } from "@/i18n";
 import { DashboardColors, TabType } from "./types";
 
 interface DashboardTabBarProps {
@@ -12,12 +14,12 @@ interface DashboardTabBarProps {
   colors: DashboardColors;
 }
 
-const TABS: { key: TabType; label: string; icon: IconName }[] = [
-  { key: "equipment", label: "Máquinas", icon: "cog" },
-  { key: "catalog", label: "Catálogo", icon: "book-open" },
-  { key: "routines", label: "Rutinas", icon: "layers" },
-  { key: "tracking", label: "Progreso", icon: "trending-up" },
-  { key: "profile", label: "Perfil", icon: "user" },
+const TABS: { key: TabType; labelKey: TranslationKey; icon: IconName }[] = [
+  { key: "equipment", labelKey: "tabs.equipment", icon: "cog" },
+  { key: "catalog", labelKey: "tabs.catalog", icon: "book-open" },
+  { key: "routines", labelKey: "tabs.routines", icon: "layers" },
+  { key: "tracking", labelKey: "tabs.tracking", icon: "trending-up" },
+  { key: "profile", labelKey: "tabs.profile", icon: "user" },
 ];
 
 export function DashboardTabBar({
@@ -26,6 +28,7 @@ export function DashboardTabBar({
   colors,
 }: DashboardTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
 
   return (
     <View
@@ -75,7 +78,7 @@ export function DashboardTabBar({
                 ]}
                 numberOfLines={1}
               >
-                {tab.label}
+                {t(tab.labelKey)}
               </Text>
             </Pressable>
           );

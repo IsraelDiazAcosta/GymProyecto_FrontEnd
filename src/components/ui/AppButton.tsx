@@ -5,12 +5,12 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
   ViewStyle,
 } from "react-native";
 
-import { Colors, Radius } from "@/constants/theme";
+import { Radius } from "@/constants/theme";
+import { useAppTheme } from "@/context/ThemeContext";
 import { GymIcon, IconName } from "./GymIcon";
 
 type ButtonVariant = "primary" | "secondary" | "outline" | "danger";
@@ -38,8 +38,7 @@ export function AppButton({
   style,
   icon,
 }: AppButtonProps) {
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const colors = Colors[scheme];
+  const { colors, resolvedMode } = useAppTheme();
   const isDisabled = disabled || loading;
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -72,7 +71,7 @@ export function AppButton({
           borderWidth: 1,
           shadowColor: colors.primary,
           shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: scheme === "dark" ? 0.35 : 0.22,
+          shadowOpacity: resolvedMode === "dark" ? 0.35 : 0.2,
           shadowRadius: 12,
           elevation: 5,
         };
@@ -106,7 +105,7 @@ export function AppButton({
     switch (variant) {
       case "primary":
       case "danger":
-        return "#FFFFFF";
+        return colors.onPrimary;
       case "secondary":
         return colors.primary;
       case "outline":

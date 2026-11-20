@@ -1,4 +1,5 @@
 import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   Exercise,
   ProgressionItem,
@@ -108,6 +109,7 @@ export const RoutinesSection: React.FC<RoutinesSectionProps> = ({
   onTrackingSelectRoutine,
   onTrackingSelectExercise,
 }) => {
+  const { t } = useLanguage();
   const selectedRoutineDetail = selectedRoutineId
     ? routines.find((r) => r.id === selectedRoutineId) || null
     : null;
@@ -126,8 +128,8 @@ export const RoutinesSection: React.FC<RoutinesSectionProps> = ({
       >
         {(
           [
-            { key: "mis_rutinas", label: "Mis Rutinas" },
-            { key: "crear", label: "Crear" },
+            { key: "mis_rutinas", label: t("routines.subTabMyRoutines") },
+            { key: "crear", label: t("routines.subTabCreate") },
           ] as const
         ).map((subTab) => {
           const active = routinesSubTab === subTab.key;

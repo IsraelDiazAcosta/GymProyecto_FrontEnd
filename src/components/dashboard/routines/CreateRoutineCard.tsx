@@ -12,6 +12,8 @@ import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { getMuscleFocusLabel } from "@/i18n";
 import { Exercise } from "@/services/api";
 import { DashboardColors } from "../types";
 
@@ -52,6 +54,8 @@ export const CreateRoutineCard: React.FC<CreateRoutineCardProps> = ({
   onRemoveExercise,
   onCreate,
 }) => {
+  const { language, t } = useLanguage();
+
   return (
     <AnimatedCard
       style={[
@@ -76,16 +80,16 @@ export const CreateRoutineCard: React.FC<CreateRoutineCardProps> = ({
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: colors.text }]}>
-            Diseñar Nueva Rutina
+            {t("routines.createTitle")}
           </Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Configura el grupo muscular y añade ejercicios en bloque
+            {t("routines.createSubtitle")}
           </Text>
         </View>
       </View>
 
       <Text style={[styles.label, { color: colors.textSecondary }]}>
-        Enfoque Muscular Principal
+        {t("routines.focusLabel")}
       </Text>
       <ScrollView
         horizontal
@@ -114,7 +118,7 @@ export const CreateRoutineCard: React.FC<CreateRoutineCardProps> = ({
                   { color: active ? colors.onPrimary : colors.textSecondary },
                 ]}
               >
-                {option.label}
+                {getMuscleFocusLabel(language, option.value)}
               </Text>
             </Pressable>
           );
@@ -123,7 +127,7 @@ export const CreateRoutineCard: React.FC<CreateRoutineCardProps> = ({
 
       <View style={styles.inputSection}>
         <Text style={[styles.label, { color: colors.textSecondary }]}>
-          Nombre del Plan o Rutina
+          {t("routines.planNameLabel")}
         </Text>
         <View
           style={[
@@ -137,7 +141,7 @@ export const CreateRoutineCard: React.FC<CreateRoutineCardProps> = ({
           <GymIcon name="layers" size={17} color={colors.primary} />
           <TextInput
             style={[styles.input, { color: colors.text }]}
-            placeholder="Ej: Lunes - Hipertrofia Pecho, Pierna Pesada"
+            placeholder={t("routines.planNamePlaceholder")}
             placeholderTextColor={colors.textSecondary}
             value={newRoutineTitle}
             onChangeText={setNewRoutineTitle}
@@ -148,7 +152,7 @@ export const CreateRoutineCard: React.FC<CreateRoutineCardProps> = ({
       <View style={styles.exercisesSection}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 0 }]}>
-            Ejercicios incluidos ({selectedExercises.length})
+            {t("routines.includedExercises", { count: selectedExercises.length })}
           </Text>
           <Pressable
             onPress={onOpenSelectExercises}
@@ -157,8 +161,8 @@ export const CreateRoutineCard: React.FC<CreateRoutineCardProps> = ({
             <GymIcon name="plus" size={14} color={colors.primary} />
             <Text style={[styles.addExercisesBtnText, { color: colors.primary }]}>
               {selectedExercises.length > 0
-                ? "Modificar / Agregar"
-                : "Seleccionar del Catálogo"}
+                ? t("routines.modifyOrAdd")
+                : t("routines.selectFromCatalog")}
             </Text>
           </Pressable>
         </View>
@@ -206,7 +210,7 @@ export const CreateRoutineCard: React.FC<CreateRoutineCardProps> = ({
           >
             <GymIcon name="dumbbell" size={18} color={colors.primary} />
             <Text style={[styles.emptyBoxText, { color: colors.textSecondary }]}>
-              Toca aquí para elegir uno o varios ejercicios del catálogo
+              {t("routines.tapToChooseExercises")}
             </Text>
           </Pressable>
         )}
@@ -215,8 +219,8 @@ export const CreateRoutineCard: React.FC<CreateRoutineCardProps> = ({
       <AppButton
         title={
           selectedExercises.length > 0
-            ? `Crear Rutina (${selectedExercises.length} ejercicios)`
-            : "Crear Rutina"
+            ? t("routines.createBtnWithCount", { count: selectedExercises.length })
+            : t("routines.createBtn")
         }
         icon="sparkles"
         onPress={onCreate}

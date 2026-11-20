@@ -10,6 +10,7 @@ import {
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 import { Exercise } from "@/services/api";
 import { DashboardColors } from "../types";
 
@@ -48,6 +49,8 @@ export const RoutineAddExerciseForm: React.FC<RoutineAddExerciseFormProps> = ({
   onConfirmAdd,
   onCancel,
 }) => {
+  const { t } = useLanguage();
+
   return (
     <View
       style={[
@@ -59,7 +62,7 @@ export const RoutineAddExerciseForm: React.FC<RoutineAddExerciseFormProps> = ({
       ]}
     >
       <Text style={[styles.sectionTitle, { color: colors.text }]}>
-        Anexar Ejercicios a la Rutina
+        {t("routines.addFormTitle")}
       </Text>
 
       <Pressable
@@ -88,13 +91,15 @@ export const RoutineAddExerciseForm: React.FC<RoutineAddExerciseFormProps> = ({
           <View style={{ flex: 1 }}>
             <Text style={[styles.pickerTitle, { color: colors.text }]}>
               {effectiveSelectedIds.length > 0
-                ? `${effectiveSelectedIds.length} ejercicio(s) seleccionado(s)`
-                : "Elegir ejercicios del catálogo"}
+                ? t("routines.selectedCount", {
+                    count: effectiveSelectedIds.length,
+                  })
+                : t("routines.chooseFromCatalog")}
             </Text>
             <Text style={[styles.pickerSubtitle, { color: colors.textSecondary }]}>
               {effectiveSelectedIds.length > 0
-                ? "Toca para añadir o quitar ejercicios"
-                : "Búsqueda rápida con filtro muscular"}
+                ? t("routines.tapToEditSelection")
+                : t("routines.quickSearchHint")}
             </Text>
           </View>
         </View>
@@ -105,7 +110,9 @@ export const RoutineAddExerciseForm: React.FC<RoutineAddExerciseFormProps> = ({
           ]}
         >
           <Text style={[styles.changeBadgeText, { color: colors.primary }]}>
-            {effectiveSelectedIds.length > 0 ? "Editar" : "Elegir"}
+            {effectiveSelectedIds.length > 0
+              ? t("common.edit")
+              : t("routines.chooseBtn")}
           </Text>
         </View>
       </Pressable>
@@ -141,7 +148,7 @@ export const RoutineAddExerciseForm: React.FC<RoutineAddExerciseFormProps> = ({
       <View style={styles.metricsRow}>
         <View style={styles.metricCol}>
           <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>
-            Series
+            {t("routines.seriesCol")}
           </Text>
           <TextInput
             style={[
@@ -162,7 +169,7 @@ export const RoutineAddExerciseForm: React.FC<RoutineAddExerciseFormProps> = ({
 
         <View style={styles.metricCol}>
           <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>
-            Reps Mín
+            {t("routines.minRepsCol")}
           </Text>
           <TextInput
             style={[
@@ -183,7 +190,7 @@ export const RoutineAddExerciseForm: React.FC<RoutineAddExerciseFormProps> = ({
 
         <View style={styles.metricCol}>
           <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>
-            Reps Máx
+            {t("routines.maxRepsCol")}
           </Text>
           <TextInput
             style={[
@@ -207,15 +214,17 @@ export const RoutineAddExerciseForm: React.FC<RoutineAddExerciseFormProps> = ({
         <AppButton
           title={
             effectiveSelectedIds.length > 1
-              ? `Guardar (${effectiveSelectedIds.length})`
-              : "Guardar"
+              ? t("routines.saveCountBtn", {
+                  count: effectiveSelectedIds.length,
+                })
+              : t("common.save")
           }
           icon="check"
           onPress={onConfirmAdd}
           style={{ flex: 1 }}
         />
         <AppButton
-          title="Cancelar"
+          title={t("common.cancel")}
           variant="outline"
           onPress={onCancel}
           style={{ flex: 1 }}

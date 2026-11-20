@@ -3,6 +3,8 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { WEEK_DAYS_BY_LANG } from "@/i18n";
 import { DashboardColors } from "../types";
 
 export const WEEK_DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
@@ -20,6 +22,9 @@ export const WeeklyAttendanceCard: React.FC<WeeklyAttendanceCardProps> = ({
   todayWeekIndex,
   trainedCount,
 }) => {
+  const { language, t } = useLanguage();
+  const weekDays = WEEK_DAYS_BY_LANG[language] || WEEK_DAYS;
+
   return (
     <View
       style={[
@@ -35,11 +40,11 @@ export const WeeklyAttendanceCard: React.FC<WeeklyAttendanceCardProps> = ({
           <View style={styles.weeklyKickerRow}>
             <GymIcon name="calendar" size={14} color={colors.primary} />
             <Text style={[styles.weeklyKicker, { color: colors.primary }]}>
-              ASISTENCIA SEMANAL
+              {t("routines.weeklyKicker")}
             </Text>
           </View>
           <Text style={[styles.weeklyTitle, { color: colors.text }]}>
-            Entrenamientos de la semana
+            {t("routines.weeklyTitle")}
           </Text>
         </View>
 
@@ -53,7 +58,7 @@ export const WeeklyAttendanceCard: React.FC<WeeklyAttendanceCardProps> = ({
           ]}
         >
           <Text style={[styles.weeklyCountText, { color: colors.primary }]}>
-            {trainedCount}/7 días
+            {t("routines.weeklyDaysCount", { count: trainedCount })}
           </Text>
         </View>
       </View>
@@ -68,12 +73,12 @@ export const WeeklyAttendanceCard: React.FC<WeeklyAttendanceCardProps> = ({
         ]}
       >
         <View style={styles.weeklyBarsRow}>
-          {WEEK_DAYS.map((dayLabel, idx) => {
+          {weekDays.map((dayLabel, idx) => {
             const val = trainedDayFlags[idx] || 0;
             const isTrained = val === 1;
             const isToday = idx === todayWeekIndex;
             return (
-              <View key={dayLabel} style={styles.weeklyBarCol}>
+              <View key={`${idx}-${dayLabel}`} style={styles.weeklyBarCol}>
                 <Text
                   style={[
                     styles.weeklyBarValue,
@@ -136,7 +141,7 @@ export const WeeklyAttendanceCard: React.FC<WeeklyAttendanceCardProps> = ({
                         { color: colors.primary },
                       ]}
                     >
-                      Hoy
+                      {t("routines.todayTag")}
                     </Text>
                   </View>
                 ) : (
@@ -154,7 +159,7 @@ export const WeeklyAttendanceCard: React.FC<WeeklyAttendanceCardProps> = ({
               { color: colors.textSecondary },
             ]}
           >
-            Aún no entrenas esta semana
+            {t("routines.weeklyEmptyHint")}
           </Text>
         )}
       </View>

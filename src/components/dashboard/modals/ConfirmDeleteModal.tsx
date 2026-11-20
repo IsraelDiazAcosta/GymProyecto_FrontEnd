@@ -4,6 +4,7 @@ import { Modal, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 import { DashboardColors } from "../types";
 
 export interface ConfirmDeleteModalProps {
@@ -33,7 +34,15 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   onConfirm,
   onClose,
 }) => {
+  const { t } = useLanguage();
   const [deleting, setDeleting] = useState(false);
+
+  const typeNounMap: Record<ConfirmDeleteModalProps["itemType"], string> = {
+    routine: t("modals.confirmDeleteNounRoutine"),
+    exercise: t("modals.confirmDeleteNounExercise"),
+    equipment: t("modals.confirmDeleteNounEquipment"),
+    marca: t("modals.confirmDeleteNounMarca"),
+  };
 
   const handleConfirm = async () => {
     setDeleting(true);
@@ -75,27 +84,29 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
           </View>
 
           <Text style={[styles.title, { color: colors.text }]}>
-            ¿Confirmar eliminación?
+            {t("modals.confirmDeleteTitle")}
           </Text>
 
           <Text style={[styles.description, { color: colors.textSecondary }]}>
-            Estás a punto de eliminar {TYPE_NOUN[itemType]}{" "}
+            {t("modals.confirmDeletePre", {
+              noun: typeNounMap[itemType] ?? TYPE_NOUN[itemType],
+            })}
             <Text style={{ fontWeight: "800", color: colors.text }}>
               "{itemTitle}"
             </Text>
-            . Esta acción es permanente.
+            {t("modals.confirmDeletePost")}
           </Text>
 
           <View style={styles.actionsRow}>
             <AppButton
-              title="Cancelar"
+              title={t("common.cancel")}
               variant="outline"
               onPress={onClose}
               disabled={deleting}
               style={{ flex: 1 }}
             />
             <AppButton
-              title="Sí, Eliminar"
+              title={t("modals.confirmDeleteBtn")}
               variant="danger"
               icon="trash"
               loading={deleting}

@@ -45,7 +45,12 @@ export type IconName =
   | "mail"
   | "heart"
   | "camera"
-  | "image";
+  | "image"
+  | "sun"
+  | "moon"
+  | "smartphone"
+  | "palette"
+  | "globe";
 
 interface GymIconProps {
   name: IconName;
@@ -483,6 +488,63 @@ export function GymIcon({
             <Rect {...commonProps} x="3" y="3" width="18" height="18" rx="2" ry="2" />
             <Circle {...commonProps} cx="8.5" cy="8.5" r="1.5" />
             <Polyline {...commonProps} points="21 15 16 10 5 21" />
+          </>
+        );
+
+      case "sun":
+        return (
+          <>
+            <Circle {...commonProps} cx="12" cy="12" r="4" />
+            <Line {...commonProps} x1="12" y1="2" x2="12" y2="4" />
+            <Line {...commonProps} x1="12" y1="20" x2="12" y2="22" />
+            <Line {...commonProps} x1="4.93" y1="4.93" x2="6.34" y2="6.34" />
+            <Line {...commonProps} x1="17.66" y1="17.66" x2="19.07" y2="19.07" />
+            <Line {...commonProps} x1="2" y1="12" x2="4" y2="12" />
+            <Line {...commonProps} x1="20" y1="12" x2="22" y2="12" />
+            <Line {...commonProps} x1="6.34" y1="17.66" x2="4.93" y2="19.07" />
+            <Line {...commonProps} x1="19.07" y1="4.93" x2="17.66" y2="6.34" />
+          </>
+        );
+
+      case "moon":
+        return (
+          <Path
+            {...commonProps}
+            d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"
+          />
+        );
+
+      case "smartphone":
+        return (
+          <>
+            <Rect {...commonProps} x="5" y="2" width="14" height="20" rx="2" ry="2" />
+            <Line {...commonProps} x1="12" y1="18" x2="12.01" y2="18" />
+          </>
+        );
+
+      case "palette":
+        return (
+          <>
+            <Circle {...commonProps} cx="13.5" cy="6.5" r=".5" fill={color} />
+            <Circle {...commonProps} cx="17.5" cy="10.5" r=".5" fill={color} />
+            <Circle {...commonProps} cx="8.5" cy="7.5" r=".5" fill={color} />
+            <Circle {...commonProps} cx="6.5" cy="12.5" r=".5" fill={color} />
+            <Path
+              {...commonProps}
+              d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"
+            />
+          </>
+        );
+
+      case "globe":
+        return (
+          <>
+            <Circle {...commonProps} cx="12" cy="12" r="10" />
+            <Line {...commonProps} x1="2" y1="12" x2="22" y2="12" />
+            <Path
+              {...commonProps}
+              d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+            />
           </>
         );
 

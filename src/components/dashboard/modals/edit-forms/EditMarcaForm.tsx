@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { AppInput } from "@/components/ui/AppInput";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
 import { DashboardColors } from "../../types";
 
 interface EditMarcaFormProps {
@@ -29,6 +30,7 @@ export const EditMarcaForm: React.FC<EditMarcaFormProps> = ({
   marcaRpe,
   setMarcaRpe,
 }) => {
+  const { t } = useLanguage();
   const w = Number(marcaWeight) || 0;
   const r = Number(marcaReps) || 0;
   const preview1RM =
@@ -52,7 +54,7 @@ export const EditMarcaForm: React.FC<EditMarcaFormProps> = ({
         <View style={styles.previewHeader}>
           <GymIcon name="award" size={16} color={colors.primary} />
           <Text style={[styles.previewLabel, { color: colors.primary }]}>
-            1RM ESTIMADO RECALCULADO
+            {t("modals.editMarcaPreviewLabel")}
           </Text>
         </View>
         <Text style={[styles.previewValue, { color: colors.primary }]}>
@@ -61,8 +63,8 @@ export const EditMarcaForm: React.FC<EditMarcaFormProps> = ({
       </View>
 
       <AppInput
-        label="Peso Levantado (kg)"
-        placeholder="Ej: 100"
+        label={t("modals.editMarcaWeightLabel")}
+        placeholder={t("modals.editMarcaWeightPlaceholder")}
         keyboardType="numeric"
         leftIcon="barbell"
         value={marcaWeight}
@@ -70,8 +72,8 @@ export const EditMarcaForm: React.FC<EditMarcaFormProps> = ({
       />
 
       <AppInput
-        label="Repeticiones Completadas"
-        placeholder="Ej: 8"
+        label={t("modals.editMarcaRepsLabel")}
+        placeholder={t("modals.editMarcaRepsPlaceholder")}
         keyboardType="numeric"
         leftIcon="activity"
         value={marcaReps}
@@ -79,8 +81,8 @@ export const EditMarcaForm: React.FC<EditMarcaFormProps> = ({
       />
 
       <AppInput
-        label="Esfuerzo Percibido RPE (1 - 10)"
-        placeholder="Ej: 8.5"
+        label={t("modals.editMarcaRpeLabel")}
+        placeholder={t("modals.editMarcaRpePlaceholder")}
         keyboardType="numeric"
         leftIcon="flame"
         value={marcaRpe}

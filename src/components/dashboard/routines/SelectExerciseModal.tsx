@@ -13,6 +13,8 @@ import {
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
+import { useLanguage } from "@/context/LanguageContext";
+import { getMuscleFocusLabel } from "@/i18n";
 import {
   Equipment,
   Exercise,
@@ -104,6 +106,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
   allRoutines,
   onClose,
 }) => {
+  const { language, t } = useLanguage();
   const isMulti =
     multiSelect ||
     Boolean(selectedIds) ||
@@ -200,14 +203,19 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.title, { color: colors.text }]}>
-                {multiSelect
-                  ? "Seleccionar Ejercicios"
-                  : "Seleccionar Ejercicio"}
+                {isMulti
+                  ? t("routines.selectMultiTitle")
+                  : t("routines.selectSingleTitle")}
               </Text>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                {multiSelect
-                  ? `${tempSelectedIds.length} seleccionado(s) • ${filteredExercises.length} disponibles`
-                  : `${filteredExercises.length} ejercicio(s) disponibles`}
+                {isMulti
+                  ? t("routines.selectMultiSub", {
+                      selected: tempSelectedIds.length,
+                      available: filteredExercises.length,
+                    })
+                  : t("routines.selectSingleSub", {
+                      available: filteredExercises.length,
+                    })}
               </Text>
             </View>
 
@@ -254,7 +262,11 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
                     },
                   ]}
                 >
-                  Solo {routineFocus?.toUpperCase()}
+                  {t("routines.onlyFocus", {
+                    focus: routineFocus
+                      ? getMuscleFocusLabel(language, routineFocus).toUpperCase()
+                      : "",
+                  })}
                 </Text>
               </Pressable>
 
@@ -287,7 +299,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
                     },
                   ]}
                 >
-                  Ver Todo ({exercises.length})
+                  {t("routines.viewAllCount", { count: exercises.length })}
                 </Text>
               </Pressable>
             </View>
@@ -306,7 +318,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
             <GymIcon name="search" size={17} color={colors.textSecondary} />
             <TextInput
               style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Buscar por nombre, máquina o músculo..."
+              placeholder={t("routines.searchPlaceholder")}
               placeholderTextColor={colors.textSecondary}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -335,12 +347,12 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
                   color={colors.textSecondary}
                 />
                 <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                  No se encontraron ejercicios
+                  {t("routines.emptySearchTitle")}
                 </Text>
                 <Text
                   style={[styles.emptySubtitle, { color: colors.textSecondary }]}
                 >
-                  Intenta con otro término o cambia el filtro muscular
+                  {t("routines.emptySearchSub")}
                 </Text>
               </View>
             }
@@ -394,7 +406,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
                             { color: colors.textSecondary },
                           ]}
                         >
-                          {item.equipment_name || "Peso libre / General"}
+                          {item.equipment_name || t("common.freeWeight")}
                         </Text>
                       </View>
                       {Boolean(item.primary_muscle) && (
@@ -407,7 +419,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
                           <Text
                             style={[styles.metaText, { color: colors.primary }]}
                           >
-                            {item.primary_muscle}
+                            {getMuscleFocusLabel(language, item.primary_muscle)}
                           </Text>
                         </View>
                       )}
@@ -446,8 +458,12 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
               <AppButton
                 title={
                   (onToggleSelect ? effectiveSelectedIds.length : tempSelectedIds.length) > 0
-                    ? `Confirmar selección (${onToggleSelect ? effectiveSelectedIds.length : tempSelectedIds.length})`
-                    : "Confirmar sin ejercicios"
+                    ? t("routines.confirmSelection", {
+                        count: onToggleSelect
+                          ? effectiveSelectedIds.length
+                          : tempSelectedIds.length,
+                      })
+                    : t("routines.confirmEmptySelection")
                 }
                 icon="check"
                 onPress={handleConfirmMulti}

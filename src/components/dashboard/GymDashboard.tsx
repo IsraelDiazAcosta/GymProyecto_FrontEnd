@@ -5,14 +5,15 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from "react-native";
 
 import { AnimatedToast } from "@/components/ui/AnimatedToast";
 import { GymIcon } from "@/components/ui/GymIcon";
-import { Colors, Radius, Spacing } from "@/constants/theme";
+import { Radius, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { useAppTheme } from "@/context/ThemeContext";
 import { useGymDashboardData } from "@/hooks/useGymDashboardData";
 import { api, WorkoutSessionItem } from "@/services/api";
 
@@ -54,8 +55,8 @@ const computeElapsedSeconds = (session: WorkoutSessionItem | null) => {
  * Arquitectura modularizada y desacoplada mediante `useGymDashboardData` y subcarpetas por dominio.
  */
 export const GymDashboard: React.FC = () => {
-  const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const colors = Colors[scheme];
+  const { colors } = useAppTheme();
+  const { t } = useLanguage();
   const { user } = useAuth();
 
   const vm = useGymDashboardData();
@@ -259,8 +260,8 @@ export const GymDashboard: React.FC = () => {
     if (!hasRecordedMarcaInSession) {
       vm.showToast(
         "warning",
-        "Marca Requerida",
-        "Debes registrar al menos una marca (peso y repeticiones) antes de finalizar tu sesión de entrenamiento.",
+        t("toasts.marcaRequiredTitle"),
+        t("toasts.marcaRequiredMsg"),
       );
       return;
     }
@@ -272,8 +273,8 @@ export const GymDashboard: React.FC = () => {
       setShowFinishConfirm(false);
       vm.showToast(
         "warning",
-        "Marca Requerida",
-        "Debes registrar al menos una marca (peso y repeticiones) antes de finalizar tu sesión de entrenamiento.",
+        t("toasts.marcaRequiredTitle"),
+        t("toasts.marcaRequiredMsg"),
       );
       return;
     }
@@ -314,7 +315,7 @@ export const GymDashboard: React.FC = () => {
     if (
       vm.toast.visible &&
       vm.toast.type === "success" &&
-      vm.toast.title === "Rutina Creada"
+      vm.toast.code === "routine_created"
     ) {
       vm.setNewRoutineTitle("");
       vm.setNewRoutineExerciseIds([]);
@@ -356,7 +357,7 @@ export const GymDashboard: React.FC = () => {
     >
       {/* Cabecera superior con resumen y rol */}
       <DashboardHeader
-        username={user?.username || "Atleta"}
+        username={user?.username || t("header.defaultAthlete")}
         isAdmin={Boolean(user?.is_staff)}
         routinesCount={vm.routines.length}
         exercisesCount={vm.exercises.length}
@@ -434,7 +435,7 @@ export const GymDashboard: React.FC = () => {
                 vm.setDeleteConfirmItem({
                   type: "routine",
                   id: String(routine.id),
-                  title: routine.title || "Rutina",
+                  title: routine.title || t("common.routineFallback"),
                 });
               }}
               routineSessions={selectedRoutineSessions}
@@ -477,7 +478,7 @@ export const GymDashboard: React.FC = () => {
                 </View>
 
                 <Text style={[localStyles.lockTitle, { color: colors.text }]}>
-                  Inicia tu sesión para registrar marcas
+                  {t("tracking.lockTitle")}
                 </Text>
 
                 <Text
@@ -486,9 +487,7 @@ export const GymDashboard: React.FC = () => {
                     { color: colors.textSecondary },
                   ]}
                 >
-                  Los entrenamientos se registran serie por serie durante tu
-                  sesión. Inicia tu rutina para comenzar a registrar tus
-                  levantamientos.
+                  {t("tracking.lockMessage")}
                 </Text>
               </View>
             ) : (
