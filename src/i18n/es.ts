@@ -43,6 +43,23 @@ export const es = {
   "auth.loginBtn": "Entrar al Gimnasio",
   "auth.emailRequired": "Por favor ingresa tu correo o nombre de usuario.",
   "auth.passwordRequired": "Por favor ingresa tu contraseña.",
+  "auth.tabLogin": "Iniciar Sesión",
+  "auth.tabRegister": "Registrarse",
+  "auth.registerTitle": "Crear Cuenta",
+  "auth.registerSubtitle":
+    "Únete como atleta para diseñar rutinas, registrar marcas (1RM) y seguir tu progreso.",
+  "auth.usernameLabel": "Nombre o Usuario",
+  "auth.usernamePlaceholder": "ej. Carlos",
+  "auth.emailLabel": "Correo Electrónico",
+  "auth.emailPlaceholder": "ej. atleta@gym.com",
+  "auth.passwordMinPlaceholder": "Mínimo 6 caracteres",
+  "auth.confirmPasswordLabel": "Confirmar Contraseña",
+  "auth.confirmPasswordPlaceholder": "Repite tu contraseña",
+  "auth.registerBtn": "Crear Cuenta",
+  "auth.usernameRequired": "Por favor ingresa tu nombre o usuario.",
+  "auth.emailInvalid": "Ingresa un correo electrónico válido.",
+  "auth.passwordTooShort": "La contraseña debe tener al menos 6 caracteres.",
+  "auth.passwordsMismatch": "Las contraseñas no coinciden.",
 
   // Cabecera superior
   "header.brandKicker": "APEX GYM HUB",
@@ -50,6 +67,7 @@ export const es = {
   "header.defaultAthlete": "Atleta",
   "header.admin": "Admin",
   "header.athlete": "Atleta",
+  "header.refreshLabel": "Actualizar datos",
 
   // Ajustes
   "settings.kicker": "CONFIGURACIÓN",
@@ -149,7 +167,7 @@ export const es = {
   "editProfile.experienceLabel": "Nivel de experiencia",
   "editProfile.goalLabel": "Objetivo de entrenamiento",
   "editProfile.weightLabel": "Peso (kg)",
-  "editProfile.heightLabel": "Estatura (cm)",
+  "editProfile.heightLabel": "Estatura (m)",
   "editProfile.bioLabel": "Biografía / Objetivos",
   "editProfile.bioPlaceholder": "Ej: ganar fuerza en sentadilla",
   "editProfile.errorWeightSubject": "El peso",
@@ -157,6 +175,7 @@ export const es = {
   "editProfile.errorMustBePositive":
     "{{label}} debe ser un número mayor a 0",
   "editProfile.errorMustBeLessThan1000": "{{label}} debe ser menor a 1000",
+  "editProfile.errorHeightRange": "{{label}} debe estar entre 0.50 y 2.80 m",
   "editProfile.errorMaxUsername": "Máximo 50 caracteres",
   "editProfile.errorSaveFallback": "No se pudo guardar el perfil",
 
@@ -172,6 +191,8 @@ export const es = {
   "equipment.emptyTitle": "No se encontraron máquinas",
   "equipment.emptySubtitle":
     "Intenta cambiar el filtro o registra una nueva máquina con el botón superior.",
+  "equipment.emptySubtitleReadOnly":
+    "Intenta cambiar el filtro o buscar con otro término.",
   "equipment.favRemoveLabel": "Quitar {{name}} de favoritas",
   "equipment.favAddLabel": "Marcar {{name}} como favorita",
   "equipment.setupGuideHeader": "GUÍA DE AJUSTE",
@@ -323,6 +344,9 @@ export const es = {
   "routines.finishModalTitle": "¿Finalizar sesión?",
   "routines.finishModalElapsed": "{{title}} • Tiempo transcurrido: {{time}}",
   "routines.continueBtn": "Seguir",
+  "routines.finishMissingTitle": "Ejercicios sin marcas registradas",
+  "routines.finishMissingHint":
+    "Puedes seguir para registrarlos o finalizar de todos modos.",
 
   // Progreso y Marcas
   "tracking.lockTitle": "Inicia tu sesión para registrar marcas",
@@ -389,6 +413,7 @@ export const es = {
     "Registra al menos un levantamiento para visualizar la curva 1RM.",
   "tracking.lastRecordLabel": "Último registro ({{date}})",
   "tracking.lastRecordValue": "{{weight}} kg × {{reps}} reps ({{oneRm}} kg 1RM)",
+  "tracking.deleteSessionLabel": "Eliminar sesión",
 
   // Modales compartidos
   "modals.typeRoutine": "OPCIONES DE RUTINA",
@@ -412,6 +437,7 @@ export const es = {
   "modals.confirmDeleteNounExercise": "el ejercicio",
   "modals.confirmDeleteNounEquipment": "la máquina",
   "modals.confirmDeleteNounMarca": "el registro",
+  "modals.confirmDeleteNounSession": "la sesión",
   "modals.confirmDeletePre": "Estás a punto de eliminar {{noun}} ",
   "modals.confirmDeletePost": ". Esta acción es permanente.",
   "modals.confirmDeleteBtn": "Sí, Eliminar",
@@ -558,6 +584,14 @@ export const es = {
   "toasts.exerciseDeletedTitle": "Ejercicio Eliminado",
   "toasts.exerciseDeletedMsg": "\"{{title}}\" fue eliminado del catálogo.",
   "toasts.deleteError": "Error al eliminar",
+  "toasts.sessionDeletedTitle": "Sesión Eliminada",
+  "toasts.sessionDeletedMsg": "\"{{title}}\" fue eliminada del historial.",
+  "toasts.deleteSessionError": "Error al eliminar sesión",
+  "toasts.adminOnlyTitle": "Acceso Restringido",
+  "toasts.adminOnlyMsg":
+    "Solo los administradores del gimnasio pueden crear, editar o eliminar máquinas y ejercicios.",
+  "toasts.refreshedTitle": "Datos Actualizados",
+  "toasts.refreshedMsg": "Catálogo, máquinas y rutinas sincronizados.",
 } as const;
 
 export type TranslationKey = keyof typeof es;

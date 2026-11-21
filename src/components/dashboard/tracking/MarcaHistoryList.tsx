@@ -17,6 +17,7 @@ import {
 } from "react-native";
 
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
+import { ToastType } from "@/components/ui/AnimatedToast";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
 import { useLanguage } from "@/context/LanguageContext";
@@ -29,6 +30,7 @@ import {
   WorkoutSessionDetail,
   WorkoutSessionItem,
 } from "@/services/api";
+import { ConfirmDeleteModal } from "../modals/ConfirmDeleteModal";
 import { DashboardColors, RoutineExerciseItem } from "../types";
 
 export interface MarcaHistoryListProps {
@@ -400,6 +402,8 @@ export interface RoutineSessionHistorySectionProps {
   colors: DashboardColors;
   routines: Routine[];
   refreshTrigger?: unknown;
+  onSessionDeleted?: () => Promise<void> | void;
+  onNotify?: (type: ToastType, title: string, message?: string) => void;
 }
 
 type PeriodFilter = "week" | "month" | "all";
@@ -527,7 +531,13 @@ const resolveSessionDurationSeconds = (item: WorkoutSessionItem): number => {
  */
 export const RoutineSessionHistorySection: React.FC<
   RoutineSessionHistorySectionProps
-> = ({ colors, routines, refreshTrigger }) => {
+> = ({
+  colors,
+  routines,
+  refreshTrigger,
+  onSessionDeleted,
+  onNotify,
+}) => {
   const { language, t } = useLanguage();
   const [viewMode, setViewMode] = useState<HistoryViewMode>("sessions");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("all");
@@ -555,6 +565,10 @@ export const RoutineSessionHistorySection: React.FC<
   const [detailSession, setDetailSession] =
     useState<WorkoutSessionDetail | null>(null);
   const [hasDetailError, setHasDetailError] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
 
   const requestSeqRef = useRef(0);
 
@@ -664,6 +678,45 @@ export const RoutineSessionHistorySection: React.FC<
       setHasDetailError(true);
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const requestDeleteSession = (item: WorkoutSessionItem) => {
+    const routineName = resolveSessionRoutineName(
+      item,
+      t("common.routineFallback"),
+    );
+    const rawDate =
+      item.ended_at || item.end_time || item.started_at || item.start_time;
+    const dateText = formatLocalDateOnly(
+      rawDate,
+      language,
+      t("common.noDate"),
+    );
+    setSessionToDelete({
+      id: item.id,
+      title: `${routineName} (${dateText})`,
+    });
+  };
+
+  const handleConfirmDeleteSession = async () => {
+    if (!sessionToDelete) return;
+    const target = sessionToDelete;
+    try {
+      await api.deleteWorkoutSession(target.id);
+      if (detailSession?.id === target.id) {
+        setDetailModalVisible(false);
+        setDetailSession(null);
+      }
+      await loadHistoryInitial();
+      await onSessionDeleted?.();
+      onNotify?.(
+        "success",
+        t("toasts.sessionDeletedTitle"),
+        t("toasts.sessionDeletedMsg", { title: target.title }),
+      );
+    } catch (e: any) {
+      onNotify?.("error", t("toasts.deleteSessionError"), e?.message || "");
     }
   };
 
@@ -1106,24 +1159,44 @@ export const RoutineSessionHistorySection: React.FC<
                     </View>
                   </View>
 
-                  <View
-                    style={[
-                      historySectionStyles.durationBadge,
-                      {
-                        backgroundColor: colors.primaryGlow,
-                        borderColor: colors.border,
-                      },
-                    ]}
-                  >
-                    <GymIcon name="clock" size={12} color={colors.primary} />
-                    <Text
+                  <View style={historySectionStyles.sessionTopRight}>
+                    <View
                       style={[
-                        historySectionStyles.durationBadgeText,
-                        { color: colors.primary },
+                        historySectionStyles.durationBadge,
+                        {
+                          backgroundColor: colors.primaryGlow,
+                          borderColor: colors.border,
+                        },
                       ]}
                     >
-                      {formatReadableDuration(durationSec)}
-                    </Text>
+                      <GymIcon name="clock" size={12} color={colors.primary} />
+                      <Text
+                        style={[
+                          historySectionStyles.durationBadgeText,
+                          { color: colors.primary },
+                        ]}
+                      >
+                        {formatReadableDuration(durationSec)}
+                      </Text>
+                    </View>
+
+                    <Pressable
+                      onPress={(e) => {
+                        e?.stopPropagation?.();
+                        requestDeleteSession(item);
+                      }}
+                      hitSlop={8}
+                      accessibilityLabel={t("tracking.deleteSessionLabel")}
+                      style={[
+                        historySectionStyles.deleteSessionBtn,
+                        {
+                          backgroundColor: colors.dangerGlow,
+                          borderColor: colors.danger + "35",
+                        },
+                      ]}
+                    >
+                      <GymIcon name="trash" size={14} color={colors.danger} />
+                    </Pressable>
                   </View>
                 </View>
 
@@ -1414,26 +1487,47 @@ export const RoutineSessionHistorySection: React.FC<
               </Pressable>
 
               {detailSession && (
-                <View
-                  style={[
-                    historySectionStyles.durationBadge,
-                    {
-                      backgroundColor: colors.primaryGlow,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <GymIcon name="clock" size={12} color={colors.primary} />
-                  <Text
+                <View style={historySectionStyles.sessionTopRight}>
+                  <View
                     style={[
-                      historySectionStyles.durationBadgeText,
-                      { color: colors.primary },
+                      historySectionStyles.durationBadge,
+                      {
+                        backgroundColor: colors.primaryGlow,
+                        borderColor: colors.border,
+                      },
                     ]}
                   >
-                    {formatReadableDuration(
-                      resolveSessionDurationSeconds(detailSession),
-                    )}
-                  </Text>
+                    <GymIcon name="clock" size={12} color={colors.primary} />
+                    <Text
+                      style={[
+                        historySectionStyles.durationBadgeText,
+                        { color: colors.primary },
+                      ]}
+                    >
+                      {formatReadableDuration(
+                        resolveSessionDurationSeconds(detailSession),
+                      )}
+                    </Text>
+                  </View>
+
+                  <Pressable
+                    onPress={() => {
+                      const target = detailSession;
+                      setDetailModalVisible(false);
+                      setTimeout(() => requestDeleteSession(target), 180);
+                    }}
+                    hitSlop={8}
+                    accessibilityLabel={t("tracking.deleteSessionLabel")}
+                    style={[
+                      historySectionStyles.deleteSessionBtn,
+                      {
+                        backgroundColor: colors.dangerGlow,
+                        borderColor: colors.danger + "35",
+                      },
+                    ]}
+                  >
+                    <GymIcon name="trash" size={14} color={colors.danger} />
+                  </Pressable>
                 </View>
               )}
             </View>
@@ -1666,6 +1760,15 @@ export const RoutineSessionHistorySection: React.FC<
           </View>
         </View>
       </Modal>
+
+      <ConfirmDeleteModal
+        visible={Boolean(sessionToDelete)}
+        colors={colors}
+        itemTitle={sessionToDelete?.title || ""}
+        itemType="session"
+        onConfirm={handleConfirmDeleteSession}
+        onClose={() => setSessionToDelete(null)}
+      />
     </AnimatedCard>
   );
 };
@@ -2040,5 +2143,18 @@ const historySectionStyles = StyleSheet.create({
   setRmText: {
     fontSize: 10,
     fontWeight: "900",
+  },
+  sessionTopRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  deleteSessionBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

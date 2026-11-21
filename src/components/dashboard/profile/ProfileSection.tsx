@@ -12,7 +12,6 @@ import {
 import Svg, { Polyline, Circle as SvgCircle } from "react-native-svg";
 
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
-import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
@@ -38,6 +37,18 @@ const formatDecimal = (v?: number | string | null) => {
   return v === null || v === undefined || v === "" || !Number.isFinite(n)
     ? null
     : n;
+};
+
+/**
+ * Normaliza la estatura a metros: acepta valores modernos en metros (ej. 1.60)
+ * y valores heredados guardados en centímetros (ej. 175 -> 1.75).
+ */
+const normalizeHeightToMeters = (
+  v?: number | string | null,
+): number | null => {
+  const n = formatDecimal(v);
+  if (n === null || n <= 0) return null;
+  return n > 3 ? n / 100 : n;
 };
 
 export interface ProfileSectionProps {
@@ -116,9 +127,11 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const latestLogWeight =
     weightLogs.length > 0 ? formatDecimal(weightLogs[0].weight) : null;
   const weight = latestLogWeight ?? formatDecimal(user?.current_weight);
-  const height = formatDecimal(user?.height);
+  const heightMeters = normalizeHeightToMeters(user?.height);
   const bmi =
-    weight && height ? (weight / Math.pow(height / 100, 2)).toFixed(1) : null;
+    weight && heightMeters
+      ? (weight / (heightMeters * heightMeters)).toFixed(1)
+      : null;
   const levelLabel = getExperienceLevelLabel(language, user?.experience_level);
   const goalLabel = getTrainingGoalLabel(language, user?.training_goal);
   const favoritesCount = user?.favorite_exercises?.length ?? 0;
@@ -134,7 +147,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
     {
       icon: "trending-up" as const,
       label: t("profile.statHeight"),
-      value: height ? `${height} cm` : "--",
+      value: heightMeters ? `${heightMeters.toFixed(2)} m` : "--",
     },
     { icon: "target" as const, label: t("profile.statBmi"), value: bmi ?? "--" },
   ];
@@ -208,6 +221,24 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           },
         ]}
       >
+        {user && !isEditing && (
+          <Pressable
+            onPress={() => setIsEditing(true)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t("profile.editProfileBtn")}
+            style={[
+              styles.editBtnTop,
+              {
+                backgroundColor: colors.backgroundElevated,
+                borderColor: colors.borderSubtle,
+              },
+            ]}
+          >
+            <GymIcon name="edit" size={18} color={colors.primary} />
+          </Pressable>
+        )}
+
         <Pressable
           onPress={() => setSettingsVisible(true)}
           hitSlop={8}
@@ -339,14 +370,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                   : t("profile.favoritesMany", { count: favoritesCount })}
               </Text>
             </View>
-
-            <AppButton
-              title={t("profile.editProfileBtn")}
-              icon="edit"
-              variant="secondary"
-              onPress={() => setIsEditing(true)}
-              style={{ width: "100%" }}
-            />
           </>
         )}
 
@@ -418,14 +441,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             )}
           </View>
         )}
-
-        <AppButton
-          title={t("profile.logoutBtn")}
-          icon="log-out"
-          variant="danger"
-          onPress={logout}
-          style={{ width: "100%", marginTop: 12 }}
-        />
       </AnimatedCard>
 
       <WeeklyAttendanceCard
@@ -693,6 +708,24 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         )}
       </AnimatedCard>
 
+      <Pressable
+        onPress={logout}
+        accessibilityRole="button"
+        accessibilityLabel={t("profile.logoutBtn")}
+        style={[
+          styles.logoutCompactBtn,
+          {
+            backgroundColor: colors.danger,
+            shadowColor: colors.danger,
+          },
+        ]}
+      >
+        <GymIcon name="log-out" size={15} color={colors.onPrimary} />
+        <Text style={[styles.logoutCompactText, { color: colors.onPrimary }]}>
+          {t("profile.logoutBtn")}
+        </Text>
+      </Pressable>
+
       <SettingsModal
         visible={settingsVisible}
         onClose={() => setSettingsVisible(false)}
@@ -712,6 +745,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     position: "relative",
+  },
+  editBtnTop: {
+    position: "absolute",
+    top: 14,
+    left: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 5,
   },
   settingsBtn: {
     position: "absolute",
@@ -990,5 +1035,26 @@ const styles = StyleSheet.create({
   logWeightVal: {
     fontSize: 14,
     fontWeight: "900",
+  },
+  logoutCompactBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+    gap: 6,
+    height: 40,
+    paddingHorizontal: 22,
+    borderRadius: Radius.md,
+    marginTop: 4,
+    marginBottom: 8,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  logoutCompactText: {
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 0.3,
   },
 });

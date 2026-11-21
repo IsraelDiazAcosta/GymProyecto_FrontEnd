@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, StyleSheet, Text, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import { AppButton } from "@/components/ui/AppButton";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius } from "@/constants/theme";
@@ -12,6 +12,7 @@ export interface FinishSessionConfirmModalProps {
   activeSession: { routine_title?: string; title?: string } | null;
   elapsedSeconds: number;
   sessionActionLoading: boolean;
+  missingExercises?: string[];
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -39,10 +40,12 @@ export const FinishSessionConfirmModal: React.FC<
   activeSession,
   elapsedSeconds,
   sessionActionLoading,
+  missingExercises = [],
   onCancel,
   onConfirm,
 }) => {
   const { t } = useLanguage();
+  const hasMissing = missingExercises.length > 0;
 
   return (
     <Modal
@@ -67,12 +70,18 @@ export const FinishSessionConfirmModal: React.FC<
             style={[
               styles.confirmIconHalo,
               {
-                backgroundColor: colors.primaryGlow,
-                borderColor: colors.border,
+                backgroundColor: hasMissing
+                  ? colors.warningGlow
+                  : colors.primaryGlow,
+                borderColor: hasMissing ? colors.warning : colors.border,
               },
             ]}
           >
-            <GymIcon name="check-circle" size={28} color={colors.primary} />
+            <GymIcon
+              name={hasMissing ? "alert-triangle" : "check-circle"}
+              size={28}
+              color={hasMissing ? colors.warning : colors.primary}
+            />
           </View>
           <Text style={[styles.modalTitle, { color: colors.text }]}>
             {t("routines.finishModalTitle")}
@@ -86,6 +95,59 @@ export const FinishSessionConfirmModal: React.FC<
               time: formatDurationHMS(elapsedSeconds),
             })}
           </Text>
+          {hasMissing ? (
+            <View
+              style={[
+                styles.warningBox,
+                {
+                  backgroundColor: colors.warningGlow,
+                  borderColor: colors.warning,
+                },
+              ]}
+            >
+              <View style={styles.warningHeader}>
+                <GymIcon
+                  name="alert-triangle"
+                  size={16}
+                  color={colors.warning}
+                />
+                <Text style={[styles.warningTitle, { color: colors.warning }]}>
+                  {t("routines.finishMissingTitle")}
+                </Text>
+              </View>
+              <ScrollView
+                style={styles.warningListScroll}
+                contentContainerStyle={styles.warningListContent}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator={false}
+              >
+                {missingExercises.map((exerciseName, idx) => (
+                  <View
+                    key={`${exerciseName}-${idx}`}
+                    style={styles.warningItemRow}
+                  >
+                    <View
+                      style={[
+                        styles.warningBullet,
+                        { backgroundColor: colors.warning },
+                      ]}
+                    />
+                    <Text
+                      style={[styles.warningItemText, { color: colors.text }]}
+                      numberOfLines={2}
+                    >
+                      {exerciseName}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+              <Text
+                style={[styles.warningHint, { color: colors.textSecondary }]}
+              >
+                {t("routines.finishMissingHint")}
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.confirmActionsRow}>
             <AppButton
               title={t("routines.continueBtn")}
@@ -141,6 +203,48 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "center",
     lineHeight: 19,
+  },
+  warningBox: {
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    padding: 12,
+    gap: 8,
+  },
+  warningHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  warningTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    flex: 1,
+  },
+  warningListScroll: {
+    maxHeight: 120,
+  },
+  warningListContent: {
+    gap: 5,
+    paddingVertical: 2,
+  },
+  warningItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  warningBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  warningItemText: {
+    fontSize: 13,
+    fontWeight: "600",
+    flex: 1,
+  },
+  warningHint: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   confirmActionsRow: {
     flexDirection: "row",

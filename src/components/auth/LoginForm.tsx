@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppButton } from "@/components/ui/AppButton";
 import { AppInput } from "@/components/ui/AppInput";
@@ -9,34 +9,77 @@ import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAppTheme } from "@/context/ThemeContext";
 
+type AuthMode = "login" | "register";
+
 /**
- * Formulario de acceso con diseño deportivo de lujo "Apex Emerald Gym",
- * iconos vectoriales integrados y manejo de foco de teclado estable.
+ * Formulario de acceso y registro de cuenta básica con diseño "Apex Emerald Gym",
+ * pestañas intercambiables, iconos vectoriales y manejo de foco de teclado estable.
  */
 export function LoginForm() {
-  const { login, error, isAuthenticating, clearError } = useAuth();
+  const { login, register, error, isAuthenticating, clearError } = useAuth();
   const { colors, resolvedMode } = useAppTheme();
   const { t } = useLanguage();
 
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
+
+  const handleSwitchMode = (nextMode: AuthMode) => {
+    if (nextMode === mode) return;
+    setMode(nextMode);
+    setLocalError(null);
+    clearError();
+  };
 
   const handleSubmit = async () => {
     setLocalError(null);
     clearError();
 
-    if (!email.trim()) {
-      setLocalError(t("auth.emailRequired"));
+    if (mode === "login") {
+      if (!email.trim()) {
+        setLocalError(t("auth.emailRequired"));
+        return;
+      }
+
+      if (!password) {
+        setLocalError(t("auth.passwordRequired"));
+        return;
+      }
+
+      await login(email.trim(), password);
       return;
     }
 
-    if (!password) {
-      setLocalError(t("auth.passwordRequired"));
+    if (!username.trim()) {
+      setLocalError(t("auth.usernameRequired"));
       return;
     }
 
-    await login(email.trim(), password);
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setLocalError(t("auth.emailInvalid"));
+      return;
+    }
+
+    if (password.length < 6) {
+      setLocalError(t("auth.passwordTooShort"));
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setLocalError(t("auth.passwordsMismatch"));
+      return;
+    }
+
+    await register({
+      username: username.trim(),
+      email: cleanEmail.toLowerCase(),
+      password,
+      password_confirm: confirmPassword,
+    });
   };
 
   const displayError = localError || error;
@@ -74,11 +117,53 @@ export function LoginForm() {
         </View>
       </View>
 
+      {/* Pestañas Login / Register */}
+      <View
+        style={[
+          styles.tabBar,
+          {
+            backgroundColor: colors.backgroundElevated,
+            borderColor: colors.borderSubtle,
+          },
+        ]}
+      >
+        {(
+          [
+            { key: "login", label: t("auth.tabLogin") },
+            { key: "register", label: t("auth.tabRegister") },
+          ] as const
+        ).map((tab) => {
+          const active = mode === tab.key;
+          return (
+            <Pressable
+              key={tab.key}
+              onPress={() => handleSwitchMode(tab.key)}
+              disabled={isAuthenticating}
+              style={[
+                styles.tabBtn,
+                active && { backgroundColor: colors.primary },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: active ? colors.onPrimary : colors.textSecondary },
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <Text style={[styles.title, { color: colors.text }]}>
-        {t("auth.welcomeTitle")}
+        {mode === "login" ? t("auth.welcomeTitle") : t("auth.registerTitle")}
       </Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        {t("auth.welcomeSubtitle")}
+        {mode === "login"
+          ? t("auth.welcomeSubtitle")
+          : t("auth.registerSubtitle")}
       </Text>
 
       {displayError ? (
@@ -98,9 +183,31 @@ export function LoginForm() {
         </View>
       ) : null}
 
+      {mode === "register" && (
+        <AppInput
+          label={t("auth.usernameLabel")}
+          placeholder={t("auth.usernamePlaceholder")}
+          autoCapitalize="words"
+          autoCorrect={false}
+          leftIcon="user"
+          value={username}
+          onChangeText={(text) => {
+            setUsername(text);
+            if (localError) setLocalError(null);
+            if (error) clearError();
+          }}
+        />
+      )}
+
       <AppInput
-        label={t("auth.emailOrUserLabel")}
-        placeholder={t("auth.emailOrUserPlaceholder")}
+        label={
+          mode === "login" ? t("auth.emailOrUserLabel") : t("auth.emailLabel")
+        }
+        placeholder={
+          mode === "login"
+            ? t("auth.emailOrUserPlaceholder")
+            : t("auth.emailPlaceholder")
+        }
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
@@ -109,12 +216,15 @@ export function LoginForm() {
         onChangeText={(text) => {
           setEmail(text);
           if (localError) setLocalError(null);
+          if (error) clearError();
         }}
       />
 
       <AppInput
         label={t("auth.passwordLabel")}
-        placeholder="••••••••"
+        placeholder={
+          mode === "login" ? "••••••••" : t("auth.passwordMinPlaceholder")
+        }
         secureTextEntry
         autoCapitalize="none"
         leftIcon="lock"
@@ -122,13 +232,31 @@ export function LoginForm() {
         onChangeText={(text) => {
           setPassword(text);
           if (localError) setLocalError(null);
+          if (error) clearError();
         }}
-        onSubmitEditing={handleSubmit}
+        onSubmitEditing={mode === "login" ? handleSubmit : undefined}
       />
 
+      {mode === "register" && (
+        <AppInput
+          label={t("auth.confirmPasswordLabel")}
+          placeholder={t("auth.confirmPasswordPlaceholder")}
+          secureTextEntry
+          autoCapitalize="none"
+          leftIcon="lock"
+          value={confirmPassword}
+          onChangeText={(text) => {
+            setConfirmPassword(text);
+            if (localError) setLocalError(null);
+            if (error) clearError();
+          }}
+          onSubmitEditing={handleSubmit}
+        />
+      )}
+
       <AppButton
-        title={t("auth.loginBtn")}
-        icon="chevron-right"
+        title={mode === "login" ? t("auth.loginBtn") : t("auth.registerBtn")}
+        icon={mode === "login" ? "chevron-right" : "check"}
         onPress={handleSubmit}
         loading={isAuthenticating}
         style={styles.submitButton}
@@ -155,6 +283,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: Spacing.three,
+  },
+  tabBar: {
+    flexDirection: "row",
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    padding: 4,
+    gap: 6,
+    marginBottom: Spacing.three,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: "800",
   },
   logoBadge: {
     width: 56,

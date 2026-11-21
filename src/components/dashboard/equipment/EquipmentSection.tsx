@@ -22,7 +22,8 @@ import { EQUIPMENT_TYPES } from "./AddEquipmentModal";
 export interface EquipmentSectionProps {
   colors: DashboardColors;
   equipmentList: Equipment[];
-  onOpenAddEquipment: () => void;
+  isStaff?: boolean;
+  onOpenAddEquipment?: () => void;
   onEquipmentOptionsPress?: (item: Equipment) => void;
   onToggleFavorite?: (equipmentId: number) => void;
 }
@@ -55,6 +56,7 @@ export const getEquipmentIconName = (type?: string): IconName => {
 export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
   colors,
   equipmentList,
+  isStaff = false,
   onOpenAddEquipment,
   onEquipmentOptionsPress,
   onToggleFavorite,
@@ -65,10 +67,11 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
   const favoritesCount = equipmentList.filter((item) => Boolean(item.is_favorite)).length;
 
   const handleTriggerOptions = (item: Equipment) => {
+    if (!isStaff || !onEquipmentOptionsPress) return;
     try {
       Vibration.vibrate(45);
     } catch {}
-    onEquipmentOptionsPress?.(item);
+    onEquipmentOptionsPress(item);
   };
 
   const filteredEquipment = equipmentList.filter((item) => {
@@ -116,21 +119,23 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
           </Text>
         </View>
 
-        <Pressable
-          onPress={onOpenAddEquipment}
-          style={[
-            styles.addBtn,
-            {
-              backgroundColor: colors.primary,
-              shadowColor: colors.primary,
-            },
-          ]}
-        >
-          <GymIcon name="plus" size={16} color={colors.onPrimary} />
-          <Text style={[styles.addBtnText, { color: colors.onPrimary }]}>
-            {t("equipment.newBtn")}
-          </Text>
-        </Pressable>
+        {isStaff && onOpenAddEquipment && (
+          <Pressable
+            onPress={onOpenAddEquipment}
+            style={[
+              styles.addBtn,
+              {
+                backgroundColor: colors.primary,
+                shadowColor: colors.primary,
+              },
+            ]}
+          >
+            <GymIcon name="plus" size={16} color={colors.onPrimary} />
+            <Text style={[styles.addBtnText, { color: colors.onPrimary }]}>
+              {t("equipment.newBtn")}
+            </Text>
+          </Pressable>
+        )}
       </View>
 
       {/* Buscador */}
@@ -292,7 +297,9 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
             {t("equipment.emptyTitle")}
           </Text>
           <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-            {t("equipment.emptySubtitle")}
+            {isStaff
+              ? t("equipment.emptySubtitle")
+              : t("equipment.emptySubtitleReadOnly")}
           </Text>
         </View>
       ) : (
@@ -303,7 +310,11 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
             return (
             <Pressable
               key={`${item.id}-${idx}`}
-              onLongPress={() => handleTriggerOptions(item)}
+              onLongPress={
+                isStaff && onEquipmentOptionsPress
+                  ? () => handleTriggerOptions(item)
+                  : undefined
+              }
               delayLongPress={380}
               style={[
                 styles.equipCard,
@@ -410,7 +421,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
                     </Pressable>
                   )}
 
-                  {onEquipmentOptionsPress && (
+                  {isStaff && onEquipmentOptionsPress && (
                     <Pressable
                       onPress={() => onEquipmentOptionsPress(item)}
                       hitSlop={10}

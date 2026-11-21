@@ -25,7 +25,7 @@ export interface CatalogSectionProps {
   exercises: Exercise[];
   equipmentList?: Equipment[];
   isStaff?: boolean;
-  onOpenAddExercise: () => void;
+  onOpenAddExercise?: () => void;
   onOpenExerciseDetail: (exerciseId: string) => void;
   onExerciseOptionsPress?: (exercise: Exercise) => void;
   onToggleFavorite?: (exerciseId: string) => void;
@@ -129,7 +129,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
           </Text>
         </View>
 
-        {isStaff && (
+        {isStaff && onOpenAddExercise && (
           <Pressable
             onPress={onOpenAddExercise}
             style={[
@@ -326,7 +326,11 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
               <Pressable
                 key={`${ex.id}-${idx}`}
                 onPress={() => onOpenExerciseDetail(ex.id)}
-                onLongPress={() => handleLongPress(ex)}
+                onLongPress={
+                  isStaff && onExerciseOptionsPress
+                    ? () => handleLongPress(ex)
+                    : undefined
+                }
                 delayLongPress={380}
                 style={[
                   styles.exerciseItem,

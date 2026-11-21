@@ -11,7 +11,7 @@ export interface ConfirmDeleteModalProps {
   visible: boolean;
   colors: DashboardColors;
   itemTitle: string;
-  itemType: "routine" | "exercise" | "marca" | "equipment";
+  itemType: "routine" | "exercise" | "marca" | "equipment" | "session";
   onConfirm: () => Promise<void>;
   onClose: () => void;
 }
@@ -21,6 +21,7 @@ const TYPE_NOUN: Record<ConfirmDeleteModalProps["itemType"], string> = {
   exercise: "el ejercicio",
   equipment: "la máquina",
   marca: "el registro",
+  session: "la sesión",
 };
 
 /**
@@ -42,6 +43,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
     exercise: t("modals.confirmDeleteNounExercise"),
     equipment: t("modals.confirmDeleteNounEquipment"),
     marca: t("modals.confirmDeleteNounMarca"),
+    session: t("modals.confirmDeleteNounSession"),
   };
 
   const handleConfirm = async () => {

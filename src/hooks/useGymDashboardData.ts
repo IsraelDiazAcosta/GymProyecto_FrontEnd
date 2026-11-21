@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Vibration } from "react-native";
 
 import {
@@ -7,6 +7,7 @@ import {
 } from "@/components/dashboard/muscleValidation";
 import { RoutineExerciseItem, TabType } from "@/components/dashboard/types";
 import { ToastConfig, ToastType } from "@/components/ui/AnimatedToast";
+import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { getEquipmentTypeLabel, getMuscleFocusLabel } from "@/i18n";
 import {
@@ -24,9 +25,14 @@ import {
  * y estados interactivos del Dashboard del Gimnasio.
  */
 export function useGymDashboardData() {
+  const { user, refreshProfile } = useAuth();
   const { language, locale, t } = useLanguage();
+  const isAdmin = Boolean(user?.is_staff);
   const [activeTab, setActiveTab] = useState<TabType>("routines");
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshInFlightRef = useRef(false);
+  const lastSyncRef = useRef(0);
   const [toast, setToast] = useState<ToastConfig>({
     visible: false,
     type: "info",
@@ -47,6 +53,12 @@ export function useGymDashboardData() {
       message,
       code,
     });
+  };
+
+  const requireAdmin = (): boolean => {
+    if (isAdmin) return true;
+    showToast("error", t("toasts.adminOnlyTitle"), t("toasts.adminOnlyMsg"));
+    return false;
   };
 
   const hideToast = () => {
@@ -153,13 +165,13 @@ export function useGymDashboardData() {
       const [exList, rList, eqList, muList] = await Promise.all([
         api.getExercises(),
         api.getRoutines(),
-        api.getEquipment().catch(() => []),
-        api.getMuscles().catch(() => []),
+        api.getEquipment().catch(() => null),
+        api.getMuscles().catch(() => null),
       ]);
       setExercises(exList);
       setRoutines(rList);
-      if (eqList.length > 0) setEquipmentList(eqList);
-      if (muList.length > 0) setMuscleList(muList);
+      if (eqList !== null) setEquipmentList(eqList);
+      if (muList !== null) setMuscleList(muList);
 
       if (rList.length > 0) {
         setTrackingRoutineId(rList[0].id);
@@ -169,10 +181,93 @@ export function useGymDashboardData() {
           loadProgressionHistory(firstRoutineEx[0].id);
         }
       }
+      lastSyncRef.current = Date.now();
     } catch (e: any) {
       showToast("error", t("toasts.connectionError"), e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshAllData = async (options?: {
+    silent?: boolean;
+    force?: boolean;
+  }) => {
+    if (refreshInFlightRef.current) return;
+    if (
+      options?.silent &&
+      !options?.force &&
+      Date.now() - lastSyncRef.current < 4000
+    ) {
+      return;
+    }
+
+    refreshInFlightRef.current = true;
+    if (!options?.silent) {
+      setRefreshing(true);
+    }
+
+    try {
+      const [exList, rList, eqList, muList] = await Promise.all([
+        api.getExercises(),
+        api.getRoutines(),
+        api.getEquipment().catch(() => null),
+        api.getMuscles().catch(() => null),
+        refreshProfile().catch(() => null),
+      ]);
+
+      setExercises(exList);
+      setRoutines(rList);
+      if (eqList !== null) setEquipmentList(eqList);
+      if (muList !== null) setMuscleList(muList);
+
+      if (selectedExercise && !exList.some((ex) => ex.id === selectedExercise.id)) {
+        setModalExerciseVisible(false);
+        setSelectedExercise(null);
+      }
+
+      const matchingRoutine =
+        rList.find((r) => r.id === trackingRoutineId) || rList[0];
+      if (matchingRoutine) {
+        if (matchingRoutine.id !== trackingRoutineId) {
+          setTrackingRoutineId(matchingRoutine.id);
+        }
+        const routineExs = getExercisesOfRoutine(matchingRoutine);
+        const matchingEx =
+          routineExs.find((ex) => ex.id === trackingExerciseId) ||
+          routineExs[0];
+        if (matchingEx) {
+          if (matchingEx.id !== trackingExerciseId) {
+            setTrackingExerciseId(matchingEx.id);
+          }
+          await loadProgressionHistory(matchingEx.id);
+        } else {
+          setTrackingExerciseId("");
+          setMarcaHistory([]);
+        }
+      } else {
+        setTrackingRoutineId("");
+        setTrackingExerciseId("");
+        setMarcaHistory([]);
+      }
+
+      lastSyncRef.current = Date.now();
+      if (!options?.silent) {
+        showToast(
+          "success",
+          t("toasts.refreshedTitle"),
+          t("toasts.refreshedMsg"),
+        );
+      }
+    } catch (e: any) {
+      if (!options?.silent) {
+        showToast("error", t("toasts.connectionError"), e.message);
+      }
+    } finally {
+      refreshInFlightRef.current = false;
+      if (!options?.silent) {
+        setRefreshing(false);
+      }
     }
   };
 
@@ -205,6 +300,7 @@ export function useGymDashboardData() {
   };
 
   const handleCreateExercise = async () => {
+    if (!requireAdmin()) return;
     if (!newExName.trim()) {
       return showToast(
         "warning",
@@ -483,6 +579,7 @@ export function useGymDashboardData() {
   };
 
   const loadAdminUsers = async () => {
+    if (!requireAdmin()) return;
     if (showAdminUsers) {
       setShowAdminUsers(false);
       return;
@@ -518,6 +615,7 @@ export function useGymDashboardData() {
   };
 
   const handleOpenExerciseOptions = (exercise: Exercise) => {
+    if (!isAdmin) return;
     try {
       Vibration.vibrate(45);
     } catch {}
@@ -550,6 +648,7 @@ export function useGymDashboardData() {
   };
 
   const handleOpenEquipmentOptions = (eq: Equipment) => {
+    if (!isAdmin) return;
     try {
       Vibration.vibrate(45);
     } catch {}
@@ -740,6 +839,7 @@ export function useGymDashboardData() {
     muscle_id?: number | null,
     image?: PickedImageAsset | null,
   ) => {
+    if (!requireAdmin()) return;
     try {
       setLoading(true);
       await api.updateExercise(id, {
@@ -772,6 +872,7 @@ export function useGymDashboardData() {
     description?: string;
     image?: PickedImageAsset | null;
   }) => {
+    if (!requireAdmin()) return;
     try {
       setLoading(true);
       await api.createEquipment(data);
@@ -801,6 +902,7 @@ export function useGymDashboardData() {
       image?: PickedImageAsset | null;
     },
   ) => {
+    if (!requireAdmin()) return;
     try {
       setLoading(true);
       await api.updateEquipment(id, data);
@@ -882,8 +984,23 @@ export function useGymDashboardData() {
         await api.deleteRoutine(deleteConfirmItem.id);
         const updated = await api.getRoutines();
         setRoutines(updated);
-        if (trackingRoutineId === deleteConfirmItem.id) {
-          setTrackingRoutineId(updated[0]?.id || "");
+        if (trackingRoutineId === deleteConfirmItem.id || updated.length === 0) {
+          const nextRoutine = updated[0];
+          if (nextRoutine) {
+            setTrackingRoutineId(nextRoutine.id);
+            const nextExList = getExercisesOfRoutine(nextRoutine);
+            if (nextExList.length > 0) {
+              setTrackingExerciseId(nextExList[0].id);
+              await loadProgressionHistory(nextExList[0].id);
+            } else {
+              setTrackingExerciseId("");
+              setMarcaHistory([]);
+            }
+          } else {
+            setTrackingRoutineId("");
+            setTrackingExerciseId("");
+            setMarcaHistory([]);
+          }
         }
         showToast(
           "success",
@@ -899,6 +1016,7 @@ export function useGymDashboardData() {
           t("toasts.marcaDeletedMsg", { title: deleteConfirmItem.title }),
         );
       } else if (deleteConfirmItem.type === "equipment") {
+        if (!requireAdmin()) return;
         await api.deleteEquipment(parseInt(deleteConfirmItem.id, 10));
         const updated = await api.getEquipment();
         setEquipmentList(updated);
@@ -908,6 +1026,7 @@ export function useGymDashboardData() {
           t("toasts.equipmentDeletedMsg", { title: deleteConfirmItem.title }),
         );
       } else {
+        if (!requireAdmin()) return;
         await api.deleteExercise(deleteConfirmItem.id);
         const [updatedExercises, updatedRoutines] = await Promise.all([
           api.getExercises(),
@@ -932,6 +1051,8 @@ export function useGymDashboardData() {
     activeTab,
     setActiveTab,
     loading,
+    refreshing,
+    refreshAllData,
     toast,
     showToast,
     hideToast,

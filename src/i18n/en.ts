@@ -45,6 +45,23 @@ export const en: TranslationDictionary = {
   "auth.loginBtn": "Enter the Gym",
   "auth.emailRequired": "Please enter your email or username.",
   "auth.passwordRequired": "Please enter your password.",
+  "auth.tabLogin": "Sign In",
+  "auth.tabRegister": "Register",
+  "auth.registerTitle": "Create Account",
+  "auth.registerSubtitle":
+    "Join as an athlete to build routines, log lifts (1RM), and track your progress.",
+  "auth.usernameLabel": "Name or Username",
+  "auth.usernamePlaceholder": "e.g. Alex",
+  "auth.emailLabel": "Email Address",
+  "auth.emailPlaceholder": "e.g. athlete@gym.com",
+  "auth.passwordMinPlaceholder": "Minimum 6 characters",
+  "auth.confirmPasswordLabel": "Confirm Password",
+  "auth.confirmPasswordPlaceholder": "Repeat your password",
+  "auth.registerBtn": "Create Account",
+  "auth.usernameRequired": "Please enter your name or username.",
+  "auth.emailInvalid": "Please enter a valid email address.",
+  "auth.passwordTooShort": "Password must be at least 6 characters.",
+  "auth.passwordsMismatch": "Passwords do not match.",
 
   // Header
   "header.brandKicker": "APEX GYM HUB",
@@ -52,6 +69,7 @@ export const en: TranslationDictionary = {
   "header.defaultAthlete": "Athlete",
   "header.admin": "Admin",
   "header.athlete": "Athlete",
+  "header.refreshLabel": "Refresh data",
 
   // Settings
   "settings.kicker": "SETTINGS",
@@ -147,7 +165,7 @@ export const en: TranslationDictionary = {
   "editProfile.experienceLabel": "Experience level",
   "editProfile.goalLabel": "Training goal",
   "editProfile.weightLabel": "Weight (kg)",
-  "editProfile.heightLabel": "Height (cm)",
+  "editProfile.heightLabel": "Height (m)",
   "editProfile.bioLabel": "Bio / Goals",
   "editProfile.bioPlaceholder": "E.g. build squat strength",
   "editProfile.errorWeightSubject": "Weight",
@@ -155,6 +173,7 @@ export const en: TranslationDictionary = {
   "editProfile.errorMustBePositive":
     "{{label}} must be a number greater than 0",
   "editProfile.errorMustBeLessThan1000": "{{label}} must be less than 1000",
+  "editProfile.errorHeightRange": "{{label}} must be between 0.50 and 2.80 m",
   "editProfile.errorMaxUsername": "Maximum 50 characters",
   "editProfile.errorSaveFallback": "Could not save profile",
 
@@ -170,6 +189,8 @@ export const en: TranslationDictionary = {
   "equipment.emptyTitle": "No machines found",
   "equipment.emptySubtitle":
     "Try changing the filter or add a new machine with the button above.",
+  "equipment.emptySubtitleReadOnly":
+    "Try changing the filter or searching with another term.",
   "equipment.favRemoveLabel": "Remove {{name}} from favorites",
   "equipment.favAddLabel": "Mark {{name}} as favorite",
   "equipment.setupGuideHeader": "SETUP GUIDE",
@@ -319,6 +340,8 @@ export const en: TranslationDictionary = {
   "routines.finishModalTitle": "Finish session?",
   "routines.finishModalElapsed": "{{title}} • Elapsed time: {{time}}",
   "routines.continueBtn": "Keep going",
+  "routines.finishMissingTitle": "Exercises without logged sets",
+  "routines.finishMissingHint": "You can continue to log them or finish anyway.",
 
   // Progress & Marks
   "tracking.lockTitle": "Start your session to log sets",
@@ -384,6 +407,7 @@ export const en: TranslationDictionary = {
     "Log at least one lift to visualize your 1RM curve.",
   "tracking.lastRecordLabel": "Latest entry ({{date}})",
   "tracking.lastRecordValue": "{{weight}} kg × {{reps}} reps ({{oneRm}} kg 1RM)",
+  "tracking.deleteSessionLabel": "Delete session",
 
   // Shared modals
   "modals.typeRoutine": "ROUTINE OPTIONS",
@@ -405,6 +429,7 @@ export const en: TranslationDictionary = {
   "modals.confirmDeleteNounExercise": "exercise",
   "modals.confirmDeleteNounEquipment": "machine",
   "modals.confirmDeleteNounMarca": "record",
+  "modals.confirmDeleteNounSession": "session",
   "modals.confirmDeletePre": "You are about to delete the {{noun}} ",
   "modals.confirmDeletePost": ". This action is permanent.",
   "modals.confirmDeleteBtn": "Yes, Delete",
@@ -549,4 +574,12 @@ export const en: TranslationDictionary = {
   "toasts.exerciseDeletedTitle": "Exercise Deleted",
   "toasts.exerciseDeletedMsg": "\"{{title}}\" was removed from the catalog.",
   "toasts.deleteError": "Error deleting item",
+  "toasts.sessionDeletedTitle": "Session Deleted",
+  "toasts.sessionDeletedMsg": "\"{{title}}\" was removed from history.",
+  "toasts.deleteSessionError": "Error deleting session",
+  "toasts.adminOnlyTitle": "Restricted Access",
+  "toasts.adminOnlyMsg":
+    "Only gym administrators can create, edit, or delete machines and exercises.",
+  "toasts.refreshedTitle": "Data Refreshed",
+  "toasts.refreshedMsg": "Catalog, machines, and routines are up to date.",
 };

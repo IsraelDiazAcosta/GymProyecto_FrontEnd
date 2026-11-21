@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   AppState,
+  Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -50,6 +52,55 @@ const computeElapsedSeconds = (session: WorkoutSessionItem | null) => {
   return Math.max(0, Math.floor((Date.now() - startMs) / 1000));
 };
 
+type SessionPayloadWithExercises = WorkoutSessionItem & {
+  exercises?: Array<{
+    exercise_id?: string;
+    unrecorded?: boolean;
+    sets?: unknown[];
+  }>;
+  logged_exercises?: Array<{
+    exercise?: string;
+    logged_sets?: number;
+  }>;
+};
+
+const getSessionRoutineId = (session: WorkoutSessionItem | null): string | null => {
+  if (!session) return null;
+  if (session.routine_id) return session.routine_id;
+  if (session.routine_detail?.id) return session.routine_detail.id;
+  if (typeof session.routine === "string") return session.routine;
+  if (session.routine && typeof session.routine === "object" && session.routine.id) {
+    return session.routine.id;
+  }
+  return null;
+};
+
+const extractLoggedExerciseIds = (
+  session: SessionPayloadWithExercises | null | undefined,
+): string[] => {
+  if (!session) return [];
+  const ids = new Set<string>();
+  if (Array.isArray(session.exercises)) {
+    session.exercises.forEach((ex) => {
+      if (
+        ex.exercise_id &&
+        ((Array.isArray(ex.sets) && ex.sets.length > 0) ||
+          ex.unrecorded === false)
+      ) {
+        ids.add(String(ex.exercise_id));
+      }
+    });
+  }
+  if (Array.isArray(session.logged_exercises)) {
+    session.logged_exercises.forEach((le) => {
+      if (le.exercise && (le.logged_sets ?? 0) > 0) {
+        ids.add(String(le.exercise));
+      }
+    });
+  }
+  return Array.from(ids);
+};
+
 /**
  * Vista principal del Dashboard del Gimnasio ("Apex Emerald Gym").
  * Arquitectura modularizada y desacoplada mediante `useGymDashboardData` y subcarpetas por dominio.
@@ -87,8 +138,17 @@ export const GymDashboard: React.FC = () => {
   >([]);
   const [sessionActionLoading, setSessionActionLoading] = useState(false);
   const [sessionMarcasCount, setSessionMarcasCount] = useState(0);
+  const [sessionLoggedExerciseIds, setSessionLoggedExerciseIds] = useState<
+    string[]
+  >([]);
+  const [missingFinishExercises, setMissingFinishExercises] = useState<
+    string[]
+  >([]);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const didMountTabRef = useRef(false);
+  const silentSyncRef = useRef<() => void>(() => {});
 
   const nowLocal = new Date();
   const todayWeekIndex = (nowLocal.getDay() + 6) % 7;
@@ -169,6 +229,7 @@ export const GymDashboard: React.FC = () => {
         if (!cancelled && active && active.status === "active") {
           setActiveSession(active);
           setElapsedSeconds(computeElapsedSeconds(active));
+          setSessionLoggedExerciseIds(extractLoggedExerciseIds(active));
         }
       } catch {}
     };
@@ -224,12 +285,78 @@ export const GymDashboard: React.FC = () => {
     loadWeeklyAndHistory();
   }, [vm.activeTab, routinesSubTab, loadWeeklyAndHistory]);
 
+  const handleManualRefresh = async () => {
+    await Promise.all([
+      vm.refreshAllData({ silent: false, force: true }),
+      loadWeeklyAndHistory(),
+    ]);
+    setHistoryRefreshKey((prev) => prev + 1);
+  };
+
+  silentSyncRef.current = () => {
+    vm.refreshAllData({ silent: true });
+    loadWeeklyAndHistory();
+    setHistoryRefreshKey((prev) => prev + 1);
+  };
+
+  useEffect(() => {
+    if (!didMountTabRef.current) {
+      didMountTabRef.current = true;
+      return;
+    }
+    if (
+      vm.activeTab === "catalog" ||
+      vm.activeTab === "equipment" ||
+      vm.activeTab === "routines" ||
+      vm.activeTab === "tracking"
+    ) {
+      silentSyncRef.current();
+    }
+  }, [vm.activeTab]);
+
+  useEffect(() => {
+    const appStateSub = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        silentSyncRef.current();
+      }
+    });
+
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      const handleFocus = () => silentSyncRef.current();
+      const handleVisibility = () => {
+        if (
+          typeof document !== "undefined" &&
+          document.visibilityState === "visible"
+        ) {
+          silentSyncRef.current();
+        }
+      };
+      window.addEventListener("focus", handleFocus);
+      if (typeof document !== "undefined") {
+        document.addEventListener("visibilitychange", handleVisibility);
+      }
+      return () => {
+        appStateSub.remove();
+        window.removeEventListener("focus", handleFocus);
+        if (typeof document !== "undefined") {
+          document.removeEventListener("visibilitychange", handleVisibility);
+        }
+      };
+    }
+
+    return () => {
+      appStateSub.remove();
+    };
+  }, []);
+
   const handleStartRoutineSession = async (routineId: string) => {
     try {
       setSessionActionLoading(true);
       const started = await api.startRoutineSession(routineId);
       setFinishedSummaryDuration(null);
       setSessionMarcasCount(0);
+      setSessionLoggedExerciseIds(extractLoggedExerciseIds(started));
+      setMissingFinishExercises([]);
       setActiveSession(started);
       setElapsedSeconds(computeElapsedSeconds(started));
       setShowSelectRoutineToStart(false);
@@ -243,6 +370,7 @@ export const GymDashboard: React.FC = () => {
 
   const hasRecordedMarcaInSession =
     sessionMarcasCount > 0 ||
+    sessionLoggedExerciseIds.length > 0 ||
     Boolean(
       activeSession &&
       activeSession.started_at &&
@@ -256,16 +384,115 @@ export const GymDashboard: React.FC = () => {
       }),
     );
 
-  const handleAttemptFinishSession = () => {
-    if (!hasRecordedMarcaInSession) {
-      vm.showToast(
-        "warning",
-        t("toasts.marcaRequiredTitle"),
-        t("toasts.marcaRequiredMsg"),
-      );
+  const computeMissingExercisesForSession = (
+    loggedIds: Set<string>,
+    sessionRef: WorkoutSessionItem | null,
+    detailExercises?: Array<{
+      exercise_id: string;
+      exercise_name: string;
+      unrecorded: boolean;
+      sets?: unknown[];
+    }>,
+  ): string[] => {
+    const routineId = getSessionRoutineId(sessionRef);
+    const routineObj = routineId
+      ? vm.routines.find((r) => r.id === routineId)
+      : undefined;
+    const plannedRaw = vm.getExercisesOfRoutine(routineObj);
+
+    const seenIds = new Set<string>();
+    const missing: string[] = [];
+
+    if (plannedRaw.length > 0) {
+      plannedRaw.forEach((ex) => {
+        if (!ex.id || seenIds.has(ex.id)) return;
+        seenIds.add(ex.id);
+        if (!loggedIds.has(ex.id)) {
+          missing.push(ex.name);
+        }
+      });
+      return missing;
+    }
+
+    if (Array.isArray(detailExercises)) {
+      detailExercises.forEach((ex) => {
+        if (!ex.exercise_id || seenIds.has(ex.exercise_id)) return;
+        seenIds.add(ex.exercise_id);
+        const hasSets =
+          loggedIds.has(ex.exercise_id) ||
+          (Array.isArray(ex.sets) && ex.sets.length > 0) ||
+          ex.unrecorded === false;
+        if (!hasSets && ex.exercise_name) {
+          missing.push(ex.exercise_name);
+        }
+      });
+    }
+
+    return missing;
+  };
+
+  const handleAttemptFinishSession = async () => {
+    if (!activeSession?.id) {
+      if (!hasRecordedMarcaInSession) {
+        vm.showToast(
+          "warning",
+          t("toasts.marcaRequiredTitle"),
+          t("toasts.marcaRequiredMsg"),
+        );
+        return;
+      }
+      setMissingFinishExercises([]);
+      setShowFinishConfirm(true);
       return;
     }
-    setShowFinishConfirm(true);
+
+    try {
+      setSessionActionLoading(true);
+      const detail = await api.getWorkoutSessionDetail(activeSession.id);
+      const detailLoggedIds = extractLoggedExerciseIds(detail);
+      setSessionLoggedExerciseIds(detailLoggedIds);
+
+      const hasAnySet = Boolean(
+        detail.has_logged_sets || detailLoggedIds.length > 0,
+      );
+      if (!hasAnySet) {
+        vm.showToast(
+          "warning",
+          t("toasts.marcaRequiredTitle"),
+          t("toasts.marcaRequiredMsg"),
+        );
+        return;
+      }
+
+      if (detail.has_logged_sets) {
+        setSessionMarcasCount((prev) => Math.max(prev, 1));
+      }
+
+      const missing = computeMissingExercisesForSession(
+        new Set(detailLoggedIds),
+        detail || activeSession,
+        detail.exercises,
+      );
+      setMissingFinishExercises(missing);
+      setShowFinishConfirm(true);
+    } catch {
+      if (!hasRecordedMarcaInSession) {
+        vm.showToast(
+          "warning",
+          t("toasts.marcaRequiredTitle"),
+          t("toasts.marcaRequiredMsg"),
+        );
+        return;
+      }
+      const missing = computeMissingExercisesForSession(
+        new Set(sessionLoggedExerciseIds),
+        activeSession,
+      );
+      setMissingFinishExercises(missing);
+      setShowFinishConfirm(true);
+    } finally {
+      setSessionActionLoading(false);
+    }
   };
 
   const handleConfirmFinishSession = async () => {
@@ -286,6 +513,8 @@ export const GymDashboard: React.FC = () => {
       setActiveSession(null);
       setElapsedSeconds(0);
       setSessionMarcasCount(0);
+      setSessionLoggedExerciseIds([]);
+      setMissingFinishExercises([]);
       setShowFinishConfirm(false);
       setFinishedSummaryDuration(finalDuration);
       await loadWeeklyAndHistory();
@@ -304,6 +533,8 @@ export const GymDashboard: React.FC = () => {
       setElapsedSeconds(0);
       setFinishedSummaryDuration(null);
       setSessionMarcasCount(0);
+      setSessionLoggedExerciseIds([]);
+      setMissingFinishExercises([]);
     } catch {
       // Silenciar error puntual
     } finally {
@@ -346,6 +577,9 @@ export const GymDashboard: React.FC = () => {
         .slice(0, 5)
     : [];
 
+  const isAdmin = Boolean(user?.is_staff);
+  const canManageItem = (type?: string) =>
+    isAdmin || (type !== "exercise" && type !== "equipment");
   const canRegisterMarca = Boolean(activeSession !== null);
 
   return (
@@ -363,6 +597,8 @@ export const GymDashboard: React.FC = () => {
         exercisesCount={vm.exercises.length}
         colors={colors}
         trainedCount={trainedCount}
+        onRefresh={handleManualRefresh}
+        refreshing={vm.refreshing}
       />
 
       {vm.loading && (
@@ -391,6 +627,14 @@ export const GymDashboard: React.FC = () => {
         contentContainerStyle={dashboardStyles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={vm.refreshing}
+            onRefresh={handleManualRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
         {/* ==================== TAB 1: RUTINAS ==================== */}
         {vm.activeTab === "routines" && (
@@ -510,9 +754,17 @@ export const GymDashboard: React.FC = () => {
                 setMarcaRpe={vm.setMarcaRpe}
                 savingMarca={vm.savingMarca}
                 onSave={async () => {
+                  const savedExerciseId = vm.trackingExerciseId;
                   const ok = await vm.handleSaveMarca();
                   if (ok) {
                     setSessionMarcasCount((prev) => prev + 1);
+                    if (savedExerciseId) {
+                      setSessionLoggedExerciseIds((prev) =>
+                        prev.includes(savedExerciseId)
+                          ? prev
+                          : [...prev, savedExerciseId],
+                      );
+                    }
                   }
                 }}
                 lastSavedSummary={vm.lastSavedSummary}
@@ -534,7 +786,14 @@ export const GymDashboard: React.FC = () => {
             <RoutineSessionHistorySection
               colors={colors}
               routines={vm.routines}
-              refreshTrigger={routineHistoryList}
+              refreshTrigger={`${routineHistoryList[0]?.id ?? "none"}-${routineHistoryList.length}-${historyRefreshKey}`}
+              onNotify={vm.showToast}
+              onSessionDeleted={async () => {
+                await loadWeeklyAndHistory();
+                if (vm.trackingExerciseId) {
+                  await vm.loadProgressionHistory(vm.trackingExerciseId);
+                }
+              }}
             />
           </View>
         )}
@@ -545,13 +804,19 @@ export const GymDashboard: React.FC = () => {
             colors={colors}
             exercises={vm.exercises}
             equipmentList={vm.equipmentList}
-            isStaff={user?.is_staff}
-            onOpenAddExercise={() => {
-              vm.loadCatalogExtras();
-              vm.setShowAddExerciseModal(true);
-            }}
+            isStaff={isAdmin}
+            onOpenAddExercise={
+              isAdmin
+                ? () => {
+                    vm.loadCatalogExtras();
+                    vm.setShowAddExerciseModal(true);
+                  }
+                : undefined
+            }
             onOpenExerciseDetail={vm.openExerciseDetail}
-            onExerciseOptionsPress={vm.handleOpenExerciseOptions}
+            onExerciseOptionsPress={
+              isAdmin ? vm.handleOpenExerciseOptions : undefined
+            }
             onToggleFavorite={vm.handleToggleExerciseFavorite}
           />
         )}
@@ -561,8 +826,13 @@ export const GymDashboard: React.FC = () => {
           <EquipmentSection
             colors={colors}
             equipmentList={vm.equipmentList}
-            onOpenAddEquipment={() => vm.setShowAddEquipmentModal(true)}
-            onEquipmentOptionsPress={vm.handleOpenEquipmentOptions}
+            isStaff={isAdmin}
+            onOpenAddEquipment={
+              isAdmin ? () => vm.setShowAddEquipmentModal(true) : undefined
+            }
+            onEquipmentOptionsPress={
+              isAdmin ? vm.handleOpenEquipmentOptions : undefined
+            }
             onToggleFavorite={vm.handleToggleEquipmentFavorite}
           />
         )}
@@ -610,36 +880,42 @@ export const GymDashboard: React.FC = () => {
         onClose={() => vm.setShowNewRoutineModal(false)}
       />
 
-      <AddExerciseModal
-        colors={colors}
-        visible={vm.showAddExerciseModal}
-        newExName={vm.newExName}
-        setNewExName={vm.setNewExName}
-        newExVideo={vm.newExVideo}
-        setNewExVideo={vm.setNewExVideo}
-        newExInstructions={vm.newExInstructions}
-        setNewExInstructions={vm.setNewExInstructions}
-        equipmentList={vm.equipmentList}
-        selectedEquipment={vm.newExEquipment}
-        setSelectedEquipment={vm.setNewExEquipment}
-        muscleList={vm.muscleList}
-        selectedMuscle={vm.newExMuscle}
-        setSelectedMuscle={vm.setNewExMuscle}
-        newExImage={vm.newExImage}
-        setNewExImage={vm.setNewExImage}
-        onSubmit={vm.handleCreateExercise}
-        onClose={() => vm.setShowAddExerciseModal(false)}
-      />
+      {isAdmin && (
+        <AddExerciseModal
+          colors={colors}
+          visible={vm.showAddExerciseModal}
+          newExName={vm.newExName}
+          setNewExName={vm.setNewExName}
+          newExVideo={vm.newExVideo}
+          setNewExVideo={vm.setNewExVideo}
+          newExInstructions={vm.newExInstructions}
+          setNewExInstructions={vm.setNewExInstructions}
+          equipmentList={vm.equipmentList}
+          selectedEquipment={vm.newExEquipment}
+          setSelectedEquipment={vm.setNewExEquipment}
+          muscleList={vm.muscleList}
+          selectedMuscle={vm.newExMuscle}
+          setSelectedMuscle={vm.setNewExMuscle}
+          newExImage={vm.newExImage}
+          setNewExImage={vm.setNewExImage}
+          onSubmit={vm.handleCreateExercise}
+          onClose={() => vm.setShowAddExerciseModal(false)}
+        />
+      )}
 
-      <AddEquipmentModal
-        colors={colors}
-        visible={vm.showAddEquipmentModal}
-        onSubmit={vm.handleCreateEquipment}
-        onClose={() => vm.setShowAddEquipmentModal(false)}
-      />
+      {isAdmin && (
+        <AddEquipmentModal
+          colors={colors}
+          visible={vm.showAddEquipmentModal}
+          onSubmit={vm.handleCreateEquipment}
+          onClose={() => vm.setShowAddEquipmentModal(false)}
+        />
+      )}
 
       <ItemActionSheet
-        visible={Boolean(vm.actionSheetItem)}
+        visible={Boolean(
+          vm.actionSheetItem && canManageItem(vm.actionSheetItem.type),
+        )}
         colors={colors}
         itemType={vm.actionSheetItem?.type || "routine"}
         itemTitle={vm.actionSheetItem?.title || ""}
@@ -662,7 +938,9 @@ export const GymDashboard: React.FC = () => {
       />
 
       <EditItemModal
-        visible={Boolean(vm.editModalItem)}
+        visible={Boolean(
+          vm.editModalItem && canManageItem(vm.editModalItem.type),
+        )}
         colors={colors}
         itemType={vm.editModalItem?.type || "routine"}
         routineData={
@@ -718,7 +996,9 @@ export const GymDashboard: React.FC = () => {
       />
 
       <ConfirmDeleteModal
-        visible={Boolean(vm.deleteConfirmItem)}
+        visible={Boolean(
+          vm.deleteConfirmItem && canManageItem(vm.deleteConfirmItem.type),
+        )}
         colors={colors}
         itemTitle={vm.deleteConfirmItem?.title || ""}
         itemType={vm.deleteConfirmItem?.type || "routine"}
@@ -736,7 +1016,9 @@ export const GymDashboard: React.FC = () => {
         onSelectRoutine={handleStartRoutineSession}
         onGoToCreate={() => {
           setShowSelectRoutineToStart(false);
+          setSelectedRoutineId(null);
           setRoutinesSubTab("crear");
+          vm.setActiveTab("routines");
         }}
         onClose={() => setShowSelectRoutineToStart(false)}
       />
@@ -748,7 +1030,11 @@ export const GymDashboard: React.FC = () => {
         activeSession={activeSession}
         elapsedSeconds={elapsedSeconds}
         sessionActionLoading={sessionActionLoading}
-        onCancel={() => setShowFinishConfirm(false)}
+        missingExercises={missingFinishExercises}
+        onCancel={() => {
+          setShowFinishConfirm(false);
+          setMissingFinishExercises([]);
+        }}
         onConfirm={handleConfirmFinishSession}
       />
 

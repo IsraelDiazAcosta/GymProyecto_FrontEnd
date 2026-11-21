@@ -38,6 +38,14 @@ type FieldErrors = Partial<
 const toInputValue = (v?: number | string | null) =>
   v === null || v === undefined || v === "" ? "" : String(Number(v));
 
+const toHeightMetersInput = (v?: number | string | null) => {
+  if (v === null || v === undefined || v === "") return "";
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  const meters = n > 3 ? n / 100 : n;
+  return meters.toFixed(2);
+};
+
 /**
  * Valida un decimal compatible con DecimalField(max_digits=5, decimal_places=2):
  * máximo 999.99. Devuelve el string a enviar, null si está vacío, o un error.
@@ -63,6 +71,32 @@ function parseDecimal(
   return { value: num.toFixed(2) };
 }
 
+/**
+ * Parsea la estatura en metros (0.50 a 2.80 m).
+ * Si el usuario introduce centímetros (50 a 280), lo normaliza automáticamente a metros.
+ */
+function parseHeightMeters(
+  raw: string,
+  label: string,
+  lang: ResolvedLanguage,
+): { value: string | null } | { error: string } {
+  const clean = raw.trim().replace(",", ".");
+  if (!clean) return { value: null };
+  const num = Number(clean);
+  if (!Number.isFinite(num) || num <= 0) {
+    return {
+      error: translate(lang, "editProfile.errorMustBePositive", { label }),
+    };
+  }
+  const meters = num >= 50 && num <= 280 ? num / 100 : num;
+  if (meters < 0.5 || meters > 2.8) {
+    return {
+      error: translate(lang, "editProfile.errorHeightRange", { label }),
+    };
+  }
+  return { value: meters.toFixed(2) };
+}
+
 export const EditProfileForm: React.FC<EditProfileFormProps> = ({
   colors,
   user,
@@ -79,7 +113,7 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
     user.training_goal ?? "hypertrophy",
   );
   const [weight, setWeight] = useState(toInputValue(user.current_weight));
-  const [height, setHeight] = useState(toInputValue(user.height));
+  const [height, setHeight] = useState(toHeightMetersInput(user.height));
   const [bio, setBio] = useState(user.bio ?? "");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
@@ -91,7 +125,7 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
       t("editProfile.errorWeightSubject"),
       language,
     );
-    const h = parseDecimal(
+    const h = parseHeightMeters(
       height,
       t("editProfile.errorHeightSubject"),
       language,
@@ -243,7 +277,7 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
             leftIcon="trending-up"
             value={height}
             onChangeText={setHeight}
-            placeholder="175"
+            placeholder="1.75"
             keyboardType="decimal-pad"
             error={errors.height}
           />

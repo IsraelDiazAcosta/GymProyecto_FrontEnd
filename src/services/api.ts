@@ -119,6 +119,21 @@ export interface ProfileUpdatePayload {
   favorite_exercises?: string[];
 }
 
+export interface RegisterPayload {
+  email: string;
+  username?: string;
+  password: string;
+  password_confirm: string;
+}
+
+export interface RegisterResponse {
+  user: User;
+  tokens: {
+    access: string;
+    refresh: string;
+  };
+}
+
 /** Convierte rutas relativas de media (/media/avatars/x.jpg) en URL absoluta. */
 export function resolveMediaUrl(path?: string | null): string | null {
   if (!path) return null;
@@ -536,6 +551,13 @@ export const api = {
     });
   },
 
+  async register(payload: RegisterPayload): Promise<RegisterResponse> {
+    return request<RegisterResponse>("/auth/register/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
   async getProfile(): Promise<User> {
     return request<User>("/auth/profile/");
   },
@@ -922,6 +944,12 @@ export const api = {
     sessionId: string,
   ): Promise<WorkoutSessionDetail> {
     return request<WorkoutSessionDetail>(`/tracking/sessions/${sessionId}/`);
+  },
+
+  async deleteWorkoutSession(sessionId: string): Promise<void> {
+    return request<void>(`/tracking/sessions/${sessionId}/`, {
+      method: "DELETE",
+    });
   },
 
   async getRoutineSessionsSummary(params?: {

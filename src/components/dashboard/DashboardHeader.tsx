@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
@@ -12,6 +12,8 @@ interface DashboardHeaderProps {
   exercisesCount: number;
   colors: DashboardColors;
   trainedCount?: number;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
 /**
@@ -25,6 +27,8 @@ export function DashboardHeader({
   exercisesCount,
   trainedCount = 0,
   colors,
+  onRefresh,
+  refreshing = false,
 }: DashboardHeaderProps) {
   const { t } = useLanguage();
 
@@ -127,6 +131,29 @@ export function DashboardHeader({
             {isAdmin ? t("header.admin") : t("header.athlete")}
           </Text>
         </View>
+
+        {onRefresh && (
+          <Pressable
+            onPress={onRefresh}
+            disabled={refreshing}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t("header.refreshLabel")}
+            style={[
+              styles.refreshBtn,
+              {
+                backgroundColor: colors.backgroundElevated,
+                borderColor: colors.borderSubtle,
+              },
+            ]}
+          >
+            {refreshing ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <GymIcon name="refresh-cw" size={14} color={colors.primary} />
+            )}
+          </Pressable>
+        )}
       </View>
     </View>
   );
@@ -174,13 +201,13 @@ const styles = StyleSheet.create({
   rightPills: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 5,
   },
   statPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 9,
+    paddingHorizontal: 7,
     paddingVertical: 6,
     borderRadius: Radius.pill,
     borderWidth: 1,
@@ -193,7 +220,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: Radius.pill,
     borderWidth: 1,
@@ -201,5 +228,13 @@ const styles = StyleSheet.create({
   roleText: {
     fontSize: 11,
     fontWeight: "800",
+  },
+  refreshBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
