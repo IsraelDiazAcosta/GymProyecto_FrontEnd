@@ -119,6 +119,17 @@ export interface ProfileUpdatePayload {
   favorite_exercises?: string[];
 }
 
+export interface UserSettingsResponse {
+  theme_mode: "dark" | "light" | "system";
+  accent_color: "emerald" | "ocean" | "amber" | "violet" | "crimson";
+  language: "es" | "en" | "system";
+  updated_at?: string;
+}
+
+export type UserSettingsUpdatePayload = Partial<
+  Pick<UserSettingsResponse, "theme_mode" | "accent_color" | "language">
+>;
+
 export interface RegisterPayload {
   email: string;
   username?: string;
@@ -627,6 +638,19 @@ export const api = {
   },
   async updateProfile(payload: ProfileUpdatePayload): Promise<User> {
     return request<User>("/auth/profile/", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getUserSettings(): Promise<UserSettingsResponse> {
+    return request<UserSettingsResponse>("/auth/settings/");
+  },
+
+  async updateUserSettings(
+    payload: UserSettingsUpdatePayload,
+  ): Promise<UserSettingsResponse> {
+    return request<UserSettingsResponse>("/auth/settings/", {
       method: "PATCH",
       body: JSON.stringify(payload),
     });

@@ -18,6 +18,7 @@ import {
   TranslationKey,
   TranslationParams,
 } from "@/i18n";
+import { useAuth } from "@/context/AuthContext";
 import { DEFAULT_PREFERENCES, preferencesStorage } from "@/services/preferences";
 
 export interface LanguageContextValue {
@@ -49,6 +50,7 @@ const LanguageContext = createContext<LanguageContextValue>(
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
   const [languageMode, setLanguageModeState] = useState<LanguageMode>(
     DEFAULT_PREFERENCES.language,
   );
@@ -61,7 +63,18 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
   modeRef.current = languageMode;
 
   useEffect(() => {
+    if (isAuthLoading) return;
     let mounted = true;
+
+    if (!isAuthenticated) {
+      modeRef.current = DEFAULT_PREFERENCES.language;
+      setLanguageModeState(DEFAULT_PREFERENCES.language);
+      setIsHydrated(true);
+      return () => {
+        mounted = false;
+      };
+    }
+
     preferencesStorage
       .load()
       .then((loaded) => {
@@ -81,7 +94,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [isAuthLoading, isAuthenticated, user?.id]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (nextState) => {
@@ -103,22 +116,43 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({
     [language],
   );
 
-  const setLanguageMode = useCallback((nextMode: LanguageMode) => {
-    modeRef.current = nextMode;
-    if (nextMode === "system") {
-      setSystemLanguage(detectSystemLanguage());
-    }
-    setLanguageModeState(nextMode);
-    preferencesStorage.save({ language: nextMode }).catch(() => undefined);
-  }, []);
+  const setLanguageMode = useCallback(
+    (nextMode: LanguageMode) => {
+      const prevMode = modeRef.current;
+      modeRef.current = nextMode;
+      if (nextMode === "system") {
+        setSystemLanguage(detectSystemLanguage());
+      }
+      setLanguageModeState(nextMode);
+      if (!isAuthenticated) return;
+      preferencesStorage.save({ language: nextMode }).catch((err) => {
+        console.error("Failed to save language preference", err);
+        modeRef.current = prevMode;
+        if (prevMode === "system") {
+          setSystemLanguage(detectSystemLanguage());
+        }
+        setLanguageModeState(prevMode);
+      });
+    },
+    [isAuthenticated],
+  );
 
   const resetLanguage = useCallback(() => {
+    const prevMode = modeRef.current;
     modeRef.current = DEFAULT_PREFERENCES.language;
     setLanguageModeState(DEFAULT_PREFERENCES.language);
+    if (!isAuthenticated) return;
     preferencesStorage
       .save({ language: DEFAULT_PREFERENCES.language })
-      .catch(() => undefined);
-  }, []);
+      .catch((err) => {
+        console.error("Failed to reset language preference", err);
+        modeRef.current = prevMode;
+        if (prevMode === "system") {
+          setSystemLanguage(detectSystemLanguage());
+        }
+        setLanguageModeState(prevMode);
+      });
+  }, [isAuthenticated]);
 
   const value = useMemo<LanguageContextValue>(
     () => ({

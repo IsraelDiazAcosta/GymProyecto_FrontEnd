@@ -106,11 +106,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const response: AuthResponse = await api.login(email.trim(), password);
 
-      setToken(response.access);
-      setUser(response.user);
-
       await storage.saveTokens(response.access, response.refresh);
       await storage.saveUser(response.user);
+
+      setToken(response.access);
+      setUser(response.user);
 
       return true;
     } catch (err: any) {
@@ -138,10 +138,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error("Incomplete registration response.");
       }
 
-      setToken(access);
-      setUser(response.user);
       await storage.saveTokens(access, refresh);
       await storage.saveUser(response.user);
+      setToken(access);
+      setUser(response.user);
       return true;
     } catch (err) {
       setError(extractApiError(err, "Could not create account"));

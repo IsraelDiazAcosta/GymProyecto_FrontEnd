@@ -32,20 +32,20 @@ function RootLayoutContent() {
   return (
     <ThemeProvider value={navigationTheme}>
       <StatusBar style={resolvedMode === "dark" ? "light" : "dark"} animated />
-      <AuthProvider>
-        <AnimatedSplashOverlay />
-        <HomeScreen />
-      </AuthProvider>
+      <AnimatedSplashOverlay />
+      <HomeScreen />
     </ThemeProvider>
   );
 }
 
 export default function RootLayout() {
   return (
-    <AppThemeProvider>
-      <LanguageProvider>
-        <RootLayoutContent />
-      </LanguageProvider>
-    </AppThemeProvider>
+    <AuthProvider>
+      <AppThemeProvider>
+        <LanguageProvider>
+          <RootLayoutContent />
+        </LanguageProvider>
+      </AppThemeProvider>
+    </AuthProvider>
   );
 }

@@ -23,6 +23,7 @@ import {
   ThemeColors,
   ThemeMode,
 } from "@/constants/theme";
+import { useAuth } from "@/context/AuthContext";
 import { DEFAULT_PREFERENCES, preferencesStorage } from "@/services/preferences";
 
 export interface ThemeContextValue {
@@ -70,6 +71,7 @@ function applyNativeColorScheme(mode: ThemeMode): void {
 export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
   const [mode, setModeState] = useState<ThemeMode>(
     DEFAULT_PREFERENCES.themeMode,
   );
@@ -84,17 +86,33 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const modeRef = useRef<ThemeMode>(mode);
   modeRef.current = mode;
+  const accentRef = useRef<AccentId>(accent);
+  accentRef.current = accent;
 
   const webScheme = useRNColorScheme();
 
   useEffect(() => {
+    if (isAuthLoading) return;
     let mounted = true;
+
+    if (!isAuthenticated) {
+      modeRef.current = DEFAULT_PREFERENCES.themeMode;
+      accentRef.current = DEFAULT_PREFERENCES.accentId;
+      setModeState(DEFAULT_PREFERENCES.themeMode);
+      setAccentState(DEFAULT_PREFERENCES.accentId);
+      applyNativeColorScheme(DEFAULT_PREFERENCES.themeMode);
+      setIsHydrated(true);
+      return () => {
+        mounted = false;
+      };
+    }
 
     preferencesStorage
       .load()
       .then((loaded) => {
         if (!mounted) return;
         modeRef.current = loaded.themeMode;
+        accentRef.current = loaded.accentId;
         setModeState(loaded.themeMode);
         setAccentState(loaded.accentId);
         applyNativeColorScheme(loaded.themeMode);
@@ -111,7 +129,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [isAuthLoading, isAuthenticated, user?.id]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -158,23 +176,52 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     SystemUI.setBackgroundColorAsync(colors.background).catch(() => undefined);
   }, [colors.background]);
 
-  const setMode = useCallback((nextMode: ThemeMode) => {
-    modeRef.current = nextMode;
-    setModeState(nextMode);
-    preferencesStorage.save({ themeMode: nextMode }).catch(() => undefined);
-  }, []);
+  const setMode = useCallback(
+    (nextMode: ThemeMode) => {
+      const prevMode = modeRef.current;
+      modeRef.current = nextMode;
+      setModeState(nextMode);
+      if (!isAuthenticated) return;
+      preferencesStorage.save({ themeMode: nextMode }).catch((err) => {
+        console.error("Failed to save theme mode preference", err);
+        modeRef.current = prevMode;
+        setModeState(prevMode);
+      });
+    },
+    [isAuthenticated],
+  );
 
-  const setAccent = useCallback((nextAccent: AccentId) => {
-    setAccentState(nextAccent);
-    preferencesStorage.save({ accentId: nextAccent }).catch(() => undefined);
-  }, []);
+  const setAccent = useCallback(
+    (nextAccent: AccentId) => {
+      const prevAccent = accentRef.current;
+      accentRef.current = nextAccent;
+      setAccentState(nextAccent);
+      if (!isAuthenticated) return;
+      preferencesStorage.save({ accentId: nextAccent }).catch((err) => {
+        console.error("Failed to save accent color preference", err);
+        accentRef.current = prevAccent;
+        setAccentState(prevAccent);
+      });
+    },
+    [isAuthenticated],
+  );
 
   const resetAppearance = useCallback(() => {
+    const prevMode = modeRef.current;
+    const prevAccent = accentRef.current;
     modeRef.current = DEFAULT_PREFERENCES.themeMode;
+    accentRef.current = DEFAULT_PREFERENCES.accentId;
     setModeState(DEFAULT_PREFERENCES.themeMode);
     setAccentState(DEFAULT_PREFERENCES.accentId);
-    preferencesStorage.resetAppearance().catch(() => undefined);
-  }, []);
+    if (!isAuthenticated) return;
+    preferencesStorage.resetAppearance().catch((err) => {
+      console.error("Failed to reset appearance preferences", err);
+      modeRef.current = prevMode;
+      accentRef.current = prevAccent;
+      setModeState(prevMode);
+      setAccentState(prevAccent);
+    });
+  }, [isAuthenticated]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({

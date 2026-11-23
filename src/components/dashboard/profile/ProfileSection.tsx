@@ -16,10 +16,7 @@ import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import {
-  getExperienceLevelLabel,
-  getTrainingGoalLabel,
-} from "@/i18n";
+import { getExperienceLevelLabel, getTrainingGoalLabel } from "@/i18n";
 import {
   api,
   BodyWeightLogItem,
@@ -43,9 +40,7 @@ const formatDecimal = (v?: number | string | null) => {
  * Normalizes height to meters: accepts modern values in meters (e.g., 1.60)
  * and legacy values saved in centimeters (e.g., 175 -> 1.75).
  */
-const normalizeHeightToMeters = (
-  v?: number | string | null,
-): number | null => {
+const normalizeHeightToMeters = (v?: number | string | null): number | null => {
   const n = formatDecimal(v);
   if (n === null || n <= 0) return null;
   return n > 3 ? n / 100 : n;
@@ -137,7 +132,11 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const favoritesCount = user?.favorite_exercises?.length ?? 0;
 
   const stats = [
-    { icon: "award" as const, label: t("profile.statLevel"), value: levelLabel },
+    {
+      icon: "award" as const,
+      label: t("profile.statLevel"),
+      value: levelLabel,
+    },
     { icon: "flame" as const, label: t("profile.statGoal"), value: goalLabel },
     {
       icon: "activity" as const,
@@ -149,7 +148,11 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
       label: t("profile.statHeight"),
       value: heightMeters ? `${heightMeters.toFixed(2)} m` : "--",
     },
-    { icon: "target" as const, label: t("profile.statBmi"), value: bmi ?? "--" },
+    {
+      icon: "target" as const,
+      label: t("profile.statBmi"),
+      value: bmi ?? "--",
+    },
   ];
 
   // Prepare series for the dual chart (Body Weight vs 1RM Curve)
@@ -300,9 +303,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             color={colors.primary}
           />
           <Text style={[styles.rolePillText, { color: colors.primary }]}>
-            {user?.is_staff
-              ? t("profile.roleAdmin")
-              : t("profile.roleAthlete")}
+            {user?.is_staff ? t("profile.roleAdmin") : t("profile.roleAthlete")}
           </Text>
         </View>
 
@@ -357,17 +358,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               </Text>
               <Text style={[styles.bioText, { color: colors.text }]}>
                 {user?.bio?.trim() || t("profile.bioEmpty")}
-              </Text>
-            </View>
-
-            <View style={styles.favoritesRow}>
-              <GymIcon name="sparkles" size={14} color={colors.accent} />
-              <Text
-                style={[styles.favoritesText, { color: colors.textSecondary }]}
-              >
-                {favoritesCount === 1
-                  ? t("profile.favoritesOne")
-                  : t("profile.favoritesMany", { count: favoritesCount })}
               </Text>
             </View>
           </>
