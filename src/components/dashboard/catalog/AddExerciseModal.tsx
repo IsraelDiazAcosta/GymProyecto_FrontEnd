@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -22,6 +22,7 @@ import {
   PickedImageAsset,
   resolveMediaUrl,
 } from "@/services/api";
+import { isEquipmentCompatibleWithMuscle } from "../muscleValidation";
 import { DashboardColors } from "../types";
 
 export interface AddExerciseModalProps {
@@ -79,6 +80,16 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
   const selectedMuscleObj = muscleList.find((m) => m.id === selectedMuscle);
   const previewUri =
     newExImage?.uri || resolveMediaUrl(selectedEquipObj?.image);
+
+  const filteredEquipmentList = useMemo(() => {
+    if (!selectedMuscleObj) return equipmentList;
+    return equipmentList.filter((eq) =>
+      isEquipmentCompatibleWithMuscle(
+        eq.name,
+        `${selectedMuscleObj.name} ${selectedMuscleObj.body_part || ""}`,
+      ),
+    );
+  }, [equipmentList, selectedMuscleObj]);
 
   const handlePickImage = async (source: "camera" | "gallery") => {
     try {
@@ -377,7 +388,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
                     )}
                   </Pressable>
 
-                  {equipmentList.map((eq) => {
+                  {filteredEquipmentList.map((eq) => {
                     const isSelected = selectedEquipment === eq.id;
                     return (
                       <Pressable

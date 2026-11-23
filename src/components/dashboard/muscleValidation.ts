@@ -1,9 +1,5 @@
 import { Exercise } from "@/services/api";
 
-/**
- * Valida si un ejercicio pertenece al grupo muscular / enfoque seleccionado.
- * Soporta tanto recibir el objeto Exercise completo como (name, focus, primaryMuscle).
- */
 export function isExerciseCompatibleWithFocus(
   exerciseOrName: Exercise | string,
   focus?: string,
@@ -214,4 +210,134 @@ export function getExerciseMuscleLabel(
     );
   }
   return "General";
+}
+
+/**
+ * Determina si una máquina/equipo es anatómicamente compatible con el músculo objetivo o zona corporal.
+ * Las máquinas universales (poleas, multipower/smith, peso libre, accesorios) se permiten en cualquier grupo.
+ * Las máquinas específicas (prensa, extensión de cuádriceps, curl femoral, press de pecho, remo en t, etc.)
+ * se validan contra el músculo seleccionado para evitar asignar máquinas erróneas.
+ */
+export function isEquipmentCompatibleWithMuscle(
+  equipmentNameOrType: string,
+  muscleNameOrZone?: string | null,
+): boolean {
+  if (!muscleNameOrZone || !muscleNameOrZone.trim()) {
+    return true; // Si no hay músculo especificado, se permiten todas
+  }
+
+  const equip = (equipmentNameOrType || "").toLowerCase().trim();
+  const muscle = muscleNameOrZone.toLowerCase().trim();
+
+  // 1. Equipos universales / multi-propósito siempre son compatibles con cualquier músculo
+  const isUniversal =
+    equip.includes("polea") ||
+    equip.includes("cable") ||
+    equip.includes("smith") ||
+    equip.includes("multipower") ||
+    equip.includes("mancuerna") ||
+    equip.includes("barra") ||
+    equip.includes("banco") ||
+    equip.includes("peso libre") ||
+    equip.includes("libre") ||
+    equip.includes("calistenia") ||
+    equip.includes("accesorio");
+
+  if (isUniversal) {
+    return true;
+  }
+
+  // 2. Mapeo por zonas musculares
+  const isLegMuscle =
+    muscle.includes("pierna") ||
+    muscle.includes("cuádriceps") ||
+    muscle.includes("cuadriceps") ||
+    muscle.includes("femoral") ||
+    muscle.includes("glúteo") ||
+    muscle.includes("gluteo") ||
+    muscle.includes("isquiotibial") ||
+    muscle.includes("pantorrilla") ||
+    muscle.includes("gemelo") ||
+    muscle.includes("aduct") ||
+    muscle.includes("abduct");
+
+  const isChestMuscle =
+    muscle.includes("pecho") ||
+    muscle.includes("pectoral");
+
+  const isBackMuscle =
+    muscle.includes("espalda") ||
+    muscle.includes("dorsal") ||
+    muscle.includes("trapecio") ||
+    muscle.includes("lumbar");
+
+  const isShoulderMuscle =
+    muscle.includes("hombro") ||
+    muscle.includes("deltoides");
+
+  const isArmMuscle =
+    muscle.includes("brazo") ||
+    muscle.includes("bíceps") ||
+    muscle.includes("biceps") ||
+    muscle.includes("tríceps") ||
+    muscle.includes("triceps") ||
+    muscle.includes("antebrazo");
+
+  // Detección de enfoque de la máquina por su nombre
+  const isLegEquip =
+    equip.includes("prensa") ||
+    equip.includes("cuádriceps") ||
+    equip.includes("cuadriceps") ||
+    equip.includes("femoral") ||
+    equip.includes("hack") ||
+    equip.includes("sentadilla") ||
+    equip.includes("gemelo") ||
+    equip.includes("glúteo") ||
+    equip.includes("gluteo") ||
+    equip.includes("isquio") ||
+    equip.includes("pantorrilla");
+
+  const isChestEquip =
+    equip.includes("pecho") ||
+    equip.includes("convergente") ||
+    equip.includes("chest") ||
+    equip.includes("apertura") ||
+    equip.includes("press de banca") ||
+    equip.includes("inclinado");
+
+  const isBackEquip =
+    equip.includes("remo") ||
+    equip.includes("dorsal") ||
+    equip.includes("jalón") ||
+    equip.includes("jalon") ||
+    equip.includes("pulldown") ||
+    equip.includes("lat pulldown");
+
+  const isArmEquip =
+    equip.includes("curl") && !equip.includes("femoral") ||
+    equip.includes("predicador") ||
+    equip.includes("scott") ||
+    equip.includes("fondos");
+
+  const isShoulderEquip =
+    equip.includes("hombro") ||
+    equip.includes("militar") ||
+    equip.includes("deltoides");
+
+  // Si la máquina es claramente de pierna, solo va con músculos de pierna
+  if (isLegEquip) return isLegMuscle;
+
+  // Si la máquina es claramente de pecho, solo va con pecho (o hombro/tríceps secundarios)
+  if (isChestEquip) return isChestMuscle || isShoulderMuscle || isArmMuscle;
+
+  // Si la máquina es claramente de espalda, solo va con espalda (o bíceps/trapecio)
+  if (isBackEquip) return isBackMuscle || isArmMuscle;
+
+  // Si la máquina es de brazo, solo va con brazo
+  if (isArmEquip) return isArmMuscle;
+
+  // Si la máquina es de hombro, solo va con hombro
+  if (isShoulderEquip) return isShoulderMuscle;
+
+  return true;
 }

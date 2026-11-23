@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { AppInput } from "@/components/ui/AppInput";
@@ -14,6 +14,7 @@ import {
   PickedImageAsset,
   resolveMediaUrl,
 } from "@/services/api";
+import { isEquipmentCompatibleWithMuscle } from "../../muscleValidation";
 import { DashboardColors } from "../../types";
 
 interface EditExerciseFormProps {
@@ -66,6 +67,17 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
   const previewUri =
     pickedImage?.uri ||
     resolveMediaUrl(currentImageUrl || selectedEquipObj?.image);
+
+
+  const filteredEquipmentList = useMemo(() => {
+    if (!selectedMuscleObj) return equipmentList;
+    return equipmentList.filter((eq) =>
+      isEquipmentCompatibleWithMuscle(
+        eq.name,
+        `${selectedMuscleObj.name} ${selectedMuscleObj.body_part || ""}`,
+      ),
+    );
+  }, [equipmentList, selectedMuscleObj]);
 
   const handlePickImage = async (source: "camera" | "gallery") => {
     try {
@@ -276,7 +288,7 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
             )}
           </Pressable>
 
-          {equipmentList.map((eq) => {
+          {filteredEquipmentList.map((eq) => {
             const isSel = exEquipment === eq.id;
             return (
               <Pressable

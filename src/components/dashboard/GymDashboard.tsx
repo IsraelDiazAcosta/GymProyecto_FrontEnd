@@ -64,12 +64,18 @@ type SessionPayloadWithExercises = WorkoutSessionItem & {
   }>;
 };
 
-const getSessionRoutineId = (session: WorkoutSessionItem | null): string | null => {
+const getSessionRoutineId = (
+  session: WorkoutSessionItem | null,
+): string | null => {
   if (!session) return null;
   if (session.routine_id) return session.routine_id;
   if (session.routine_detail?.id) return session.routine_detail.id;
   if (typeof session.routine === "string") return session.routine;
-  if (session.routine && typeof session.routine === "object" && session.routine.id) {
+  if (
+    session.routine &&
+    typeof session.routine === "object" &&
+    session.routine.id
+  ) {
     return session.routine.id;
   }
   return null;

@@ -475,8 +475,15 @@ function buildMultipartBody(payload: Record<string, any>): FormData {
 function serializePayloadWithImage(
   payload: Record<string, any>,
 ): string | FormData {
-  const img = payload?.image as PickedImageAsset | null | undefined;
-  if (img && typeof img === "object") {
+  const img = payload?.image;
+  // Solo procesar como imagen nueva si es un objeto PickedImageAsset real (con base64, uri o file).
+  // Si es un string (como una URL existente 'http://...') o null/undefined, NO se envía como nueva imagen.
+  const isPickedImage =
+    img &&
+    typeof img === "object" &&
+    ("base64" in img || "uri" in img || "file" in img);
+
+  if (isPickedImage) {
     if (img.base64) {
       const cleanPayload: Record<string, any> = {};
       Object.entries(payload).forEach(([key, val]) => {
@@ -498,7 +505,8 @@ function serializePayloadWithImage(
   const cleanPayload: Record<string, any> = {};
   Object.entries(payload || {}).forEach(([key, val]) => {
     if (val === undefined) return;
-    if (key === "image" && val === null) return;
+    // Si la imagen no es un nuevo archivo seleccionado, se omite para no sobrescribir la existente con un string inválido
+    if (key === "image") return;
     cleanPayload[key] = val;
   });
   return JSON.stringify(cleanPayload);
