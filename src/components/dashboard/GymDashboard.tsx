@@ -926,9 +926,19 @@ export const GymDashboard: React.FC = () => {
         itemType={vm.actionSheetItem?.type || "routine"}
         itemTitle={vm.actionSheetItem?.title || ""}
         itemSubtitle={vm.actionSheetItem?.subtitle}
-        onEdit={() => {
-          vm.setEditModalItem(vm.actionSheetItem);
+        onEdit={async () => {
+          const item = vm.actionSheetItem;
           vm.setActionSheetItem(null);
+          if (!item) return;
+          if (item.type === "exercise" && item.data?.id) {
+            try {
+              vm.loadCatalogExtras();
+              const fullDetail = await api.getExerciseDetail(item.data.id);
+              vm.setEditModalItem({ ...item, data: fullDetail });
+              return;
+            } catch {}
+          }
+          vm.setEditModalItem(item);
         }}
         onDelete={() => {
           if (vm.actionSheetItem) {
@@ -967,11 +977,7 @@ export const GymDashboard: React.FC = () => {
                   vm.editModalItem.data.video_url ||
                   "",
                 muscle_id: vm.editModalItem.data.muscles?.[0]?.muscle || null,
-                image:
-                  vm.editModalItem.data.image ||
-                  vm.editModalItem.data.image_url ||
-                  vm.editModalItem.data.thumbnail ||
-                  null,
+                image: vm.editModalItem.data.own_image ?? null,
               }
             : null
         }

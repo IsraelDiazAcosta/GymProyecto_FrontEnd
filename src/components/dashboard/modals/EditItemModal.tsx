@@ -180,8 +180,10 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   );
 
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
+    setSaveError(null);
     setExPickedImage(null);
     setEqPickedImage(null);
     if (itemType === "routine" && routineData) {
@@ -218,6 +220,20 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   ]);
 
   const handleSave = async () => {
+    setSaveError(null);
+    if (itemType === "routine" && !routineTitle.trim()) {
+      setSaveError(t("toasts.routineNameRequiredMsg"));
+      return;
+    }
+    if (itemType === "exercise" && !exName.trim()) {
+      setSaveError(t("toasts.exerciseNameRequiredMsg"));
+      return;
+    }
+    if (itemType === "equipment" && !eqName.trim()) {
+      setSaveError(t("toasts.nameRequiredTitle"));
+      return;
+    }
+
     setSaving(true);
     try {
       if (itemType === "routine" && routineData) {
@@ -227,18 +243,31 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           exerciseData.id,
           exName.trim(),
           exEquipment,
-          exInstructions,
-          exVideo,
+          exInstructions.trim() || t("toasts.defaultInstructions"),
+          exVideo.trim(),
           exMuscle,
           exPickedImage,
         );
       } else if (itemType === "marca" && marcaData && onSaveMarca) {
-        await onSaveMarca(
-          marcaData.id,
-          Number(marcaWeight) || 0,
-          Number(marcaReps) || 0,
-          marcaRpe ? Number(marcaRpe) : undefined,
-        );
+        const w = parseFloat(marcaWeight.replace(",", "."));
+        const r = parseInt(marcaReps, 10);
+        const rpeVal = marcaRpe.trim()
+          ? parseFloat(marcaRpe.replace(",", "."))
+          : undefined;
+        if (
+          !Number.isFinite(w) ||
+          w <= 0 ||
+          w >= 10000 ||
+          !Number.isFinite(r) ||
+          r <= 0 ||
+          r > 1000 ||
+          (rpeVal !== undefined &&
+            (!Number.isFinite(rpeVal) || rpeVal < 1 || rpeVal > 10))
+        ) {
+          setSaveError(t("toasts.invalidDataMsg"));
+          return;
+        }
+        await onSaveMarca(marcaData.id, w, r, rpeVal);
       } else if (itemType === "equipment" && equipmentData && onSaveEquipment) {
         await onSaveEquipment(equipmentData.id, {
           name: eqName.trim(),
@@ -250,6 +279,8 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
         });
       }
       onClose();
+    } catch (err: any) {
+      setSaveError(err?.message || t("toasts.deleteError"));
     } finally {
       setSaving(false);
     }
@@ -392,6 +423,27 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
               />
             )}
 
+            {saveError && (
+              <View
+                style={[
+                  styles.errorBanner,
+                  {
+                    backgroundColor: colors.dangerGlow,
+                    borderColor: colors.danger,
+                  },
+                ]}
+              >
+                <GymIcon
+                  name="alert-triangle"
+                  size={16}
+                  color={colors.danger}
+                />
+                <Text style={[styles.errorBannerText, { color: colors.danger }]}>
+                  {saveError}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.actionsRow}>
               <AppButton
                 title={t("modals.saveChangesBtn")}
@@ -454,6 +506,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 10,
+  },
+  errorBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "700",
   },
   actionsRow: {
     flexDirection: "row",

@@ -314,6 +314,7 @@ export interface Exercise {
   media?: ExerciseMedia[];
   image?: string | null;
   image_url?: string | null;
+  own_image?: string | null;
   thumbnail?: string | null;
 }
 
@@ -512,6 +513,31 @@ function serializePayloadWithImage(
   return JSON.stringify(cleanPayload);
 }
 
+function extractApiErrorMessage(data: any): string {
+  if (!data || typeof data !== "object") return "Error en la petición";
+  if (typeof data.detail === "string" && data.detail.trim()) return data.detail;
+  if (Array.isArray(data.non_field_errors) && data.non_field_errors[0]) {
+    return String(data.non_field_errors[0]);
+  }
+  for (const [key, val] of Object.entries(data)) {
+    if (Array.isArray(val) && val.length > 0) {
+      return `${key}: ${String(val[0])}`;
+    }
+    if (typeof val === "string" && val.trim()) {
+      return `${key}: ${val}`;
+    }
+  }
+  return "Error en la petición";
+}
+
+function normalizeVideoUrl(raw?: string): string | undefined {
+  if (raw === undefined) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -535,8 +561,7 @@ async function request<T>(
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const errorMsg =
-        data.detail || data.non_field_errors?.[0] || "Error en la petición";
+      const errorMsg = extractApiErrorMessage(data);
       throw new ApiError(response.status, errorMsg, data);
     }
 
@@ -704,7 +729,13 @@ export const api = {
   },
 
   async createExercise(payload: any): Promise<Exercise> {
-    const body = serializePayloadWithImage(payload);
+    const normalized = {
+      ...payload,
+      ...(payload?.video_url !== undefined
+        ? { video_url: normalizeVideoUrl(payload.video_url) }
+        : {}),
+    };
+    const body = serializePayloadWithImage(normalized);
     return request<Exercise>("/catalog/exercises/", {
       method: "POST",
       body,
@@ -712,7 +743,13 @@ export const api = {
   },
 
   async updateExercise(id: string, payload: any): Promise<Exercise> {
-    const body = serializePayloadWithImage(payload);
+    const normalized = {
+      ...payload,
+      ...(payload?.video_url !== undefined
+        ? { video_url: normalizeVideoUrl(payload.video_url) }
+        : {}),
+    };
+    const body = serializePayloadWithImage(normalized);
     return request<Exercise>(`/catalog/exercises/${id}/`, {
       method: "PATCH",
       body,
@@ -727,8 +764,7 @@ export const api = {
 
   // --- RUTINAS ---
   async getRoutines(): Promise<Routine[]> {
-    const res: any = await request("/routines/routines/");
-    return res.results || res;
+    return fetchAllPages<Routine>("/routines/routines/");
   },
 
   async createRoutine(

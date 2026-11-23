@@ -156,7 +156,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                       styles.videoOverlayBtn,
                       { backgroundColor: colors.primary },
                     ]}
-                    onPress={() => Linking.openURL(videoUrl)}
+                    onPress={() => Linking.openURL(videoUrl).catch(() => {})}
                   >
                     <GymIcon name="play" size={15} color={colors.onPrimary} />
                     <Text
@@ -192,7 +192,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                       styles.videoBtnInline,
                       { backgroundColor: colors.primary },
                     ]}
-                    onPress={() => Linking.openURL(videoUrl)}
+                    onPress={() => Linking.openURL(videoUrl).catch(() => {})}
                   >
                     <GymIcon name="video" size={15} color={colors.onPrimary} />
                     <Text

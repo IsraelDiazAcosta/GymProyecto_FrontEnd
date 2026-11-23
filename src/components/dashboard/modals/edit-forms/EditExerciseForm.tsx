@@ -181,6 +181,15 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
                 key={m.id}
                 onPress={() => {
                   setExMuscle(m.id);
+                  if (selectedEquipObj) {
+                    const compatible = isEquipmentCompatibleWithMuscle(
+                      selectedEquipObj.name,
+                      `${m.name} ${m.body_part || ""}`,
+                    );
+                    if (!compatible) {
+                      setExEquipment(null);
+                    }
+                  }
                   setMuscleDropdownOpen(false);
                 }}
                 style={[

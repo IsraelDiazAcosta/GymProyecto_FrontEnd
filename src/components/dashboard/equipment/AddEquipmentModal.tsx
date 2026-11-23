@@ -65,6 +65,8 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
   const [setupGuide, setSetupGuide] = useState("");
   const [pickedImage, setPickedImage] = useState<PickedImageAsset | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [nameError, setNameError] = useState<string | undefined>(undefined);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handlePickImage = async (source: "camera" | "gallery") => {
     try {
@@ -74,7 +76,12 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
   };
 
   const handleSave = async () => {
-    if (!name.trim()) return;
+    setSubmitError(null);
+    if (!name.trim()) {
+      setNameError(t("toasts.nameRequiredTitle"));
+      return;
+    }
+    setNameError(undefined);
     setSubmitting(true);
     try {
       await onSubmit({
@@ -91,9 +98,10 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
       setDescription("");
       setSetupGuide("");
       setPickedImage(null);
+      setSubmitError(null);
       onClose();
-    } catch {
-      // El toast de error ya se muestra en useGymDashboardData
+    } catch (err: any) {
+      setSubmitError(err?.message || t("toasts.createEquipmentError"));
     } finally {
       setSubmitting(false);
     }
@@ -145,7 +153,11 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
               placeholder={t("equipment.namePlaceholder")}
               leftIcon="cog"
               value={name}
-              onChangeText={setName}
+              onChangeText={(val) => {
+                setName(val);
+                if (nameError) setNameError(undefined);
+              }}
+              error={nameError}
             />
 
             <Text style={[styles.label, { color: colors.textSecondary }]}>
@@ -267,6 +279,27 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
               />
             )}
 
+            {submitError && (
+              <View
+                style={[
+                  styles.errorBanner,
+                  {
+                    backgroundColor: colors.dangerGlow,
+                    borderColor: colors.danger,
+                  },
+                ]}
+              >
+                <GymIcon
+                  name="alert-triangle"
+                  size={16}
+                  color={colors.danger}
+                />
+                <Text style={[styles.errorBannerText, { color: colors.danger }]}>
+                  {submitError}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.actionsRow}>
               <AppButton
                 title={t("equipment.saveBtn")}
@@ -354,6 +387,21 @@ const styles = StyleSheet.create({
   typeLabel: {
     fontSize: 12,
     fontWeight: "800",
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  errorBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "700",
   },
   actionsRow: {
     flexDirection: "row",

@@ -536,11 +536,21 @@ export function useGymDashboardData() {
       );
       return false;
     }
-    const w = parseFloat(marcaWeight);
+    const w = parseFloat(marcaWeight.replace(",", "."));
     const r = parseInt(marcaReps, 10);
-    const rpe = parseFloat(marcaRpe) || undefined;
+    const rpe = marcaRpe.trim()
+      ? parseFloat(marcaRpe.replace(",", "."))
+      : undefined;
 
-    if (isNaN(w) || isNaN(r)) {
+    if (
+      !Number.isFinite(w) ||
+      w <= 0 ||
+      w >= 10000 ||
+      !Number.isFinite(r) ||
+      r <= 0 ||
+      r > 1000 ||
+      (rpe !== undefined && (!Number.isFinite(rpe) || rpe < 1 || rpe > 10))
+    ) {
       showToast(
         "warning",
         t("toasts.invalidDataTitle"),
@@ -680,6 +690,7 @@ export function useGymDashboardData() {
       );
     } catch (e: any) {
       showToast("error", t("toasts.updateMarcaError"), e.message);
+      throw e;
     } finally {
       setLoading(false);
     }
@@ -702,6 +713,7 @@ export function useGymDashboardData() {
       );
     } catch (e: any) {
       showToast("error", t("toasts.updateRoutineError"), e.message);
+      throw e;
     } finally {
       setLoading(false);
     }
@@ -859,6 +871,7 @@ export function useGymDashboardData() {
       );
     } catch (e: any) {
       showToast("error", t("toasts.updateExerciseError"), e.message);
+      throw e;
     } finally {
       setLoading(false);
     }
@@ -919,6 +932,7 @@ export function useGymDashboardData() {
       );
     } catch (e: any) {
       showToast("error", t("toasts.updateEquipmentError"), e.message);
+      throw e;
     } finally {
       setLoading(false);
     }
@@ -1018,8 +1032,12 @@ export function useGymDashboardData() {
       } else if (deleteConfirmItem.type === "equipment") {
         if (!requireAdmin()) return;
         await api.deleteEquipment(parseInt(deleteConfirmItem.id, 10));
-        const updated = await api.getEquipment();
+        const [updated, updatedExercises] = await Promise.all([
+          api.getEquipment(),
+          api.getExercises().catch(() => exercises),
+        ]);
         setEquipmentList(updated);
+        setExercises(updatedExercises);
         showToast(
           "success",
           t("toasts.equipmentDeletedTitle"),
