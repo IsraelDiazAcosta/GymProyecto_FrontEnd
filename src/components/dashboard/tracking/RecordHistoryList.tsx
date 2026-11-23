@@ -33,23 +33,23 @@ import {
 import { ConfirmDeleteModal } from "../modals/ConfirmDeleteModal";
 import { DashboardColors, RoutineExerciseItem } from "../types";
 
-export interface MarcaHistoryListProps {
+export interface RecordHistoryListProps {
   colors: DashboardColors;
-  marcaHistory: ProgressionItem[];
-  onMarcaOptionsPress?: (item: ProgressionItem) => void;
+  recordHistory: ProgressionItem[];
+  onRecordOptionsPress?: (item: ProgressionItem) => void;
   currentRoutineExercises?: RoutineExerciseItem[];
   trackingExerciseId?: string;
   onSelectExercise?: (exerciseId: string) => void;
 }
 
 /**
- * Listado histórico de levantamientos con cálculo 1RM, fecha e interacción
- * de opciones para editar o eliminar registros.
+ * Historical list of lift records with 1RM calculation, date, and
+ * option controls for editing or deleting entries.
  */
-export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
+export const RecordHistoryList: React.FC<RecordHistoryListProps> = ({
   colors,
-  marcaHistory,
-  onMarcaOptionsPress,
+  recordHistory,
+  onRecordOptionsPress,
   currentRoutineExercises = [],
   trackingExerciseId = "",
   onSelectExercise,
@@ -60,7 +60,7 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
     try {
       Vibration.vibrate(45);
     } catch {}
-    onMarcaOptionsPress?.(item);
+    onRecordOptionsPress?.(item);
   };
 
   return (
@@ -84,7 +84,7 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
           style={[styles.countBadge, { backgroundColor: colors.primaryGlow }]}
         >
           <Text style={[styles.countText, { color: colors.primary }]}>
-            {marcaHistory.length}
+            {recordHistory.length}
           </Text>
         </View>
       </View>
@@ -149,7 +149,7 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
         </View>
       )}
 
-      {marcaHistory.length > 0 ? (
+      {recordHistory.length > 0 ? (
         <ScrollView
           style={styles.scrollList}
           contentContainerStyle={styles.listWrap}
@@ -157,12 +157,12 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
           showsVerticalScrollIndicator={true}
           keyboardShouldPersistTaps="handled"
         >
-          {marcaHistory.map((item, idx) => {
+          {recordHistory.map((item, idx) => {
             const oneRm =
               item.reps > 0 && item.reps < 37
                 ? (item.weight * (36 / (37 - item.reps))).toFixed(1)
                 : item.weight;
-            const fecha = item.logged_at
+            const loggedDate = item.logged_at
               ? new Date(item.logged_at).toLocaleDateString(locale)
               : t("common.recent");
 
@@ -205,7 +205,7 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
                       style={[styles.metaText, { color: colors.textSecondary }]}
                     >
                       {t("tracking.dateRpeLine", {
-                        date: fecha,
+                        date: loggedDate,
                         rpe: item.rpe || 8,
                       })}
                     </Text>
@@ -229,9 +229,9 @@ export const MarcaHistoryList: React.FC<MarcaHistoryListProps> = ({
                   </Text>
                 </View>
 
-                {onMarcaOptionsPress && (
+                {onRecordOptionsPress && (
                   <Pressable
-                    onPress={() => onMarcaOptionsPress(item)}
+                    onPress={() => onRecordOptionsPress(item)}
                     hitSlop={10}
                     style={styles.moreBtn}
                   >
@@ -430,7 +430,7 @@ const parseSessionDate = (raw?: string | null): Date | null => {
 const formatLocalDateTime = (
   raw?: string | null,
   language: ResolvedLanguage = "es",
-  recentFallback = "Fecha reciente",
+  recentFallback = "Recent date",
 ): string => {
   const dt = parseSessionDate(raw);
   if (!dt) return recentFallback;
@@ -446,7 +446,7 @@ const formatLocalDateTime = (
 const formatLocalDateOnly = (
   raw?: string | null,
   language: ResolvedLanguage = "es",
-  noDateFallback = "Sin fecha",
+  noDateFallback = "No date",
 ): string => {
   const dt = parseSessionDate(raw);
   if (!dt) return noDateFallback;
@@ -458,7 +458,7 @@ const formatLocalDateOnly = (
 };
 
 const getLocalPeriodBounds = (period: PeriodFilter) => {
-  if (period === "all") return { desde: undefined, hasta: undefined };
+  if (period === "all") return { from: undefined, to: undefined };
   const now = new Date();
   if (period === "week") {
     const dayIdx = (now.getDay() + 6) % 7;
@@ -481,8 +481,8 @@ const getLocalPeriodBounds = (period: PeriodFilter) => {
       999,
     );
     return {
-      desde: monday.toISOString(),
-      hasta: sundayEnd.toISOString(),
+      from: monday.toISOString(),
+      to: sundayEnd.toISOString(),
     };
   }
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
@@ -496,14 +496,14 @@ const getLocalPeriodBounds = (period: PeriodFilter) => {
     999,
   );
   return {
-    desde: monthStart.toISOString(),
-    hasta: monthEnd.toISOString(),
+    from: monthStart.toISOString(),
+    to: monthEnd.toISOString(),
   };
 };
 
 const resolveSessionRoutineName = (
   item: WorkoutSessionItem,
-  fallback = "Rutina",
+  fallback = "Routine",
 ): string => {
   if (item.routine && typeof item.routine === "object") {
     return item.routine.name || item.routine.title || fallback;
@@ -525,9 +525,9 @@ const resolveSessionDurationSeconds = (item: WorkoutSessionItem): number => {
 };
 
 /**
- * Sección "Historial de rutinas" para la pestaña Progreso:
- * resumen superior, filtros por periodo/rutina, vista cronológica paginada,
- * agrupación por rutina y modal de detalle con series o ejercicios planeados.
+ * "Routine history" section for the Progress tab:
+ * top summary, period/routine filters, paginated chronological view,
+ * grouping by routine, and detail modal with logged sets or planned exercises.
  */
 export const RoutineSessionHistorySection: React.FC<
   RoutineSessionHistorySectionProps
@@ -573,10 +573,10 @@ export const RoutineSessionHistorySection: React.FC<
   const requestSeqRef = useRef(0);
 
   const filterParams = useMemo(() => {
-    const { desde, hasta } = getLocalPeriodBounds(periodFilter);
+    const { from, to } = getLocalPeriodBounds(periodFilter);
     return {
-      desde,
-      hasta,
+      from,
+      to,
       routine_id: selectedRoutineId === "all" ? undefined : selectedRoutineId,
     };
   }, [periodFilter, selectedRoutineId]);
@@ -653,7 +653,7 @@ export const RoutineSessionHistorySection: React.FC<
       setHasNextPage(Boolean(res.next));
       setPage(nextPage);
     } catch {
-      // Mantener los elementos ya cargados si falla la paginación puntual
+      // Keep already loaded items if incremental pagination fails
     } finally {
       if (seq === requestSeqRef.current) {
         setLoadingMore(false);
@@ -742,7 +742,7 @@ export const RoutineSessionHistorySection: React.FC<
         },
       ]}
     >
-      {/* Cabecera de la sección */}
+      {/* Section header */}
       <View style={historySectionStyles.headerRow}>
         <View style={historySectionStyles.titleRow}>
           <View
@@ -772,7 +772,7 @@ export const RoutineSessionHistorySection: React.FC<
         </View>
       </View>
 
-      {/* Resumen superior */}
+      {/* Top summary */}
       <View style={historySectionStyles.summaryGrid}>
         <View
           style={[
@@ -850,7 +850,7 @@ export const RoutineSessionHistorySection: React.FC<
         </View>
       </View>
 
-      {/* Selector de vista */}
+      {/* View selector */}
       <View
         style={[
           historySectionStyles.segmentedBar,
@@ -889,7 +889,7 @@ export const RoutineSessionHistorySection: React.FC<
         })}
       </View>
 
-      {/* Filtro rápido por periodo */}
+      {/* Quick period filter */}
       <View style={historySectionStyles.filtersGroup}>
         <View style={historySectionStyles.filterHeader}>
           <GymIcon name="clock" size={12} color={colors.textSecondary} />
@@ -935,7 +935,7 @@ export const RoutineSessionHistorySection: React.FC<
         </View>
       </View>
 
-      {/* Filtro rápido por rutina */}
+      {/* Quick routine filter */}
       {routines.length > 0 && (
         <View style={historySectionStyles.filtersGroup}>
           <View style={historySectionStyles.filterHeader}>
@@ -1020,7 +1020,7 @@ export const RoutineSessionHistorySection: React.FC<
         </View>
       )}
 
-      {/* Contenido */}
+      {/* Content */}
       {loadingInitial ? (
         <View style={historySectionStyles.loadingBox}>
           <ActivityIndicator size="small" color={colors.primary} />
@@ -1435,7 +1435,7 @@ export const RoutineSessionHistorySection: React.FC<
         </ScrollView>
       )}
 
-      {/* Modal de detalle de sesión */}
+      {/* Session detail modal */}
       <Modal
         visible={detailModalVisible}
         animationType="slide"
@@ -1457,7 +1457,7 @@ export const RoutineSessionHistorySection: React.FC<
               },
             ]}
           >
-            {/* Header con botón volver */}
+            {/* Header with back button */}
             <View style={historySectionStyles.modalHeader}>
               <Pressable
                 onPress={() => setDetailModalVisible(false)}

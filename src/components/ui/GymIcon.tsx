@@ -62,9 +62,9 @@ interface GymIconProps {
 }
 
 /**
- * Librería centralizada de iconos vectoriales (basada en trazos Lucide 24x24 sobre react-native-svg).
- * Reemplaza por completo el uso de emojis para brindar una estética limpia, nítida y consistente
- * tanto en iOS, Android como Web.
+ * Centralized vector icon library (based on Lucide 24x24 strokes via react-native-svg).
+ * Completely replaces emojis to deliver a clean, sharp, consistent look
+ * across iOS, Android, and Web.
  */
 export function GymIcon({
   name,

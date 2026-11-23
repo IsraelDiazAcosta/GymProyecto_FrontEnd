@@ -32,14 +32,14 @@ export interface RMTrackingChartProps {
     id: string;
     name: string;
   }[];
-  marcaHistory: ProgressionItem[];
+  recordHistory: ProgressionItem[];
   onSelectRoutine: (routineId: string) => void;
   onSelectExercise: (exerciseId: string) => void;
 }
 
 /**
- * Gráfica interactiva de evolución 1RM con degradado SVG Esmeralda,
- * récord personal destacado y comparativa porcentual de fuerza.
+ * Interactive 1RM progression chart with emerald SVG gradient,
+ * highlighted personal record, and percentage strength comparison.
  */
 export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
   colors,
@@ -47,14 +47,14 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
   trackingRoutineId,
   trackingExerciseId,
   exercises,
-  marcaHistory,
+  recordHistory,
   onSelectRoutine,
   onSelectExercise,
 }) => {
   const { locale, t } = useLanguage();
   const [chartSize, setChartSize] = useState<LayoutRectangle | null>(null);
 
-  const validHistory = (marcaHistory || []).filter(
+  const validHistory = (recordHistory || []).filter(
     (item) =>
       typeof item.weight === "number" &&
       typeof item.reps === "number" &&
@@ -169,7 +169,7 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
         )}
       </View>
 
-      {/* Selector de rutina */}
+      {/* Routine selector */}
       <Text style={[styles.selectorLabel, { color: colors.textSecondary }]}>
         {t("tracking.activeRoutineLabel")}
       </Text>
@@ -209,7 +209,7 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
         })}
       </ScrollView>
 
-      {/* Selector de ejercicio */}
+      {/* Exercise selector */}
       <Text style={[styles.selectorLabel, { color: colors.textSecondary }]}>
         {t("tracking.exerciseToPlotLabel")}
       </Text>
@@ -256,7 +256,7 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
         </Text>
       )}
 
-      {/* Lienzo de la gráfica */}
+      {/* Chart canvas */}
       <View
         style={[
           styles.chartVisualBox,
@@ -344,7 +344,7 @@ export const RMTrackingChart: React.FC<RMTrackingChartProps> = ({
         )}
       </View>
 
-      {/* Estadísticas inferiores */}
+      {/* Bottom stats */}
       {lastRM && (
         <View
           style={[

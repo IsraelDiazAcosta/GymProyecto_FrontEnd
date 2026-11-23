@@ -26,7 +26,7 @@ export interface MyRoutinesSubTabProps {
   onGoToCreate: () => void;
   trackingRoutineId: string;
   trackingExerciseId: string;
-  marcaHistory: ProgressionItem[];
+  recordHistory: ProgressionItem[];
   currentRoutineExercises: { id: string; name: string }[];
   onTrackingSelectRoutine: (routineId: string) => void;
   onTrackingSelectExercise: (exerciseId: string) => void;
@@ -44,7 +44,7 @@ export const MyRoutinesSubTab: React.FC<MyRoutinesSubTabProps> = ({
   onGoToCreate,
   trackingRoutineId,
   trackingExerciseId,
-  marcaHistory,
+  recordHistory,
   currentRoutineExercises,
   onTrackingSelectRoutine,
   onTrackingSelectExercise,
@@ -96,7 +96,7 @@ export const MyRoutinesSubTab: React.FC<MyRoutinesSubTabProps> = ({
         routines={routines}
         trackingRoutineId={trackingRoutineId}
         trackingExerciseId={trackingExerciseId}
-        marcaHistory={marcaHistory}
+        recordHistory={recordHistory}
         exercises={currentRoutineExercises}
         onSelectRoutine={onTrackingSelectRoutine}
         onSelectExercise={onTrackingSelectExercise}

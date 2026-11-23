@@ -17,8 +17,8 @@ interface DashboardHeaderProps {
 }
 
 /**
- * Cabecera superior de lujo del Dashboard con saludo dinámico, insignia de rol
- * e indicadores rápidos del gimnasio.
+ * Top luxury Dashboard header with dynamic greeting, role badge,
+ * and quick gym status indicators.
  */
 export function DashboardHeader({
   username,

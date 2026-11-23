@@ -7,32 +7,32 @@ import { Radius } from "@/constants/theme";
 import { useLanguage } from "@/context/LanguageContext";
 import { DashboardColors } from "../../types";
 
-interface EditMarcaFormProps {
+export interface EditRecordFormProps {
   colors: DashboardColors;
-  marcaWeight: string;
-  setMarcaWeight: (val: string) => void;
-  marcaReps: string;
-  setMarcaReps: (val: string) => void;
-  marcaRpe: string;
-  setMarcaRpe: (val: string) => void;
+  recordWeight: string;
+  setRecordWeight: (val: string) => void;
+  recordReps: string;
+  setRecordReps: (val: string) => void;
+  recordRpe: string;
+  setRecordRpe: (val: string) => void;
 }
 
 /**
- * Formulario modular para editar un registro de levantamiento (Peso, Repeticiones y RPE)
- * con previsualización en vivo del 1RM recalculado.
+ * Modular form for editing a lift record (Weight, Reps, and RPE)
+ * with a live preview of the recalculated 1RM.
  */
-export const EditMarcaForm: React.FC<EditMarcaFormProps> = ({
+export const EditRecordForm: React.FC<EditRecordFormProps> = ({
   colors,
-  marcaWeight,
-  setMarcaWeight,
-  marcaReps,
-  setMarcaReps,
-  marcaRpe,
-  setMarcaRpe,
+  recordWeight,
+  setRecordWeight,
+  recordReps,
+  setRecordReps,
+  recordRpe,
+  setRecordRpe,
 }) => {
   const { t } = useLanguage();
-  const w = Number(marcaWeight) || 0;
-  const r = Number(marcaReps) || 0;
+  const w = parseFloat(recordWeight.replace(",", ".")) || 0;
+  const r = parseInt(recordReps, 10) || 0;
   const preview1RM =
     w > 0 && r > 0 && r < 37
       ? (w * (36 / (37 - r))).toFixed(1)
@@ -67,8 +67,8 @@ export const EditMarcaForm: React.FC<EditMarcaFormProps> = ({
         placeholder={t("modals.editMarcaWeightPlaceholder")}
         keyboardType="numeric"
         leftIcon="barbell"
-        value={marcaWeight}
-        onChangeText={setMarcaWeight}
+        value={recordWeight}
+        onChangeText={setRecordWeight}
       />
 
       <AppInput
@@ -76,8 +76,8 @@ export const EditMarcaForm: React.FC<EditMarcaFormProps> = ({
         placeholder={t("modals.editMarcaRepsPlaceholder")}
         keyboardType="numeric"
         leftIcon="activity"
-        value={marcaReps}
-        onChangeText={setMarcaReps}
+        value={recordReps}
+        onChangeText={setRecordReps}
       />
 
       <AppInput
@@ -85,8 +85,8 @@ export const EditMarcaForm: React.FC<EditMarcaFormProps> = ({
         placeholder={t("modals.editMarcaRpePlaceholder")}
         keyboardType="numeric"
         leftIcon="flame"
-        value={marcaRpe}
-        onChangeText={setMarcaRpe}
+        value={recordRpe}
+        onChangeText={setRecordRpe}
       />
     </View>
   );

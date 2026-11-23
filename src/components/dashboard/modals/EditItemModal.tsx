@@ -21,13 +21,13 @@ import {
 import { DashboardColors } from "../types";
 import { EditEquipmentForm } from "./edit-forms/EditEquipmentForm";
 import { EditExerciseForm } from "./edit-forms/EditExerciseForm";
-import { EditMarcaForm } from "./edit-forms/EditMarcaForm";
+import { EditRecordForm } from "./edit-forms/EditRecordForm";
 import { EditRoutineForm } from "./edit-forms/EditRoutineForm";
 
 export interface EditItemModalProps {
   visible: boolean;
   colors: DashboardColors;
-  itemType: "routine" | "exercise" | "marca" | "equipment";
+  itemType: "routine" | "exercise" | "record" | "equipment";
   routineData?: Routine | null;
   exerciseData?: {
     id: string;
@@ -38,7 +38,7 @@ export interface EditItemModalProps {
     video_url?: string;
     image?: string | null;
   } | null;
-  marcaData?: {
+  recordData?: {
     id: string;
     weight: number;
     reps: number;
@@ -66,7 +66,7 @@ export interface EditItemModalProps {
     muscle_id?: number | null,
     image?: PickedImageAsset | null,
   ) => Promise<void>;
-  onSaveMarca?: (
+  onSaveRecord?: (
     id: string,
     weight: number,
     reps: number,
@@ -108,30 +108,30 @@ const HEADER_META: Record<
   { title: string; kicker: string; icon: IconName }
 > = {
   routine: {
-    title: "Editar Rutina",
-    kicker: "CONFIGURACIÓN DE RUTINA",
+    title: "Edit Routine",
+    kicker: "ROUTINE SETTINGS",
     icon: "layers",
   },
   exercise: {
-    title: "Editar Ejercicio",
-    kicker: "CATÁLOGO BIOMECÁNICO",
+    title: "Edit Exercise",
+    kicker: "BIOMECHANICAL CATALOG",
     icon: "dumbbell",
   },
   equipment: {
-    title: "Editar Máquina",
-    kicker: "INVENTARIO DE GIMNASIO",
+    title: "Edit Machine",
+    kicker: "GYM INVENTORY",
     icon: "cog",
   },
-  marca: {
-    title: "Editar Marca (1RM)",
-    kicker: "REGISTRO DE FUERZA",
+  record: {
+    title: "Edit Record (1RM)",
+    kicker: "STRENGTH LOG",
     icon: "trending-up",
   },
 };
 
 /**
- * Coordinador modular de edición (reemplaza el archivo monolítico de +1,370 líneas
- * delegando cada entidad a su propio formulario especializado en `./edit-forms/`).
+ * Modular edit modal coordinator delegating each entity
+ * to its own specialized form under `./edit-forms/`.
  */
 export const EditItemModal: React.FC<EditItemModalProps> = ({
   visible,
@@ -139,14 +139,14 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
   itemType,
   routineData,
   exerciseData,
-  marcaData,
+  recordData,
   equipmentData,
   equipmentList,
   muscleList = [],
   allExercises = [],
   onSaveRoutine,
   onSaveExercise,
-  onSaveMarca,
+  onSaveRecord,
   onSaveEquipment,
   onRemoveExerciseFromRoutine,
   onAddExerciseToRoutine,
@@ -166,9 +166,9 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
     null,
   );
 
-  const [marcaWeight, setMarcaWeight] = useState("100");
-  const [marcaReps, setMarcaReps] = useState("10");
-  const [marcaRpe, setMarcaRpe] = useState("");
+  const [recordWeight, setRecordWeight] = useState("100");
+  const [recordReps, setRecordReps] = useState("10");
+  const [recordRpe, setRecordRpe] = useState("");
 
   const [eqName, setEqName] = useState("");
   const [eqType, setEqType] = useState("plate_loaded");
@@ -199,10 +199,10 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
       setExMuscle(exerciseData.muscle_id ?? null);
       setExVideo(exerciseData.video_url || "");
       setExInstructions(exerciseData.instructions || "");
-    } else if (itemType === "marca" && marcaData) {
-      setMarcaWeight(String(marcaData.weight || 100));
-      setMarcaReps(String(marcaData.reps || 10));
-      setMarcaRpe(marcaData.rpe ? String(marcaData.rpe) : "");
+    } else if (itemType === "record" && recordData) {
+      setRecordWeight(String(recordData.weight || 100));
+      setRecordReps(String(recordData.reps || 10));
+      setRecordRpe(recordData.rpe ? String(recordData.rpe) : "");
     } else if (itemType === "equipment" && equipmentData) {
       setEqName(equipmentData.name || "");
       setEqType(equipmentData.equipment_type || "plate_loaded");
@@ -215,7 +215,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
     itemType,
     routineData,
     exerciseData,
-    marcaData,
+    recordData,
     equipmentData,
   ]);
 
@@ -248,11 +248,11 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           exMuscle,
           exPickedImage,
         );
-      } else if (itemType === "marca" && marcaData && onSaveMarca) {
-        const w = parseFloat(marcaWeight.replace(",", "."));
-        const r = parseInt(marcaReps, 10);
-        const rpeVal = marcaRpe.trim()
-          ? parseFloat(marcaRpe.replace(",", "."))
+      } else if (itemType === "record" && recordData && onSaveRecord) {
+        const w = parseFloat(recordWeight.replace(",", "."));
+        const r = parseInt(recordReps, 10);
+        const rpeVal = recordRpe.trim()
+          ? parseFloat(recordRpe.replace(",", "."))
           : undefined;
         if (
           !Number.isFinite(w) ||
@@ -267,7 +267,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
           setSaveError(t("toasts.invalidDataMsg"));
           return;
         }
-        await onSaveMarca(marcaData.id, w, r, rpeVal);
+        await onSaveRecord(recordData.id, w, r, rpeVal);
       } else if (itemType === "equipment" && equipmentData && onSaveEquipment) {
         await onSaveEquipment(equipmentData.id, {
           name: eqName.trim(),
@@ -303,7 +303,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
       title: t("modals.editEquipmentTitle"),
       kicker: t("modals.editEquipmentKicker"),
     },
-    marca: {
+    record: {
       title: t("modals.editMarcaTitle"),
       kicker: t("modals.editMarcaKicker"),
     },
@@ -327,7 +327,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
             },
           ]}
         >
-          {/* Cabecera */}
+          {/* Header */}
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <View style={styles.kickerRow}>
@@ -411,15 +411,15 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({
               />
             )}
 
-            {itemType === "marca" && (
-              <EditMarcaForm
+            {itemType === "record" && (
+              <EditRecordForm
                 colors={colors}
-                marcaWeight={marcaWeight}
-                setMarcaWeight={setMarcaWeight}
-                marcaReps={marcaReps}
-                setMarcaReps={setMarcaReps}
-                marcaRpe={marcaRpe}
-                setMarcaRpe={setMarcaRpe}
+                recordWeight={recordWeight}
+                setRecordWeight={setRecordWeight}
+                recordReps={recordReps}
+                setRecordReps={setRecordReps}
+                recordRpe={recordRpe}
+                setRecordRpe={setRecordRpe}
               />
             )}
 

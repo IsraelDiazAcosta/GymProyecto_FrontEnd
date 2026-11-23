@@ -7,7 +7,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { WEEK_DAYS_BY_LANG } from "@/i18n";
 import { DashboardColors } from "../types";
 
-export const WEEK_DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
+export const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
 export interface WeeklyAttendanceCardProps {
   colors: DashboardColors;

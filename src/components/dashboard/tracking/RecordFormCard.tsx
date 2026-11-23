@@ -16,7 +16,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Routine } from "@/services/api";
 import { DashboardColors, RoutineExerciseItem } from "../types";
 
-export interface MarcaFormCardProps {
+export interface RecordFormCardProps {
   colors: DashboardColors;
   routines: Routine[];
   trackingRoutineId: string;
@@ -24,22 +24,22 @@ export interface MarcaFormCardProps {
   currentRoutineExercises: RoutineExerciseItem[];
   onSelectRoutine: (routineId: string) => void;
   onSelectExercise: (exerciseId: string) => void;
-  marcaWeight: string;
-  setMarcaWeight: (value: string) => void;
-  marcaReps: string;
-  setMarcaReps: (value: string) => void;
-  marcaRpe: string;
-  setMarcaRpe: (value: string) => void;
-  savingMarca: boolean;
+  recordWeight: string;
+  setRecordWeight: (value: string) => void;
+  recordReps: string;
+  setRecordReps: (value: string) => void;
+  recordRpe: string;
+  setRecordRpe: (value: string) => void;
+  savingRecord: boolean;
   onSave: () => void;
   lastSavedSummary: string | null;
 }
 
 /**
- * Tarjeta para registrar un nuevo levantamiento (Peso, Repeticiones y RPE)
- * y calcular automáticamente el 1RM con fórmula de Brzycki.
+ * Card for logging a new lift record (Weight, Reps, and RPE)
+ * and automatically calculating 1RM using the Brzycki formula.
  */
-export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
+export const RecordFormCard: React.FC<RecordFormCardProps> = ({
   colors,
   routines,
   trackingRoutineId,
@@ -47,13 +47,13 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
   currentRoutineExercises,
   onSelectRoutine,
   onSelectExercise,
-  marcaWeight,
-  setMarcaWeight,
-  marcaReps,
-  setMarcaReps,
-  marcaRpe,
-  setMarcaRpe,
-  savingMarca,
+  recordWeight,
+  setRecordWeight,
+  recordReps,
+  setRecordReps,
+  recordRpe,
+  setRecordRpe,
+  savingRecord,
   onSave,
   lastSavedSummary,
 }) => {
@@ -208,8 +208,8 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
             placeholder="80"
             placeholderTextColor={colors.textSecondary}
             keyboardType="numeric"
-            value={marcaWeight}
-            onChangeText={setMarcaWeight}
+            value={recordWeight}
+            onChangeText={setRecordWeight}
           />
         </View>
 
@@ -229,8 +229,8 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
             placeholder="8"
             placeholderTextColor={colors.textSecondary}
             keyboardType="numeric"
-            value={marcaReps}
-            onChangeText={setMarcaReps}
+            value={recordReps}
+            onChangeText={setRecordReps}
           />
         </View>
 
@@ -250,8 +250,8 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
             placeholder="9"
             placeholderTextColor={colors.textSecondary}
             keyboardType="numeric"
-            value={marcaRpe}
-            onChangeText={setMarcaRpe}
+            value={recordRpe}
+            onChangeText={setRecordRpe}
           />
         </View>
       </View>
@@ -260,7 +260,7 @@ export const MarcaFormCard: React.FC<MarcaFormCardProps> = ({
         title={t("tracking.saveMarcaBtn")}
         icon="check"
         onPress={onSave}
-        loading={savingMarca}
+        loading={savingRecord}
       />
 
       {lastSavedSummary && (

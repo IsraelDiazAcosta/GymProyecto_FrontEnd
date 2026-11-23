@@ -2,7 +2,7 @@ import { Radius, Spacing } from "@/constants/theme";
 import { StyleSheet } from "react-native";
 
 /**
- * Sistema de estilos centralizado para el Dashboard con estética "Apex Emerald Gym".
+ * Centralized style system for the Dashboard with the "Apex Emerald Gym" aesthetic.
  */
 export const dashboardStyles = StyleSheet.create({
   mainWrapper: {

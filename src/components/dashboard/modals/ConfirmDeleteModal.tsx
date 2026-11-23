@@ -11,21 +11,21 @@ export interface ConfirmDeleteModalProps {
   visible: boolean;
   colors: DashboardColors;
   itemTitle: string;
-  itemType: "routine" | "exercise" | "marca" | "equipment" | "session";
+  itemType: "routine" | "exercise" | "record" | "equipment" | "session";
   onConfirm: () => Promise<void>;
   onClose: () => void;
 }
 
 const TYPE_NOUN: Record<ConfirmDeleteModalProps["itemType"], string> = {
-  routine: "la rutina",
-  exercise: "el ejercicio",
-  equipment: "la máquina",
-  marca: "el registro",
-  session: "la sesión",
+  routine: "the routine",
+  exercise: "the exercise",
+  equipment: "the machine",
+  record: "the record",
+  session: "the session",
 };
 
 /**
- * Modal de confirmación de borrado con alerta vectorial y botones protegidos.
+ * Delete confirmation modal with vector alert icon and guarded action buttons.
  */
 export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   visible,
@@ -42,7 +42,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
     routine: t("modals.confirmDeleteNounRoutine"),
     exercise: t("modals.confirmDeleteNounExercise"),
     equipment: t("modals.confirmDeleteNounEquipment"),
-    marca: t("modals.confirmDeleteNounMarca"),
+    record: t("modals.confirmDeleteNounMarca"),
     session: t("modals.confirmDeleteNounSession"),
   };
 

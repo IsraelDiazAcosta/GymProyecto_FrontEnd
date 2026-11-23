@@ -23,14 +23,14 @@ export const EQUIPMENT_TYPES: {
   label: string;
   icon: IconName;
 }[] = [
-  { value: "plate_loaded", label: "Discos / Palanca", icon: "cog" },
-  { value: "pin_selected", label: "Placas / Pines", icon: "sliders" },
-  { value: "cable", label: "Polea / Cable", icon: "activity" },
-  { value: "smith", label: "Multipower / Smith", icon: "layers" },
-  { value: "free_weight", label: "Peso Libre / Mancuerna", icon: "dumbbell" },
-  { value: "bodyweight", label: "Corporal / Calistenia", icon: "user" },
+  { value: "plate_loaded", label: "Plate Loaded", icon: "cog" },
+  { value: "pin_selected", label: "Pin Selected", icon: "sliders" },
+  { value: "cable", label: "Cable / Pulley", icon: "activity" },
+  { value: "smith", label: "Smith Machine", icon: "layers" },
+  { value: "free_weight", label: "Free Weight / Dumbbell", icon: "dumbbell" },
+  { value: "bodyweight", label: "Bodyweight / Calisthenics", icon: "user" },
   { value: "cardio", label: "Cardio", icon: "flame" },
-  { value: "accessory", label: "Accesorio / Banco", icon: "target" },
+  { value: "accessory", label: "Accessory / Bench", icon: "target" },
 ];
 
 export interface AddEquipmentModalProps {
@@ -48,8 +48,8 @@ export interface AddEquipmentModalProps {
 }
 
 /**
- * Modal de administración para registrar una nueva máquina o equipo de gimnasio
- * con categorización biomecánica mediante iconos vectoriales.
+ * Admin modal for registering a new gym machine or equipment item
+ * with biomechanical categorization using vector icons.
  */
 export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
   visible,
@@ -119,7 +119,7 @@ export const AddEquipmentModal: React.FC<AddEquipmentModalProps> = ({
             },
           ]}
         >
-          {/* Cabecera */}
+          {/* Header */}
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <View style={styles.kickerRow}>

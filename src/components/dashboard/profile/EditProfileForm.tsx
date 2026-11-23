@@ -47,8 +47,8 @@ const toHeightMetersInput = (v?: number | string | null) => {
 };
 
 /**
- * Valida un decimal compatible con DecimalField(max_digits=5, decimal_places=2):
- * máximo 999.99. Devuelve el string a enviar, null si está vacío, o un error.
+ * Validates a decimal compatible with DecimalField(max_digits=5, decimal_places=2):
+ * max 999.99. Returns the string to send, null if empty, or an error message.
  */
 function parseDecimal(
   raw: string,
@@ -72,8 +72,8 @@ function parseDecimal(
 }
 
 /**
- * Parsea la estatura en metros (0.50 a 2.80 m).
- * Si el usuario introduce centímetros (50 a 280), lo normaliza automáticamente a metros.
+ * Parses height in meters (0.50 to 2.80 m).
+ * If the user enters centimeters (50 to 280), it automatically normalizes it to meters.
  */
 function parseHeightMeters(
   raw: string,
@@ -164,7 +164,7 @@ export const EditProfileForm: React.FC<EditProfileFormProps> = ({
       }
       onSaved();
     } catch (err) {
-      // DRF devuelve errores por campo: { current_weight: ["..."] }
+      // DRF returns field-level errors: { current_weight: ["..."] }
       const data = err instanceof ApiError ? err.data : undefined;
       const fieldErr = (k: string) =>
         Array.isArray(data?.[k]) ? String(data[k][0]) : undefined;

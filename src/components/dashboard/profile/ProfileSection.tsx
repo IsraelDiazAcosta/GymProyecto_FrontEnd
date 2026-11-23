@@ -40,8 +40,8 @@ const formatDecimal = (v?: number | string | null) => {
 };
 
 /**
- * Normaliza la estatura a metros: acepta valores modernos en metros (ej. 1.60)
- * y valores heredados guardados en centímetros (ej. 175 -> 1.75).
+ * Normalizes height to meters: accepts modern values in meters (e.g., 1.60)
+ * and legacy values saved in centimeters (e.g., 175 -> 1.75).
  */
 const normalizeHeightToMeters = (
   v?: number | string | null,
@@ -63,8 +63,8 @@ export interface ProfileSectionProps {
 }
 
 /**
- * Sección de Perfil y Administración con insignia vectorial de rol,
- * historial de peso corporal cruzado con curva 1RM, directorio de atletas y cierre de sesión seguro.
+ * Profile and Admin section with vector role badge,
+ * body weight history overlaid with 1RM curve, athlete directory, and safe sign-out.
  */
 export const ProfileSection: React.FC<ProfileSectionProps> = ({
   colors,
@@ -152,7 +152,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
     { icon: "target" as const, label: t("profile.statBmi"), value: bmi ?? "--" },
   ];
 
-  // Preparar series para la gráfica dual (Peso Corporal vs Curva 1RM)
+  // Prepare series for the dual chart (Body Weight vs 1RM Curve)
   const sortedLogs = [...weightLogs]
     .map((l) => ({ date: l.date, val: Number(l.weight) }))
     .filter((l) => Number.isFinite(l.val) && l.val > 0)
@@ -450,7 +450,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         trainedCount={trainedCount}
       />
 
-      {/* Tarjeta de Historial de Peso Corporal y Curva 1RM */}
+      {/* Body Weight History & 1RM Curve Card */}
       <AnimatedCard
         style={[
           styles.weightHistoryCard,
@@ -474,7 +474,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           </View>
         </View>
 
-        {/* Registro rápido de peso corporal */}
+        {/* Quick body weight entry */}
         <View style={styles.logInputRow}>
           <View
             style={[
@@ -507,7 +507,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           </Pressable>
         </View>
 
-        {/* Filtro de ejercicio para cruzar con 1RM */}
+        {/* Exercise filter to cross with 1RM */}
         {exercises.length > 0 && (
           <ScrollView
             horizontal
@@ -576,7 +576,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           </ScrollView>
         )}
 
-        {/* Leyenda de series */}
+        {/* Series legend */}
         <View style={styles.legendRow}>
           <View style={styles.legendItem}>
             <View
@@ -599,7 +599,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           </View>
         </View>
 
-        {/* Lienzo SVG combinado */}
+        {/* Combined SVG canvas */}
         <View
           style={[
             styles.dualChartBox,
@@ -670,7 +670,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           )}
         </View>
 
-        {/* Lista de registros de peso */}
+        {/* Weight log entries list */}
         {weightLogs.length > 0 && (
           <View style={styles.logsList}>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>

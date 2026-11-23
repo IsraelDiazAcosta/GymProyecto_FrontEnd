@@ -18,7 +18,7 @@ import { DashboardColors } from "../types";
 export interface ItemActionSheetProps {
   visible: boolean;
   colors: DashboardColors;
-  itemType: "routine" | "exercise" | "marca" | "equipment";
+  itemType: "routine" | "exercise" | "record" | "equipment";
   itemTitle: string;
   itemSubtitle?: string;
   onEdit: () => void;
@@ -30,14 +30,14 @@ const TYPE_META: Record<
   ItemActionSheetProps["itemType"],
   { label: string; icon: IconName }
 > = {
-  routine: { label: "OPCIONES DE RUTINA", icon: "layers" },
-  exercise: { label: "OPCIONES DE EJERCICIO", icon: "dumbbell" },
-  marca: { label: "OPCIONES DE MARCA", icon: "trending-up" },
-  equipment: { label: "OPCIONES DE MÁQUINA", icon: "cog" },
+  routine: { label: "ROUTINE OPTIONS", icon: "layers" },
+  exercise: { label: "EXERCISE OPTIONS", icon: "dumbbell" },
+  record: { label: "RECORD OPTIONS", icon: "trending-up" },
+  equipment: { label: "MACHINE OPTIONS", icon: "cog" },
 };
 
 /**
- * Hoja de acciones táctil (Bottom Sheet) con iconos vectoriales y animación elástica.
+ * Tactile action bottom sheet with vector icons and spring animation.
  */
 export const ItemActionSheet: React.FC<ItemActionSheetProps> = ({
   visible,
@@ -73,7 +73,7 @@ export const ItemActionSheet: React.FC<ItemActionSheetProps> = ({
   const typeLabelMap: Record<ItemActionSheetProps["itemType"], string> = {
     routine: t("modals.typeRoutine"),
     exercise: t("modals.typeExercise"),
-    marca: t("modals.typeMarca"),
+    record: t("modals.typeMarca"),
     equipment: t("modals.typeEquipment"),
   };
 
@@ -129,7 +129,7 @@ export const ItemActionSheet: React.FC<ItemActionSheetProps> = ({
             style={[styles.handleBar, { backgroundColor: colors.handleBar }]}
           />
 
-          {/* Cabecera */}
+          {/* Header */}
           <View
             style={[
               styles.headerBox,
@@ -168,7 +168,7 @@ export const ItemActionSheet: React.FC<ItemActionSheetProps> = ({
             </View>
           </View>
 
-          {/* Opciones */}
+          {/* Options */}
           <View style={styles.optionsList}>
             {itemType !== "routine" && (
               <Pressable

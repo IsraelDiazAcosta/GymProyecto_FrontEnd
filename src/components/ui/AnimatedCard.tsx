@@ -16,10 +16,10 @@ interface AnimatedCardProps {
 }
 
 /**
- * Contenedor de tarjeta con soporte de micro-interacción táctil.
- * Cuando se usa como contenedor de formularios (sin `onPress`), utiliza un `View`
- * estable con `collapsable={false}` para que los `TextInput` internos nunca pierdan
- * el foco del teclado en Android/iOS.
+ * Card container with touch micro-interaction support.
+ * When used as a form container (without `onPress`), it renders a stable `View`
+ * with `collapsable={false}` so nested `TextInput` fields never lose
+ * keyboard focus on Android/iOS.
  */
 export function AnimatedCard({
   children,

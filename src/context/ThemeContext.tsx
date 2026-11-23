@@ -63,7 +63,7 @@ function applyNativeColorScheme(mode: ThemeMode): void {
   try {
     Appearance.setColorScheme(mode === "system" ? "auto" : mode);
   } catch {
-    // Silenciar si la plataforma o versión nativa no soporta override programático
+    // Silently ignore if the platform or native version does not support programmatic override
   }
 }
 

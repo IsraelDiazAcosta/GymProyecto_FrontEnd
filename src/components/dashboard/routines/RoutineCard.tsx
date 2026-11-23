@@ -51,8 +51,8 @@ export interface RoutineCardProps {
 }
 
 /**
- * Tarjeta de rutina con diseño deportivo "Apex Emerald Gym", iconos vectoriales
- * y listado estructurado de series/repeticiones.
+ * Routine card with athletic "Apex Emerald Gym" styling, vector icons,
+ * and structured sets/reps breakdown.
  */
 export const RoutineCard: React.FC<RoutineCardProps> = ({
   colors,
@@ -176,7 +176,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
           },
         ]}
       >
-        {/* Cabecera de la rutina */}
+        {/* Routine header */}
         <View style={styles.headerRow}>
           <View
             style={[
@@ -264,7 +264,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
           ) : null}
         </View>
 
-        {/* Alerta de compatibilidad muscular y contenido desplegado */}
+        {/* Muscle compatibility alert and expanded content */}
         {!compact && (
           <>
             {incompatibleExercises.length > 0 && (
@@ -290,7 +290,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
           </View>
         )}
 
-        {/* Listado de ejercicios */}
+        {/* Exercises list */}
         <View style={styles.exerciseList}>
           {routineExercises.length === 0 ? (
             <View
@@ -510,7 +510,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
           )}
         </View>
 
-        {/* Botón o formulario para anexar ejercicios */}
+        {/* Button or form to add exercises */}
         {!isAdding ? (
           <Pressable
             onPress={onStartAdding}

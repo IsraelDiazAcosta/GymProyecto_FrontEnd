@@ -1,20 +1,20 @@
 /**
- * Sistema de Diseño y Paleta de Colores "Apex Emerald Gym"
- * Diseñado específicamente para una experiencia UX/UI deportiva de lujo en modo Dark y Light.
+ * "Apex Emerald Gym" Design System and Color Palette
+ * Tailored for a luxury athletic UX/UI experience in both Dark and Light modes.
  */
 
 import "@/global.css";
 import { Platform } from "react-native";
 
 export const Palette = {
-  emerald: "#2C5A4B",        // Detalle sutil (acentos menores)
-  emeraldBase: "#080C0A",    // Obsidiana profunda original
-  emeraldCard: "#111815",    // Carbón esmeralda original
+  emerald: "#2C5A4B",        // Subtle detail (minor accents)
+  emeraldBase: "#080C0A",    // Original deep obsidian
+  emeraldCard: "#111815",    // Original emerald charcoal
   emeraldSelected: "#1D332A",
-  lilac: "#947DB5",          // Detalle secundario sutil
+  lilac: "#947DB5",          // Subtle secondary detail
   lilacSoft: "rgba(148, 125, 181, 0.18)",
   lilacBorder: "rgba(148, 125, 181, 0.35)",
-  volt: "#E6FF3A",           // Detalle acento puntual (chispas / indicadores menores)
+  volt: "#E6FF3A",           // Punctual accent detail (sparks / minor indicators)
   voltLight: "#EEFF6B",
   voltDark: "#C6DF20",
   voltGlow: "rgba(230, 255, 58, 0.14)",
@@ -87,8 +87,8 @@ export interface ThemeColors {
 export const ACCENT_PALETTES: Record<AccentId, AccentPaletteConfig> = {
   emerald: {
     id: "emerald",
-    name: "Esmeralda",
-    description: "Por defecto",
+    name: "Emerald",
+    description: "Default",
     swatchDark: "#10B981",
     swatchLight: "#047857",
     dark: {
@@ -112,8 +112,8 @@ export const ACCENT_PALETTES: Record<AccentId, AccentPaletteConfig> = {
   },
   ocean: {
     id: "ocean",
-    name: "Azul Océano",
-    description: "Fresco y técnico",
+    name: "Ocean Blue",
+    description: "Crisp & technical",
     swatchDark: "#3B82F6",
     swatchLight: "#1D4ED8",
     dark: {
@@ -137,8 +137,8 @@ export const ACCENT_PALETTES: Record<AccentId, AccentPaletteConfig> = {
   },
   amber: {
     id: "amber",
-    name: "Naranja Energía",
-    description: "Potencia y dinamismo",
+    name: "Energy Amber",
+    description: "Power & dynamism",
     swatchDark: "#EA580C",
     swatchLight: "#C2410C",
     dark: {
@@ -162,8 +162,8 @@ export const ACCENT_PALETTES: Record<AccentId, AccentPaletteConfig> = {
   },
   violet: {
     id: "violet",
-    name: "Morado Eléctrico",
-    description: "Moderno y deportivo",
+    name: "Electric Violet",
+    description: "Modern & athletic",
     swatchDark: "#8B5CF6",
     swatchLight: "#6D28D9",
     dark: {
@@ -187,8 +187,8 @@ export const ACCENT_PALETTES: Record<AccentId, AccentPaletteConfig> = {
   },
   crimson: {
     id: "crimson",
-    name: "Rojo Carmesí",
-    description: "Intensidad máxima",
+    name: "Crimson Red",
+    description: "Maximum intensity",
     swatchDark: "#F43F5E",
     swatchLight: "#BE123C",
     dark: {
@@ -221,16 +221,16 @@ export const ACCENT_LIST: AccentPaletteConfig[] = [
 ];
 
 const DARK_BASE: Omit<ThemeColors, keyof AccentPaletteVariant> = {
-  text: "#FFFFFF",                     // Letras siempre en blanco
-  textSecondary: "#A3A3A3",            // Gris neutro puro para subtítulos
+  text: "#FFFFFF",                     // Text always white
+  textSecondary: "#A3A3A3",            // Pure neutral gray for subtitles
   onAccent: "#FFFFFF",
-  background: "#0A0A0A",               // Negro carbón profundo sin matiz verdoso
-  backgroundElement: "#141414",        // Negro carbón neutro para tarjetas principales
-  backgroundElevated: "#1F1F1F",       // Superficie elevada neutra para inputs y modales
-  emerald: Palette.emerald,            // #2C5A4B reservado para detalles menores
-  secondary: Palette.lilac,            // #947DB5 reservado para detalles menores
+  background: "#0A0A0A",               // Deep carbon black with no greenish tint
+  backgroundElement: "#141414",        // Neutral carbon black for primary cards
+  backgroundElevated: "#1F1F1F",       // Neutral elevated surface for inputs and modals
+  emerald: Palette.emerald,            // #2C5A4B reserved for minor accents
+  secondary: Palette.lilac,            // #947DB5 reserved for minor accents
   secondaryGlow: Palette.lilacSoft,
-  accent: Palette.volt,                // #E6FF3A reservado para pequeños acentos
+  accent: Palette.volt,                // #E6FF3A reserved for small accents
   borderSubtle: "rgba(255, 255, 255, 0.09)",
   danger: Palette.danger,
   dangerGlow: Palette.dangerGlow,
@@ -271,8 +271,8 @@ const LIGHT_BASE: Omit<ThemeColors, keyof AccentPaletteVariant> = {
 };
 
 /**
- * Combina el modo de pantalla resuelto (`dark` | `light`) con la paleta de acento elegida.
- * En modo oscuro utiliza superficies negras/gris carbón neutras (sin tinte verdoso).
+ * Combines the resolved display mode (`dark` | `light`) with the selected accent palette.
+ * In dark mode it uses neutral black/charcoal surfaces without a green tint.
  */
 export function buildThemeColors(
   mode: ResolvedThemeMode,

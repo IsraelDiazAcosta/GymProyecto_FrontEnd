@@ -39,9 +39,9 @@ export const API_BASE_URL = Platform.select({
 export type ExperienceLevel = "beginner" | "intermediate" | "advanced";
 
 export const EXPERIENCE_LEVELS: { value: ExperienceLevel; label: string }[] = [
-  { value: "beginner", label: "Principiante" },
-  { value: "intermediate", label: "Intermedio" },
-  { value: "advanced", label: "Avanzado" },
+  { value: "beginner", label: "Beginner" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "advanced", label: "Advanced" },
 ];
 
 export type TrainingGoal =
@@ -52,11 +52,11 @@ export type TrainingGoal =
   | "general_fitness";
 
 export const TRAINING_GOALS: { value: TrainingGoal; label: string }[] = [
-  { value: "hypertrophy", label: "Hipertrofia" },
-  { value: "strength", label: "Fuerza" },
-  { value: "weight_loss", label: "Definición" },
-  { value: "endurance", label: "Resistencia" },
-  { value: "general_fitness", label: "Salud General" },
+  { value: "hypertrophy", label: "Hypertrophy" },
+  { value: "strength", label: "Strength" },
+  { value: "weight_loss", label: "Fat Loss" },
+  { value: "endurance", label: "Endurance" },
+  { value: "general_fitness", label: "General Fitness" },
 ];
 
 export interface PickedImageAsset {
@@ -100,7 +100,7 @@ export interface User {
   avatar?: string | null;
   experience_level?: ExperienceLevel;
   training_goal?: TrainingGoal;
-  // DRF serializa DecimalField como string ("72.50")
+  // DRF serializes DecimalField as string ("72.50")
   current_weight?: number | string | null;
   height?: number | string | null;
   bio?: string;
@@ -108,7 +108,7 @@ export interface User {
   is_staff?: boolean;
 }
 
-/** Campos del perfil que el usuario puede editar vía PATCH /auth/profile/. */
+/** Profile fields that the user can edit via PATCH /auth/profile/. */
 export interface ProfileUpdatePayload {
   username?: string | null;
   experience_level?: ExperienceLevel;
@@ -134,7 +134,7 @@ export interface RegisterResponse {
   };
 }
 
-/** Convierte rutas relativas de media (/media/avatars/x.jpg) en URL absoluta. */
+/** Converts relative media paths (/media/avatars/x.jpg) into an absolute URL. */
 export function resolveMediaUrl(path?: string | null): string | null {
   if (!path) return null;
   if (/^https?:\/\//.test(path)) return path;
@@ -142,7 +142,7 @@ export function resolveMediaUrl(path?: string | null): string | null {
   return `${host}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
-/** Devuelve la URL absoluta de la imagen propia del ejercicio o hereda la de su máquina. */
+/** Returns the absolute URL of the exercise's own image or inherits its equipment image. */
 export function resolveExerciseImageUrl(
   exercise?: Exercise | null,
   equipmentList?: Equipment[],
@@ -176,19 +176,19 @@ export function resolveExerciseImageUrl(
   return null;
 }
 
-/** Abre cámara o galería, redimensiona lado largo a máx. 1080px y comprime a calidad 0.7. */
+/** Opens camera or gallery, resizes the longest side to max 1080px, and compresses to 0.7 quality. */
 export async function pickAndCompressImage(
   source: "camera" | "gallery",
 ): Promise<PickedImageAsset | null> {
   if (source === "camera") {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      throw new Error("Se requiere permiso de cámara para tomar una foto.");
+      throw new Error("Camera permission is required to take a photo.");
     }
   } else {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      throw new Error("Se requiere permiso de galería para elegir una imagen.");
+      throw new Error("Gallery permission is required to choose an image.");
     }
   }
 
@@ -477,8 +477,8 @@ function serializePayloadWithImage(
   payload: Record<string, any>,
 ): string | FormData {
   const img = payload?.image;
-  // Solo procesar como imagen nueva si es un objeto PickedImageAsset real (con base64, uri o file).
-  // Si es un string (como una URL existente 'http://...') o null/undefined, NO se envía como nueva imagen.
+  // Only process as a new image if it is a real PickedImageAsset object (with base64, uri, or file).
+  // If it is a string (such as an existing 'http://...' URL) or null/undefined, do NOT send it as a new image.
   const isPickedImage =
     img &&
     typeof img === "object" &&
@@ -506,7 +506,7 @@ function serializePayloadWithImage(
   const cleanPayload: Record<string, any> = {};
   Object.entries(payload || {}).forEach(([key, val]) => {
     if (val === undefined) return;
-    // Si la imagen no es un nuevo archivo seleccionado, se omite para no sobrescribir la existente con un string inválido
+    // If the image is not a newly selected file, omit it so it does not overwrite the existing one with an invalid string
     if (key === "image") return;
     cleanPayload[key] = val;
   });
@@ -514,7 +514,7 @@ function serializePayloadWithImage(
 }
 
 function extractApiErrorMessage(data: any): string {
-  if (!data || typeof data !== "object") return "Error en la petición";
+  if (!data || typeof data !== "object") return "Request error";
   if (typeof data.detail === "string" && data.detail.trim()) return data.detail;
   if (Array.isArray(data.non_field_errors) && data.non_field_errors[0]) {
     return String(data.non_field_errors[0]);
@@ -527,7 +527,7 @@ function extractApiErrorMessage(data: any): string {
       return `${key}: ${val}`;
     }
   }
-  return "Error en la petición";
+  return "Request error";
 }
 
 function normalizeVideoUrl(raw?: string): string | undefined {
@@ -570,7 +570,7 @@ async function request<T>(
     if (err instanceof ApiError) throw err;
     throw new ApiError(
       0,
-      `No se pudo conectar a ${url}. Asegúrate de correr Django con: python manage.py runserver 0.0.0.0:8000 y que tu celular esté en el mismo WiFi.`,
+      `Could not connect to ${url}. Make sure Django is running with: python manage.py runserver 0.0.0.0:8000 and your phone is on the same WiFi.`,
     );
   }
 }
@@ -652,7 +652,7 @@ export const api = {
     return res.results || res;
   },
 
-  // --- CATÁLOGO ---
+  // --- CATALOG ---
   async getExercises(): Promise<Exercise[]> {
     return fetchAllPages<Exercise>("/catalog/exercises/");
   },
@@ -762,7 +762,7 @@ export const api = {
     });
   },
 
-  // --- RUTINAS ---
+  // --- ROUTINES ---
   async getRoutines(): Promise<Routine[]> {
     return fetchAllPages<Routine>("/routines/routines/");
   },
@@ -770,7 +770,7 @@ export const api = {
   async createRoutine(
     title: string,
     focus: string,
-    description: string = "Rutina personalizada",
+    description: string = "Custom routine",
     exercise_ids?: string[],
     sets_count?: number,
     min_reps?: number,
@@ -856,7 +856,7 @@ export const api = {
     );
   },
 
-  // --- TRACKING Y MARCAS ---
+  // --- TRACKING & RECORDS ---
   async ensureSession(): Promise<string> {
     const sessions: any = await request("/tracking/sessions/");
     const active = (sessions.results || sessions).find(
@@ -867,14 +867,14 @@ export const api = {
     const newSession: any = await request("/tracking/sessions/", {
       method: "POST",
       body: JSON.stringify({
-        title: "Entrenamiento Móvil",
+        title: "Mobile Workout",
         start_time: new Date().toISOString(),
       }),
     });
     return newSession.id;
   },
 
-  async saveMarca(
+  async saveRecord(
     exerciseId: string,
     weight: number,
     reps: number,
@@ -882,7 +882,7 @@ export const api = {
   ): Promise<any> {
     const sessionId = await this.ensureSession();
 
-    // 1. Vincular ejercicio a la sesión
+    // 1. Link exercise to the session
     const logEx: any = await request("/tracking/exercises/", {
       method: "POST",
       body: JSON.stringify({
@@ -892,7 +892,7 @@ export const api = {
       }),
     });
 
-    // 2. Registrar serie con peso y reps
+    // 2. Log set with weight and reps
     return request("/tracking/sets/", {
       method: "POST",
       body: JSON.stringify({
@@ -913,7 +913,7 @@ export const api = {
     );
   },
 
-  async updateMarca(
+  async updateRecord(
     setId: string,
     payload: { weight?: number; reps?: number; rpe?: number },
   ): Promise<any> {
@@ -923,13 +923,13 @@ export const api = {
     });
   },
 
-  async deleteMarca(setId: string): Promise<void> {
+  async deleteRecord(setId: string): Promise<void> {
     return request<void>(`/tracking/sets/${setId}/`, {
       method: "DELETE",
     });
   },
 
-  // --- SESIONES DE RUTINA CON TIMER ---
+  // --- TIMED ROUTINE SESSIONS ---
   async startRoutineSession(routineId: string): Promise<WorkoutSessionItem> {
     return request<WorkoutSessionItem>("/tracking/sessions/start/", {
       method: "POST",
@@ -965,13 +965,13 @@ export const api = {
   },
 
   async getRoutineSessionHistory(params?: {
-    desde?: string;
-    hasta?: string;
+    from?: string;
+    to?: string;
     routine_id?: string;
   }): Promise<WorkoutSessionItem[]> {
     const search = new URLSearchParams();
-    if (params?.desde) search.append("desde", params.desde);
-    if (params?.hasta) search.append("hasta", params.hasta);
+    if (params?.from) search.append("from", params.from);
+    if (params?.to) search.append("to", params.to);
     if (params?.routine_id) search.append("routine_id", params.routine_id);
     const qs = search.toString();
     const res: any = await request(
@@ -982,14 +982,14 @@ export const api = {
 
   async getCompletedSessionsPaginated(params?: {
     page?: number;
-    desde?: string;
-    hasta?: string;
+    from?: string;
+    to?: string;
     routine_id?: string;
   }): Promise<PaginatedSessionsResponse> {
     const search = new URLSearchParams();
     if (params?.page) search.append("page", String(params.page));
-    if (params?.desde) search.append("desde", params.desde);
-    if (params?.hasta) search.append("hasta", params.hasta);
+    if (params?.from) search.append("from", params.from);
+    if (params?.to) search.append("to", params.to);
     if (params?.routine_id) search.append("routine_id", params.routine_id);
     const qs = search.toString();
     const res: any = await request(
@@ -1025,13 +1025,13 @@ export const api = {
   },
 
   async getRoutineSessionsSummary(params?: {
-    desde?: string;
-    hasta?: string;
+    from?: string;
+    to?: string;
     routine_id?: string;
   }): Promise<RoutineSessionSummaryItem[]> {
     const search = new URLSearchParams();
-    if (params?.desde) search.append("desde", params.desde);
-    if (params?.hasta) search.append("hasta", params.hasta);
+    if (params?.from) search.append("from", params.from);
+    if (params?.to) search.append("to", params.to);
     if (params?.routine_id) search.append("routine_id", params.routine_id);
     const qs = search.toString();
     const res: any = await request(

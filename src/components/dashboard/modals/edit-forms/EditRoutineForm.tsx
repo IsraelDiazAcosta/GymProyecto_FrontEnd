@@ -23,14 +23,25 @@ import {
 import { DashboardColors, RoutineExerciseItem } from "../../types";
 
 const FOCUS_OPTIONS = [
-  { value: "pecho", label: "Pecho" },
-  { value: "espalda", label: "Espalda" },
-  { value: "pierna", label: "Pierna" },
-  { value: "hombro", label: "Hombro" },
-  { value: "brazo", label: "Brazo" },
+  { value: "pecho", label: "Chest" },
+  { value: "espalda", label: "Back" },
+  { value: "pierna", label: "Legs" },
+  { value: "hombro", label: "Shoulders" },
+  { value: "brazo", label: "Arms" },
   { value: "core", label: "Core" },
   { value: "fullbody", label: "Full Body" },
 ];
+
+const clampInt = (
+  raw: string,
+  fallback: number,
+  min: number,
+  max: number,
+): number => {
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+};
 
 interface EditRoutineFormProps {
   colors: DashboardColors;
@@ -60,7 +71,7 @@ interface EditRoutineFormProps {
 }
 
 /**
- * Formulario modular para editar los datos de una rutina y gestionar sus ejercicios internos.
+ * Modular form for editing routine details and managing its assigned exercises.
  */
 export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
   colors,
@@ -131,12 +142,15 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
       return;
     setActionLoadingId("adding_new");
     try {
+      const sets = clampInt(newSets, 4, 1, 30);
+      const minR = clampInt(newMinReps, 8, 1, 1000);
+      const maxR = clampInt(newMaxReps, 12, minR, 1000);
       await onAddExerciseToRoutine(
         routineData.id,
         selectedExToAddId,
-        Number(newSets) || 4,
-        Number(newMinReps) || 8,
-        Number(newMaxReps) || 12,
+        sets,
+        minR,
+        maxR,
       );
       setIsAddingExercise(false);
     } finally {
@@ -190,7 +204,7 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
         })}
       </View>
 
-      {/* Gestor de ejercicios de la rutina */}
+      {/* Routine exercises manager */}
       <View
         style={[
           styles.managerBox,
@@ -360,11 +374,14 @@ export const EditRoutineForm: React.FC<EditRoutineFormProps> = ({
                               return;
                             setActionLoadingId(ex.routineExerciseId);
                             try {
+                              const sets = clampInt(editSets, 4, 1, 30);
+                              const minR = clampInt(editMinReps, 8, 1, 1000);
+                              const maxR = clampInt(editMaxReps, 12, minR, 1000);
                               await onUpdateRoutineExercise(
                                 ex.routineExerciseId,
-                                parseInt(editSets, 10) || 4,
-                                parseInt(editMinReps, 10) || 8,
-                                parseInt(editMaxReps, 10) || 12,
+                                sets,
+                                minR,
+                                maxR,
                               );
                               setEditingExId(null);
                             } finally {

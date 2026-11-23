@@ -26,8 +26,8 @@ interface AppButtonProps {
 }
 
 /**
- * Botón reutilizable con estética "Apex Emerald Gym", soporte de iconos vectoriales
- * y micro-animación de rebote elástico al presionar.
+ * Reusable button styled with "Apex Emerald Gym", vector icon support,
+ * and elastic spring micro-animation on press.
  */
 export function AppButton({
   title,

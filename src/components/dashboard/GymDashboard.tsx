@@ -36,13 +36,13 @@ import { FinishSessionConfirmModal } from "./routines/FinishSessionConfirmModal"
 import { RoutinesSection } from "./routines/RoutinesSection";
 import { SelectExerciseModal } from "./routines/SelectExerciseModal";
 import { SelectRoutineToStartModal } from "./routines/SelectRoutineToStartModal";
-import { MarcaFormCard } from "./tracking/MarcaFormCard";
+import { RecordFormCard } from "./tracking/RecordFormCard";
 import {
-  MarcaHistoryList,
+  RecordHistoryList,
   RoutineSessionHistorySection,
-} from "./tracking/MarcaHistoryList";
+} from "./tracking/RecordHistoryList";
 
-const WEEK_DAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
+const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
 const computeElapsedSeconds = (session: WorkoutSessionItem | null) => {
   if (!session) return 0;
@@ -108,8 +108,8 @@ const extractLoggedExerciseIds = (
 };
 
 /**
- * Vista principal del Dashboard del Gimnasio ("Apex Emerald Gym").
- * Arquitectura modularizada y desacoplada mediante `useGymDashboardData` y subcarpetas por dominio.
+ * Main Gym Dashboard view ("Apex Emerald Gym").
+ * Modular architecture decoupled via `useGymDashboardData` and domain subfolders.
  */
 export const GymDashboard: React.FC = () => {
   const { colors } = useAppTheme();
@@ -117,8 +117,8 @@ export const GymDashboard: React.FC = () => {
   const { user } = useAuth();
 
   const vm = useGymDashboardData();
-  const [routinesSubTab, setRoutinesSubTab] = useState<"crear" | "mis_rutinas">(
-    "mis_rutinas",
+  const [routinesSubTab, setRoutinesSubTab] = useState<"create" | "my_routines">(
+    "my_routines",
   );
   const [selectedRoutineId, setSelectedRoutineId] = useState<string | null>(
     null,
@@ -143,7 +143,7 @@ export const GymDashboard: React.FC = () => {
     WorkoutSessionItem[]
   >([]);
   const [sessionActionLoading, setSessionActionLoading] = useState(false);
-  const [sessionMarcasCount, setSessionMarcasCount] = useState(0);
+  const [sessionRecordsCount, setSessionRecordsCount] = useState(0);
   const [sessionLoggedExerciseIds, setSessionLoggedExerciseIds] = useState<
     string[]
   >([]);
@@ -187,8 +187,8 @@ export const GymDashboard: React.FC = () => {
 
       const [weekSessions, allHistory] = await Promise.all([
         api.getRoutineSessionHistory({
-          desde: monday.toISOString(),
-          hasta: sundayEnd.toISOString(),
+          from: monday.toISOString(),
+          to: sundayEnd.toISOString(),
         }),
         api.getRoutineSessionHistory(),
       ]);
@@ -223,7 +223,7 @@ export const GymDashboard: React.FC = () => {
       setTrainedDayFlags(flags);
       setRoutineHistoryList(allHistory || []);
     } catch {
-      // Silenciar fallos puntuales de red sin alterar el flujo principal
+      // Silently ignore transient network failures without disrupting the main flow
     }
   }, []);
 
@@ -360,7 +360,7 @@ export const GymDashboard: React.FC = () => {
       setSessionActionLoading(true);
       const started = await api.startRoutineSession(routineId);
       setFinishedSummaryDuration(null);
-      setSessionMarcasCount(0);
+      setSessionRecordsCount(0);
       setSessionLoggedExerciseIds(extractLoggedExerciseIds(started));
       setMissingFinishExercises([]);
       setActiveSession(started);
@@ -368,25 +368,25 @@ export const GymDashboard: React.FC = () => {
       setShowSelectRoutineToStart(false);
       vm.handleRoutineChangeInTracking(routineId);
     } catch {
-      // Silenciar error puntual
+      // Silently ignore transient error
     } finally {
       setSessionActionLoading(false);
     }
   };
 
-  const hasRecordedMarcaInSession =
-    sessionMarcasCount > 0 ||
+  const hasRecordedSetInSession =
+    sessionRecordsCount > 0 ||
     sessionLoggedExerciseIds.length > 0 ||
     Boolean(
       activeSession &&
       activeSession.started_at &&
-      vm.marcaHistory.some((m) => {
+      vm.recordHistory.some((m) => {
         const sessionStart = new Date(activeSession.started_at).getTime();
         const raw =
           (m as any).logged_at || (m as any).created_at || (m as any).date;
         if (!raw) return false;
-        const marcaTime = new Date(raw).getTime();
-        return !isNaN(marcaTime) && marcaTime >= sessionStart - 60000;
+        const recordTime = new Date(raw).getTime();
+        return !isNaN(recordTime) && recordTime >= sessionStart - 60000;
       }),
     );
 
@@ -439,7 +439,7 @@ export const GymDashboard: React.FC = () => {
 
   const handleAttemptFinishSession = async () => {
     if (!activeSession?.id) {
-      if (!hasRecordedMarcaInSession) {
+      if (!hasRecordedSetInSession) {
         vm.showToast(
           "warning",
           t("toasts.marcaRequiredTitle"),
@@ -471,7 +471,7 @@ export const GymDashboard: React.FC = () => {
       }
 
       if (detail.has_logged_sets) {
-        setSessionMarcasCount((prev) => Math.max(prev, 1));
+        setSessionRecordsCount((prev) => Math.max(prev, 1));
       }
 
       const missing = computeMissingExercisesForSession(
@@ -482,7 +482,7 @@ export const GymDashboard: React.FC = () => {
       setMissingFinishExercises(missing);
       setShowFinishConfirm(true);
     } catch {
-      if (!hasRecordedMarcaInSession) {
+      if (!hasRecordedSetInSession) {
         vm.showToast(
           "warning",
           t("toasts.marcaRequiredTitle"),
@@ -502,7 +502,7 @@ export const GymDashboard: React.FC = () => {
   };
 
   const handleConfirmFinishSession = async () => {
-    if (!hasRecordedMarcaInSession) {
+    if (!hasRecordedSetInSession) {
       setShowFinishConfirm(false);
       vm.showToast(
         "warning",
@@ -518,14 +518,14 @@ export const GymDashboard: React.FC = () => {
       const finalDuration = finished.duration_seconds ?? fallbackElapsed;
       setActiveSession(null);
       setElapsedSeconds(0);
-      setSessionMarcasCount(0);
+      setSessionRecordsCount(0);
       setSessionLoggedExerciseIds([]);
       setMissingFinishExercises([]);
       setShowFinishConfirm(false);
       setFinishedSummaryDuration(finalDuration);
       await loadWeeklyAndHistory();
     } catch {
-      // Silenciar error puntual
+      // Silently ignore transient error
     } finally {
       setSessionActionLoading(false);
     }
@@ -538,11 +538,11 @@ export const GymDashboard: React.FC = () => {
       setActiveSession(null);
       setElapsedSeconds(0);
       setFinishedSummaryDuration(null);
-      setSessionMarcasCount(0);
+      setSessionRecordsCount(0);
       setSessionLoggedExerciseIds([]);
       setMissingFinishExercises([]);
     } catch {
-      // Silenciar error puntual
+      // Silently ignore transient error
     } finally {
       setSessionActionLoading(false);
     }
@@ -558,7 +558,7 @@ export const GymDashboard: React.FC = () => {
       vm.setNewRoutineExerciseIds([]);
       vm.setNewRoutineFocus("fullbody");
       setSelectedRoutineId(null);
-      setRoutinesSubTab("mis_rutinas");
+      setRoutinesSubTab("my_routines");
     }
   }, [vm.toast]);
 
@@ -586,7 +586,7 @@ export const GymDashboard: React.FC = () => {
   const isAdmin = Boolean(user?.is_staff);
   const canManageItem = (type?: string) =>
     isAdmin || (type !== "exercise" && type !== "equipment");
-  const canRegisterMarca = Boolean(activeSession !== null);
+  const canLogRecord = Boolean(activeSession !== null);
 
   return (
     <View
@@ -595,7 +595,7 @@ export const GymDashboard: React.FC = () => {
         { backgroundColor: colors.background },
       ]}
     >
-      {/* Cabecera superior con resumen y rol */}
+      {/* Top header with summary and role badge */}
       <DashboardHeader
         username={user?.username || t("header.defaultAthlete")}
         isAdmin={Boolean(user?.is_staff)}
@@ -613,7 +613,7 @@ export const GymDashboard: React.FC = () => {
         </View>
       )}
 
-      {/* Barra fija de sesión activa en la parte superior de Progreso */}
+      {/* Sticky active session bar at the top of Progress */}
       {vm.activeTab === "tracking" && (
         <ActiveSessionBar
           colors={colors}
@@ -642,7 +642,7 @@ export const GymDashboard: React.FC = () => {
           />
         }
       >
-        {/* ==================== TAB 1: RUTINAS ==================== */}
+        {/* ==================== TAB 1: ROUTINES ==================== */}
         {vm.activeTab === "routines" && (
           <View style={dashboardStyles.sectionBlock}>
             <RoutinesSection
@@ -691,7 +691,7 @@ export const GymDashboard: React.FC = () => {
               routineSessions={selectedRoutineSessions}
               trackingRoutineId={vm.trackingRoutineId}
               trackingExerciseId={vm.trackingExerciseId}
-              marcaHistory={vm.marcaHistory}
+              recordHistory={vm.recordHistory}
               currentRoutineExercises={currentRoutineExercises}
               onTrackingSelectRoutine={vm.handleRoutineChangeInTracking}
               onTrackingSelectExercise={(exerciseId: string) => {
@@ -702,10 +702,10 @@ export const GymDashboard: React.FC = () => {
           </View>
         )}
 
-        {/* ==================== TAB 2: PROGRESO / MARCAS ==================== */}
+        {/* ==================== TAB 2: PROGRESS / RECORDS ==================== */}
         {vm.activeTab === "tracking" && (
           <View style={dashboardStyles.sectionBlock}>
-            {!canRegisterMarca ? (
+            {!canLogRecord ? (
               <View
                 style={[
                   localStyles.lockStateCard,
@@ -741,7 +741,7 @@ export const GymDashboard: React.FC = () => {
                 </Text>
               </View>
             ) : (
-              <MarcaFormCard
+              <RecordFormCard
                 colors={colors}
                 routines={vm.routines}
                 trackingRoutineId={vm.trackingRoutineId}
@@ -752,18 +752,18 @@ export const GymDashboard: React.FC = () => {
                   vm.setTrackingExerciseId(exerciseId);
                   vm.loadProgressionHistory(exerciseId);
                 }}
-                marcaWeight={vm.marcaWeight}
-                setMarcaWeight={vm.setMarcaWeight}
-                marcaReps={vm.marcaReps}
-                setMarcaReps={vm.setMarcaReps}
-                marcaRpe={vm.marcaRpe}
-                setMarcaRpe={vm.setMarcaRpe}
-                savingMarca={vm.savingMarca}
+                recordWeight={vm.recordWeight}
+                setRecordWeight={vm.setRecordWeight}
+                recordReps={vm.recordReps}
+                setRecordReps={vm.setRecordReps}
+                recordRpe={vm.recordRpe}
+                setRecordRpe={vm.setRecordRpe}
+                savingRecord={vm.savingRecord}
                 onSave={async () => {
                   const savedExerciseId = vm.trackingExerciseId;
-                  const ok = await vm.handleSaveMarca();
+                  const ok = await vm.handleSaveRecord();
                   if (ok) {
-                    setSessionMarcasCount((prev) => prev + 1);
+                    setSessionRecordsCount((prev) => prev + 1);
                     if (savedExerciseId) {
                       setSessionLoggedExerciseIds((prev) =>
                         prev.includes(savedExerciseId)
@@ -777,10 +777,10 @@ export const GymDashboard: React.FC = () => {
               />
             )}
 
-            <MarcaHistoryList
+            <RecordHistoryList
               colors={colors}
-              marcaHistory={vm.marcaHistory}
-              onMarcaOptionsPress={vm.handleOpenMarcaOptions}
+              recordHistory={vm.recordHistory}
+              onRecordOptionsPress={vm.handleOpenRecordOptions}
               currentRoutineExercises={currentRoutineExercises}
               trackingExerciseId={vm.trackingExerciseId}
               onSelectExercise={(exerciseId: string) => {
@@ -804,7 +804,7 @@ export const GymDashboard: React.FC = () => {
           </View>
         )}
 
-        {/* ==================== TAB 3: CATÁLOGO ==================== */}
+        {/* ==================== TAB 3: CATALOG ==================== */}
         {vm.activeTab === "catalog" && (
           <CatalogSection
             colors={colors}
@@ -827,7 +827,7 @@ export const GymDashboard: React.FC = () => {
           />
         )}
 
-        {/* ==================== TAB 4: MÁQUINAS Y EQUIPOS ==================== */}
+        {/* ==================== TAB 4: MACHINES & EQUIPMENT ==================== */}
         {vm.activeTab === "equipment" && (
           <EquipmentSection
             colors={colors}
@@ -843,7 +843,7 @@ export const GymDashboard: React.FC = () => {
           />
         )}
 
-        {/* ==================== TAB 5: PERFIL / ADMIN ==================== */}
+        {/* ==================== TAB 5: PROFILE / ADMIN ==================== */}
         {vm.activeTab === "profile" && (
           <ProfileSection
             colors={colors}
@@ -858,14 +858,14 @@ export const GymDashboard: React.FC = () => {
         )}
       </ScrollView>
 
-      {/* Barra de navegación inferior */}
+      {/* Bottom navigation bar */}
       <DashboardTabBar
         activeTab={vm.activeTab}
         colors={colors}
         onSelectTab={vm.setActiveTab}
       />
 
-      {/* ==================== MODALES ==================== */}
+      {/* ==================== MODALS ==================== */}
       <ExerciseDetailModal
         colors={colors}
         visible={vm.modalExerciseVisible}
@@ -935,8 +935,14 @@ export const GymDashboard: React.FC = () => {
               vm.loadCatalogExtras();
               const fullDetail = await api.getExerciseDetail(item.data.id);
               vm.setEditModalItem({ ...item, data: fullDetail });
-              return;
-            } catch {}
+            } catch (err: any) {
+              vm.showToast(
+                "error",
+                t("toasts.loadExerciseError"),
+                err?.message || "",
+              );
+            }
+            return;
           }
           vm.setEditModalItem(item);
         }}
@@ -976,13 +982,18 @@ export const GymDashboard: React.FC = () => {
                   vm.editModalItem.data.media?.[0]?.external_url ||
                   vm.editModalItem.data.video_url ||
                   "",
-                muscle_id: vm.editModalItem.data.muscles?.[0]?.muscle || null,
+                muscle_id:
+                  vm.editModalItem.data.muscles?.find(
+                    (m: any) => m.role === "primary",
+                  )?.muscle ||
+                  vm.editModalItem.data.muscles?.[0]?.muscle ||
+                  null,
                 image: vm.editModalItem.data.own_image ?? null,
               }
             : null
         }
-        marcaData={
-          vm.editModalItem?.type === "marca"
+        recordData={
+          vm.editModalItem?.type === "record"
             ? {
                 id: vm.editModalItem.data.id,
                 weight: vm.editModalItem.data.weight,
@@ -999,7 +1010,7 @@ export const GymDashboard: React.FC = () => {
         allExercises={vm.exercises}
         onSaveRoutine={vm.handleSaveRoutineEdit}
         onSaveExercise={vm.handleSaveExerciseEdit}
-        onSaveMarca={vm.handleSaveMarcaEdit}
+        onSaveRecord={vm.handleSaveRecordEdit}
         onSaveEquipment={vm.handleSaveEquipmentEdit}
         onRemoveExerciseFromRoutine={vm.handleRemoveExerciseFromRoutine}
         onAddExerciseToRoutine={vm.handleAddExerciseToRoutineInEdit}
@@ -1018,7 +1029,7 @@ export const GymDashboard: React.FC = () => {
         onClose={() => vm.setDeleteConfirmItem(null)}
       />
 
-      {/* Selector de rutina para iniciar sesión */}
+      {/* Routine selector to start a session */}
       <SelectRoutineToStartModal
         visible={showSelectRoutineToStart}
         colors={colors}
@@ -1029,13 +1040,13 @@ export const GymDashboard: React.FC = () => {
         onGoToCreate={() => {
           setShowSelectRoutineToStart(false);
           setSelectedRoutineId(null);
-          setRoutinesSubTab("crear");
+          setRoutinesSubTab("create");
           vm.setActiveTab("routines");
         }}
         onClose={() => setShowSelectRoutineToStart(false)}
       />
 
-      {/* Confirmación de finalizar sesión */}
+      {/* Finish session confirmation */}
       <FinishSessionConfirmModal
         visible={showFinishConfirm}
         colors={colors}

@@ -31,8 +31,8 @@ interface RoutineAddExerciseFormProps {
 }
 
 /**
- * Subformulario modular para anexar uno o varios ejercicios a una rutina existente
- * con configuración de series y repeticiones.
+ * Modular subform for adding one or more exercises to an existing routine
+ * with sets and reps configuration.
  */
 export const RoutineAddExerciseForm: React.FC<RoutineAddExerciseFormProps> = ({
   colors,

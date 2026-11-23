@@ -36,17 +36,17 @@ export interface CatalogSectionProps {
 }
 
 const MUSCLE_FILTER_OPTIONS = [
-  { value: "pecho", label: "Pecho" },
-  { value: "espalda", label: "Espalda" },
-  { value: "pierna", label: "Pierna" },
-  { value: "hombro", label: "Hombro" },
-  { value: "brazo", label: "Brazo" },
+  { value: "pecho", label: "Chest" },
+  { value: "espalda", label: "Back" },
+  { value: "pierna", label: "Legs" },
+  { value: "hombro", label: "Shoulders" },
+  { value: "brazo", label: "Arms" },
   { value: "core", label: "Core" },
 ];
 
 /**
- * Sección de Catálogo de Ejercicios con buscador reactivo, chips de grupo muscular
- * y filtro de favoritos unificado estilo EquipmentSection.
+ * Exercise Catalog section with reactive search, muscle group filter chips,
+ * and unified favorites filter matching EquipmentSection.
  */
 export const CatalogSection: React.FC<CatalogSectionProps> = ({
   colors,
@@ -128,7 +128,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
         },
       ]}
     >
-      {/* Cabecera */}
+      {/* Header */}
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
           <View style={styles.kickerRow}>
@@ -172,7 +172,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
         )}
       </View>
 
-      {/* Barra de búsqueda */}
+      {/* Search bar */}
       <View
         style={[
           styles.searchBar,
@@ -197,7 +197,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
           </Pressable>
         )}
       </View>
-      {/* Chips de filtro muscular */}
+      {/* Muscle filter chips */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -312,7 +312,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
         })}
       </ScrollView>
 
-      {/* Selector de elementos por página */}
+      {/* Items per page selector */}
       <PageSizeSelector
         colors={colors}
         pageSize={pageSize}
@@ -321,7 +321,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
         onChangePageSize={setPageSize}
       />
 
-      {/* Lista de ejercicios */}
+      {/* Exercise list */}
       {filteredExercises.length === 0 ? (
         <View
           style={[
@@ -401,7 +401,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
                     {ex.name}
                   </Text>
 
-                  {/* Orden estrictamente uno debajo del otro: Máquina arriba, Grupo muscular abajo */}
+                  {/* Strictly stacked order: Machine on top, Muscle group below */}
                   <View style={styles.metaColumn}>
                     <View style={styles.metaLine}>
                       <GymIcon

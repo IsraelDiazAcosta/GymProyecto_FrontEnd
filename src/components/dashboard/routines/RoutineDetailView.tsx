@@ -118,7 +118,7 @@ export const RoutineDetailView: React.FC<RoutineDetailViewProps> = ({
         onOptionsPress={onOptionsPress}
       />
 
-      {/* Historial corto de sesiones de esta rutina */}
+      {/* Short session history for this routine */}
       <View
         style={[
           styles.historyCard,

@@ -12,8 +12,8 @@ import { useAppTheme } from "@/context/ThemeContext";
 type AuthMode = "login" | "register";
 
 /**
- * Formulario de acceso y registro de cuenta básica con diseño "Apex Emerald Gym",
- * pestañas intercambiables, iconos vectoriales y manejo de foco de teclado estable.
+ * Login and basic registration form styled with "Apex Emerald Gym",
+ * switchable tabs, vector icons, and stable keyboard focus handling.
  */
 export function LoginForm() {
   const { login, register, error, isAuthenticating, clearError } = useAuth();
@@ -96,7 +96,7 @@ export function LoginForm() {
         },
       ]}
     >
-      {/* Cabecera de marca con emblema vectorial */}
+      {/* Brand header with vector emblem */}
       <View style={styles.brandHeader}>
         <View
           style={[
@@ -117,7 +117,7 @@ export function LoginForm() {
         </View>
       </View>
 
-      {/* Pestañas Login / Register */}
+      {/* Login / Register tabs */}
       <View
         style={[
           styles.tabBar,

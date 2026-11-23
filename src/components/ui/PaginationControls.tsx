@@ -19,8 +19,8 @@ interface PageSizeSelectorProps {
 }
 
 /**
- * Campo numérico para que el usuario escriba directamente cuántos elementos
- * desea ver por página (se aplica automáticamente al escribir).
+ * Numeric field letting the user type directly how many items
+ * to display per page (applied automatically while typing).
  */
 export const PageSizeSelector: React.FC<PageSizeSelectorProps> = ({
   colors,
@@ -156,9 +156,9 @@ function getVisiblePages(
 }
 
 /**
- * Barra de pestañas/botones numéricos de página con Anterior y Siguiente.
- * Se muestra cuando hay más de 1 página disponible y recorre automáticamente
- * los números visibles alrededor de la página actual.
+ * Pagination bar with numeric page tabs plus Previous and Next buttons.
+ * Shown when more than 1 page is available and automatically shifts
+ * visible page numbers around the active page.
  */
 export const PaginationBar: React.FC<PaginationBarProps> = ({
   colors,

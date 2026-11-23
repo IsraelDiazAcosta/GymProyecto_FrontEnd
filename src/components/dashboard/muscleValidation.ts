@@ -213,23 +213,23 @@ export function getExerciseMuscleLabel(
 }
 
 /**
- * Determina si una máquina/equipo es anatómicamente compatible con el músculo objetivo o zona corporal.
- * Las máquinas universales (poleas, multipower/smith, peso libre, accesorios) se permiten en cualquier grupo.
- * Las máquinas específicas (prensa, extensión de cuádriceps, curl femoral, press de pecho, remo en t, etc.)
- * se validan contra el músculo seleccionado para evitar asignar máquinas erróneas.
+ * Determines whether a machine/equipment item is anatomically compatible with the target muscle or body zone.
+ * Universal equipment (cables, Smith machine, free weights, accessories) is allowed for any muscle group.
+ * Specific machines (leg press, leg extension, leg curl, chest press, T-bar row, etc.)
+ * are validated against the selected muscle to prevent mismatched machine assignments.
  */
 export function isEquipmentCompatibleWithMuscle(
   equipmentNameOrType: string,
   muscleNameOrZone?: string | null,
 ): boolean {
   if (!muscleNameOrZone || !muscleNameOrZone.trim()) {
-    return true; // Si no hay músculo especificado, se permiten todas
+    return true; // If no muscle is specified, allow all equipment
   }
 
   const equip = (equipmentNameOrType || "").toLowerCase().trim();
   const muscle = muscleNameOrZone.toLowerCase().trim();
 
-  // 1. Equipos universales / multi-propósito siempre son compatibles con cualquier músculo
+  // 1. Universal / multi-purpose equipment is always compatible with any muscle
   const isUniversal =
     equip.includes("polea") ||
     equip.includes("cable") ||
@@ -247,7 +247,7 @@ export function isEquipmentCompatibleWithMuscle(
     return true;
   }
 
-  // 2. Mapeo por zonas musculares
+  // 2. Muscle zone mapping
   const isLegMuscle =
     muscle.includes("pierna") ||
     muscle.includes("cuádriceps") ||
@@ -283,7 +283,7 @@ export function isEquipmentCompatibleWithMuscle(
     muscle.includes("triceps") ||
     muscle.includes("antebrazo");
 
-  // Detección de enfoque de la máquina por su nombre
+  // Detect machine focus by name
   const isLegEquip =
     equip.includes("prensa") ||
     equip.includes("cuádriceps") ||
@@ -324,19 +324,19 @@ export function isEquipmentCompatibleWithMuscle(
     equip.includes("militar") ||
     equip.includes("deltoides");
 
-  // Si la máquina es claramente de pierna, solo va con músculos de pierna
+  // If the machine is clearly leg-focused, allow only leg muscles
   if (isLegEquip) return isLegMuscle;
 
-  // Si la máquina es claramente de pecho, solo va con pecho (o hombro/tríceps secundarios)
+  // If the machine is clearly chest-focused, allow only chest (or secondary shoulders/triceps)
   if (isChestEquip) return isChestMuscle || isShoulderMuscle || isArmMuscle;
 
-  // Si la máquina es claramente de espalda, solo va con espalda (o bíceps/trapecio)
+  // If the machine is clearly back-focused, allow only back (or biceps/traps)
   if (isBackEquip) return isBackMuscle || isArmMuscle;
 
-  // Si la máquina es de brazo, solo va con brazo
+  // If the machine is arm-focused, allow only arm muscles
   if (isArmEquip) return isArmMuscle;
 
-  // Si la máquina es de hombro, solo va con hombro
+  // If the machine is shoulder-focused, allow only shoulder muscles
   if (isShoulderEquip) return isShoulderMuscle;
 
   return true;

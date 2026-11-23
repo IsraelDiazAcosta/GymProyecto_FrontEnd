@@ -37,8 +37,8 @@ interface EditExerciseFormProps {
 }
 
 /**
- * Formulario modular para editar un ejercicio del catálogo (nombre, grupo muscular primario,
- * máquina vinculada, video e instrucciones).
+ * Modular form for editing a catalog exercise (name, primary muscle group,
+ * linked machine, video, and instructions).
  */
 export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
   colors,
@@ -96,7 +96,7 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
         onChangeText={setExName}
       />
 
-      {/* Selector de Grupo Muscular */}
+      {/* Muscle Group Selector */}
       <Text style={[styles.label, { color: colors.textSecondary }]}>
         {t("catalog.muscleLabel")}
       </Text>
@@ -215,7 +215,7 @@ export const EditExerciseForm: React.FC<EditExerciseFormProps> = ({
         </ScrollView>
       )}
 
-      {/* Selector de Máquina */}
+      {/* Machine Selector */}
       <Text style={[styles.label, { color: colors.textSecondary }]}>
         {t("catalog.machineAssignedLabel")}
       </Text>

@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       return true;
     } catch (err: any) {
-      setError(err.message || "Error al iniciar sesión");
+      setError(err.message || "Sign-in error");
       return false;
     } finally {
       setIsAuthenticating(false);
@@ -135,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const access = response.tokens?.access;
       const refresh = response.tokens?.refresh;
       if (!access || !refresh || !response.user) {
-        throw new Error("Respuesta de registro incompleta.");
+        throw new Error("Incomplete registration response.");
       }
 
       setToken(access);
@@ -144,7 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await storage.saveUser(response.user);
       return true;
     } catch (err) {
-      setError(extractApiError(err, "No se pudo crear la cuenta"));
+      setError(extractApiError(err, "Could not create account"));
       return false;
     } finally {
       setIsAuthenticating(false);

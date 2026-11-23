@@ -16,14 +16,14 @@ import { RoutineDetailView } from "./RoutineDetailView";
 
 export interface RoutinesSectionProps {
   colors: DashboardColors;
-  routinesSubTab: "mis_rutinas" | "crear";
-  setRoutinesSubTab: (tab: "mis_rutinas" | "crear") => void;
+  routinesSubTab: "my_routines" | "create";
+  setRoutinesSubTab: (tab: "my_routines" | "create") => void;
   selectedRoutineId: string | null;
   setSelectedRoutineId: (id: string | null) => void;
   routines: Routine[];
   exercises: Exercise[];
   getExercisesOfRoutine: (routine?: Routine) => RoutineExerciseItem[];
-  // Crear rutina props
+  // Create routine props
   newRoutineTitle: string;
   setNewRoutineTitle: (title: string) => void;
   newRoutineFocus: string;
@@ -59,10 +59,10 @@ export interface RoutinesSectionProps {
   onOpenRoutineOptions?: (routine: Routine) => void;
   onDeleteRoutine?: (routine: Routine) => void;
   routineSessions: WorkoutSessionItem[];
-  // Tracking chart props in Mis Rutinas
+  // Tracking chart props in My Routines
   trackingRoutineId: string;
   trackingExerciseId: string;
-  marcaHistory: ProgressionItem[];
+  recordHistory: ProgressionItem[];
   currentRoutineExercises: { id: string; name: string }[];
   onTrackingSelectRoutine: (routineId: string) => void;
   onTrackingSelectExercise: (exerciseId: string) => void;
@@ -104,7 +104,7 @@ export const RoutinesSection: React.FC<RoutinesSectionProps> = ({
   routineSessions,
   trackingRoutineId,
   trackingExerciseId,
-  marcaHistory,
+  recordHistory,
   currentRoutineExercises,
   onTrackingSelectRoutine,
   onTrackingSelectExercise,
@@ -116,7 +116,7 @@ export const RoutinesSection: React.FC<RoutinesSectionProps> = ({
 
   return (
     <>
-      {/* Selector de sub-pestañas: Crear / Mis Rutinas */}
+      {/* Sub-tab selector: Create / My Routines */}
       <View
         style={[
           styles.subTabBar,
@@ -128,8 +128,8 @@ export const RoutinesSection: React.FC<RoutinesSectionProps> = ({
       >
         {(
           [
-            { key: "mis_rutinas", label: t("routines.subTabMyRoutines") },
-            { key: "crear", label: t("routines.subTabCreate") },
+            { key: "my_routines", label: t("routines.subTabMyRoutines") },
+            { key: "create", label: t("routines.subTabCreate") },
           ] as const
         ).map((subTab) => {
           const active = routinesSubTab === subTab.key;
@@ -138,7 +138,7 @@ export const RoutinesSection: React.FC<RoutinesSectionProps> = ({
               key={subTab.key}
               onPress={() => {
                 setRoutinesSubTab(subTab.key);
-                if (subTab.key === "mis_rutinas") {
+                if (subTab.key === "my_routines") {
                   setSelectedRoutineId(null);
                 }
               }}
@@ -162,8 +162,8 @@ export const RoutinesSection: React.FC<RoutinesSectionProps> = ({
         })}
       </View>
 
-      {/* SUB-PESTAÑA: CREAR */}
-      {routinesSubTab === "crear" && (
+      {/* SUB-TAB: CREATE */}
+      {routinesSubTab === "create" && (
         <>
           <CreateRoutineCard
             colors={colors}
@@ -185,8 +185,8 @@ export const RoutinesSection: React.FC<RoutinesSectionProps> = ({
         </>
       )}
 
-      {/* SUB-PESTAÑA: MIS RUTINAS (LISTA COMPACTA) */}
-      {routinesSubTab === "mis_rutinas" && !selectedRoutineDetail && (
+      {/* SUB-TAB: MY ROUTINES (COMPACT LIST) */}
+      {routinesSubTab === "my_routines" && !selectedRoutineDetail && (
         <MyRoutinesSubTab
           colors={colors}
           routines={routines}
@@ -196,18 +196,18 @@ export const RoutinesSection: React.FC<RoutinesSectionProps> = ({
           onOpenRoutineOptions={onOpenRoutineOptions}
           onDeleteRoutine={onDeleteRoutine}
           onUpdateRoutineExercise={onUpdateRoutineExercise}
-          onGoToCreate={() => setRoutinesSubTab("crear")}
+          onGoToCreate={() => setRoutinesSubTab("create")}
           trackingRoutineId={trackingRoutineId}
           trackingExerciseId={trackingExerciseId}
-          marcaHistory={marcaHistory}
+          recordHistory={recordHistory}
           currentRoutineExercises={currentRoutineExercises}
           onTrackingSelectRoutine={onTrackingSelectRoutine}
           onTrackingSelectExercise={onTrackingSelectExercise}
         />
       )}
 
-      {/* SUB-PESTAÑA: MIS RUTINAS (DETALLE DE RUTINA SELECCIONADA) */}
-      {routinesSubTab === "mis_rutinas" && selectedRoutineDetail && (
+      {/* SUB-TAB: MY ROUTINES (SELECTED ROUTINE DETAIL) */}
+      {routinesSubTab === "my_routines" && selectedRoutineDetail && (
         <RoutineDetailView
           colors={colors}
           routine={selectedRoutineDetail}

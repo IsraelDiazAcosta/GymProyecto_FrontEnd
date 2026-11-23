@@ -33,7 +33,7 @@ interface EditEquipmentFormProps {
 }
 
 /**
- * Formulario modular para editar la información de una máquina o equipo del gimnasio.
+ * Modular form for editing gym machine or equipment details.
  */
 export const EditEquipmentForm: React.FC<EditEquipmentFormProps> = ({
   colors,

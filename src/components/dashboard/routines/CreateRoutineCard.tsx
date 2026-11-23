@@ -18,11 +18,11 @@ import { Exercise } from "@/services/api";
 import { DashboardColors } from "../types";
 
 const FOCUS_OPTIONS = [
-  { value: "pecho", label: "Pecho" },
-  { value: "espalda", label: "Espalda" },
-  { value: "pierna", label: "Pierna" },
-  { value: "hombro", label: "Hombro" },
-  { value: "brazo", label: "Brazo" },
+  { value: "pecho", label: "Chest" },
+  { value: "espalda", label: "Back" },
+  { value: "pierna", label: "Legs" },
+  { value: "hombro", label: "Shoulders" },
+  { value: "brazo", label: "Arms" },
   { value: "core", label: "Core" },
   { value: "fullbody", label: "Full Body" },
 ];
@@ -40,8 +40,8 @@ export interface CreateRoutineCardProps {
 }
 
 /**
- * Tarjeta interactiva para crear una nueva rutina con selección múltiple de ejercicios
- * y enfoque muscular categorizado.
+ * Interactive card for creating a new routine with multi-exercise selection
+ * and categorized muscle focus.
  */
 export const CreateRoutineCard: React.FC<CreateRoutineCardProps> = ({
   colors,

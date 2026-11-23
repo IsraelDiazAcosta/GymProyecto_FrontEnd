@@ -199,7 +199,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
             },
           ]}
         >
-          {/* Cabecera */}
+          {/* Header */}
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.title, { color: colors.text }]}>
@@ -230,7 +230,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
             </Pressable>
           </View>
 
-          {/* Filtro por enfoque muscular */}
+          {/* Muscle focus filter */}
           {Boolean(routineFocus) && (
             <View style={styles.filterToggleRow}>
               <Pressable
@@ -305,7 +305,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
             </View>
           )}
 
-          {/* Buscador */}
+          {/* Search bar */}
           <View
             style={[
               styles.searchContainer,
@@ -331,7 +331,7 @@ export const SelectExerciseModal: React.FC<SelectExerciseModalProps> = ({
             )}
           </View>
 
-          {/* Lista */}
+          {/* List */}
           <FlatList
             data={filteredExercises}
             keyExtractor={(item, index) => `${item.id}-${index}`}

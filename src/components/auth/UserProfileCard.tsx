@@ -38,7 +38,7 @@ export const UserProfileCard: React.FC = () => {
           ]}
         >
           <Text style={styles.badgeText}>
-            {user.is_staff ? "🛡️ Administrador" : "👤 Atleta"}
+            {user.is_staff ? "🛡️ Admin" : "👤 Athlete"}
           </Text>
         </View>
       </View>
@@ -51,13 +51,13 @@ export const UserProfileCard: React.FC = () => {
             Level
           </Text>
           <Text style={[styles.detailValue, { color: colors.text }]}>
-            {user.experience_level || "Principiante"}
+            {user.experience_level || "Beginner"}
           </Text>
         </View>
 
         <View style={styles.detailItem}>
           <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
-            Peso
+            Weight
           </Text>
           <Text style={[styles.detailValue, { color: colors.text }]}>
             {user.current_weight ? `${user.current_weight} kg` : "--"}
@@ -66,7 +66,7 @@ export const UserProfileCard: React.FC = () => {
 
         <View style={styles.detailItem}>
           <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
-            Estatura
+            Height
           </Text>
           <Text style={[styles.detailValue, { color: colors.text }]}>
             {user.height ? `${user.height} cm` : "--"}

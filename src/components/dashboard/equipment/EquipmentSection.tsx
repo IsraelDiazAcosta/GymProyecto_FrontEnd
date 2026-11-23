@@ -54,8 +54,8 @@ export const getEquipmentIconName = (type?: string): IconName => {
 };
 
 /**
- * Inventario de máquinas y equipos del gimnasio con búsqueda instantánea,
- * filtros por categoría biomecánica e iconos vectoriales.
+ * Gym machines and equipment inventory with instant search,
+ * biomechanical category filters, and vector icons.
  */
 export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
   colors,
@@ -128,7 +128,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
         },
       ]}
     >
-      {/* Cabecera */}
+      {/* Header */}
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
           <View style={styles.kickerRow}>
@@ -166,7 +166,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
         )}
       </View>
 
-      {/* Buscador */}
+      {/* Search bar */}
       <View
         style={[
           styles.searchBar,
@@ -191,7 +191,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
         )}
       </View>
 
-      {/* Filtros por categoría */}
+      {/* Category filters */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -309,7 +309,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
         })}
       </ScrollView>
 
-      {/* Selector de elementos por página */}
+      {/* Items per page selector */}
       <PageSizeSelector
         colors={colors}
         pageSize={pageSize}
@@ -318,7 +318,7 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
         onChangePageSize={setPageSize}
       />
 
-      {/* Listado */}
+      {/* List */}
       {filteredEquipment.length === 0 ? (
         <View
           style={[

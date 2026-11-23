@@ -47,8 +47,8 @@ export interface AddExerciseModalProps {
 }
 
 /**
- * Modal de administración para crear un ejercicio en el catálogo con selección
- * explícita de Grupo Muscular en base de datos y Máquina vinculada.
+ * Admin modal for creating a catalog exercise with explicit selection
+ * of a database Muscle Group and linked Machine.
  */
 export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
   colors,
@@ -110,7 +110,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
             },
           ]}
         >
-          {/* Cabecera */}
+          {/* Header */}
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <View style={styles.kickerRow}>
@@ -147,7 +147,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
               onChangeText={setNewExName}
             />
 
-            {/* Selector de Grupo Muscular Principal */}
+            {/* Primary Muscle Group Selector */}
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
               {t("catalog.muscleLabel")}
             </Text>
@@ -252,6 +252,15 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
                         key={muscle.id}
                         onPress={() => {
                           setSelectedMuscle(muscle.id);
+                          if (selectedEquipObj) {
+                            const compatible = isEquipmentCompatibleWithMuscle(
+                              selectedEquipObj.name,
+                              `${muscle.name} ${muscle.body_part || ""}`,
+                            );
+                            if (!compatible) {
+                              setSelectedEquipment(null);
+                            }
+                          }
                           setMuscleDropdownOpen(false);
                         }}
                         style={[
@@ -286,7 +295,7 @@ export const AddExerciseModal: React.FC<AddExerciseModalProps> = ({
               </View>
             )}
 
-            {/* Selector de Máquina */}
+            {/* Machine Selector */}
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
               {t("catalog.machineAssignedLabel")}
             </Text>

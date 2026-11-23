@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Linking,
   Modal,
@@ -32,8 +32,8 @@ export interface ExerciseDetailModalProps {
 }
 
 /**
- * Ficha técnica detallada de un ejercicio con anatomía muscular, equipo vinculado,
- * enlace a video demostrativo e instrucciones paso a paso.
+ * Detailed exercise spec sheet with muscle anatomy, linked equipment,
+ * demo video link, and step-by-step instructions.
  */
 export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
   colors,
@@ -44,6 +44,22 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
 }) => {
   const { language, t } = useLanguage();
   const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [exercise?.id, visible]);
+
+  const openSafeVideoUrl = (rawUrl?: string | null) => {
+    if (!rawUrl) return;
+    const trimmed = rawUrl.trim();
+    if (!trimmed) return;
+    let safeUrl = trimmed;
+    if (!/^https?:\/\//i.test(safeUrl)) {
+      if (/^[a-z][a-z0-9+.-]*:/i.test(safeUrl)) return;
+      safeUrl = `https://${safeUrl}`;
+    }
+    Linking.openURL(safeUrl).catch(() => {});
+  };
 
   const matchedEquipment: Equipment | null = useMemo(() => {
     if (!exercise) return null;
@@ -106,7 +122,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
             },
           ]}
         >
-          {/* Cabecera */}
+          {/* Header */}
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <View style={styles.kickerRow}>
@@ -135,7 +151,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {/* Vista previa multimedia */}
+            {/* Media preview */}
             {imageUri ? (
               <View
                 style={[
@@ -156,7 +172,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                       styles.videoOverlayBtn,
                       { backgroundColor: colors.primary },
                     ]}
-                    onPress={() => Linking.openURL(videoUrl).catch(() => {})}
+                    onPress={() => openSafeVideoUrl(videoUrl)}
                   >
                     <GymIcon name="play" size={15} color={colors.onPrimary} />
                     <Text
@@ -192,7 +208,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
                       styles.videoBtnInline,
                       { backgroundColor: colors.primary },
                     ]}
-                    onPress={() => Linking.openURL(videoUrl).catch(() => {})}
+                    onPress={() => openSafeVideoUrl(videoUrl)}
                   >
                     <GymIcon name="video" size={15} color={colors.onPrimary} />
                     <Text
@@ -217,7 +233,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
               </View>
             )}
 
-            {/* Tarjeta de Máquina Requerida */}
+            {/* Required Machine Card */}
             <View
               style={[
                 styles.infoBox,
@@ -361,7 +377,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
               )}
             </View>
 
-            {/* Músculos trabajados */}
+            {/* Muscles worked */}
             {(primaryMuscles.length > 0 ||
               secondaryMuscles.length > 0 ||
               exercise.primary_muscle) && (
@@ -458,7 +474,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
               </View>
             )}
 
-            {/* Descripción */}
+            {/* Description */}
             {Boolean(exercise.description) && (
               <View
                 style={[
@@ -485,7 +501,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({
               </View>
             )}
 
-            {/* Instrucciones paso a paso */}
+            {/* Step-by-step instructions */}
             <View
               style={[
                 styles.infoBox,

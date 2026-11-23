@@ -21,8 +21,8 @@ import {
 } from "@/services/api";
 
 /**
- * Custom Hook centralizado que encapsula toda la lógica de negocio, llamadas API
- * y estados interactivos del Dashboard del Gimnasio.
+ * Centralized custom hook encapsulating all business logic, API calls,
+ * and interactive state for the Gym Dashboard.
  */
 export function useGymDashboardData() {
   const { user, refreshProfile } = useAuth();
@@ -65,13 +65,13 @@ export function useGymDashboardData() {
     setToast((prev) => ({ ...prev, visible: false }));
   };
 
-  // Datos globales
+  // Global data
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
   const [muscleList, setMuscleList] = useState<MuscleGroup[]>([]);
 
-  // Estados de Catálogo
+  // Catalog states
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
     null,
   );
@@ -84,7 +84,7 @@ export function useGymDashboardData() {
   const [newExMuscle, setNewExMuscle] = useState<number | null>(null);
   const [newExImage, setNewExImage] = useState<PickedImageAsset | null>(null);
 
-  // Estados de Rutinas
+  // Routine states
   const [newRoutineTitle, setNewRoutineTitle] = useState("");
   const [newRoutineFocus, setNewRoutineFocus] = useState("fullbody");
   const [newRoutineExerciseIds, setNewRoutineExerciseIds] = useState<string[]>(
@@ -100,36 +100,36 @@ export function useGymDashboardData() {
   const [minReps, setMinReps] = useState("8");
   const [maxReps, setMaxReps] = useState("12");
 
-  // Estados de Marcas (Tracking)
+  // Record states (Tracking)
   const [trackingRoutineId, setTrackingRoutineId] = useState<string>("");
   const [trackingExerciseId, setTrackingExerciseId] = useState<string>("");
-  const [marcaWeight, setMarcaWeight] = useState("100");
-  const [marcaReps, setMarcaReps] = useState("10");
-  const [marcaRpe, setMarcaRpe] = useState("8.5");
-  const [marcaHistory, setMarcaHistory] = useState<ProgressionItem[]>([]);
-  const [savingMarca, setSavingMarca] = useState(false);
+  const [recordWeight, setRecordWeight] = useState("100");
+  const [recordReps, setRecordReps] = useState("10");
+  const [recordRpe, setRecordRpe] = useState("8.5");
+  const [recordHistory, setRecordHistory] = useState<ProgressionItem[]>([]);
+  const [savingRecord, setSavingRecord] = useState(false);
   const [lastSavedSummary, setLastSavedSummary] = useState<string | null>(null);
 
-  // Estados de Admin y Equipos
+  // Admin and Equipment states
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [showAdminUsers, setShowAdminUsers] = useState(false);
   const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
 
-  // Estados de modales de acciones (Action Sheet / Editar / Eliminar)
+  // Action modal states (Action Sheet / Edit / Delete)
   const [actionSheetItem, setActionSheetItem] = useState<{
-    type: "routine" | "exercise" | "marca" | "equipment";
+    type: "routine" | "exercise" | "record" | "equipment";
     title: string;
     subtitle?: string;
     data: any;
   } | null>(null);
 
   const [editModalItem, setEditModalItem] = useState<{
-    type: "routine" | "exercise" | "marca" | "equipment";
+    type: "routine" | "exercise" | "record" | "equipment";
     data: any;
   } | null>(null);
 
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<{
-    type: "routine" | "exercise" | "marca" | "equipment";
+    type: "routine" | "exercise" | "record" | "equipment";
     id: string;
     title: string;
   } | null>(null);
@@ -243,12 +243,12 @@ export function useGymDashboardData() {
           await loadProgressionHistory(matchingEx.id);
         } else {
           setTrackingExerciseId("");
-          setMarcaHistory([]);
+          setRecordHistory([]);
         }
       } else {
         setTrackingRoutineId("");
         setTrackingExerciseId("");
-        setMarcaHistory([]);
+        setRecordHistory([]);
       }
 
       lastSyncRef.current = Date.now();
@@ -360,9 +360,14 @@ export function useGymDashboardData() {
       return ex ? isExerciseCompatibleWithFocus(ex, newRoutineFocus) : false;
     });
 
-    const sc = parseInt(setsCount, 10) || 4;
-    const minR = parseInt(minReps, 10) || 8;
-    const maxR = parseInt(maxReps, 10) || 12;
+    const clampPos = (raw: string, fallback: number, min: number, max: number) => {
+      const parsed = parseInt(raw, 10);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.min(max, Math.max(min, parsed));
+    };
+    const sc = clampPos(setsCount, 4, 1, 30);
+    const minR = clampPos(minReps, 8, 1, 1000);
+    const maxR = clampPos(maxReps, 12, minR, 1000);
 
     try {
       setLoading(true);
@@ -513,7 +518,7 @@ export function useGymDashboardData() {
       loadProgressionHistory(exList[0].id);
     } else {
       setTrackingExerciseId("");
-      setMarcaHistory([]);
+      setRecordHistory([]);
     }
   };
 
@@ -521,13 +526,13 @@ export function useGymDashboardData() {
     if (!exerciseId) return;
     try {
       const data = await api.getProgression(exerciseId);
-      setMarcaHistory(data.history || []);
+      setRecordHistory(data.history || []);
     } catch (e) {
       console.error(e);
     }
   };
 
-  const handleSaveMarca = async (): Promise<boolean> => {
+  const handleSaveRecord = async (): Promise<boolean> => {
     if (!trackingExerciseId) {
       showToast(
         "warning",
@@ -536,10 +541,10 @@ export function useGymDashboardData() {
       );
       return false;
     }
-    const w = parseFloat(marcaWeight.replace(",", "."));
-    const r = parseInt(marcaReps, 10);
-    const rpe = marcaRpe.trim()
-      ? parseFloat(marcaRpe.replace(",", "."))
+    const w = parseFloat(recordWeight.replace(",", "."));
+    const r = parseInt(recordReps, 10);
+    const rpe = recordRpe.trim()
+      ? parseFloat(recordRpe.replace(",", "."))
       : undefined;
 
     if (
@@ -560,8 +565,8 @@ export function useGymDashboardData() {
     }
 
     try {
-      setSavingMarca(true);
-      const res = await api.saveMarca(trackingExerciseId, w, r, rpe);
+      setSavingRecord(true);
+      const res = await api.saveRecord(trackingExerciseId, w, r, rpe);
       setLastSavedSummary(
         t("toasts.lastSavedSummary", {
           weight: w,
@@ -584,7 +589,7 @@ export function useGymDashboardData() {
       showToast("error", t("toasts.saveMarcaError"), e.message);
       return false;
     } finally {
-      setSavingMarca(false);
+      setSavingRecord(false);
     }
   };
 
@@ -642,7 +647,7 @@ export function useGymDashboardData() {
     });
   };
 
-  const handleOpenMarcaOptions = (item: ProgressionItem) => {
+  const handleOpenRecordOptions = (item: ProgressionItem) => {
     try {
       Vibration.vibrate(45);
     } catch {}
@@ -650,7 +655,7 @@ export function useGymDashboardData() {
       ? new Date(item.logged_at).toLocaleDateString(locale)
       : t("common.recent");
     setActionSheetItem({
-      type: "marca",
+      type: "record",
       title: `${item.weight} kg × ${item.reps} reps`,
       subtitle: `${t("toasts.marcaOptionsSub", { date: dateStr })}${item.rpe ? ` • RPE ${item.rpe}` : ""}`,
       data: item,
@@ -673,7 +678,7 @@ export function useGymDashboardData() {
     });
   };
 
-  const handleSaveMarcaEdit = async (
+  const handleSaveRecordEdit = async (
     id: string,
     weight: number,
     reps: number,
@@ -681,7 +686,7 @@ export function useGymDashboardData() {
   ) => {
     try {
       setLoading(true);
-      await api.updateMarca(id, { weight, reps, rpe });
+      await api.updateRecord(id, { weight, reps, rpe });
       await loadProgressionHistory(trackingExerciseId);
       showToast(
         "success",
@@ -1008,12 +1013,12 @@ export function useGymDashboardData() {
               await loadProgressionHistory(nextExList[0].id);
             } else {
               setTrackingExerciseId("");
-              setMarcaHistory([]);
+              setRecordHistory([]);
             }
           } else {
             setTrackingRoutineId("");
             setTrackingExerciseId("");
-            setMarcaHistory([]);
+            setRecordHistory([]);
           }
         }
         showToast(
@@ -1021,8 +1026,8 @@ export function useGymDashboardData() {
           t("toasts.routineDeletedTitle"),
           t("toasts.routineDeletedMsg", { title: deleteConfirmItem.title }),
         );
-      } else if (deleteConfirmItem.type === "marca") {
-        await api.deleteMarca(deleteConfirmItem.id);
+      } else if (deleteConfirmItem.type === "record") {
+        await api.deleteRecord(deleteConfirmItem.id);
         await loadProgressionHistory(trackingExerciseId);
         showToast(
           "success",
@@ -1118,14 +1123,14 @@ export function useGymDashboardData() {
     trackingRoutineId,
     trackingExerciseId,
     setTrackingExerciseId,
-    marcaWeight,
-    setMarcaWeight,
-    marcaReps,
-    setMarcaReps,
-    marcaRpe,
-    setMarcaRpe,
-    marcaHistory,
-    savingMarca,
+    recordWeight,
+    setRecordWeight,
+    recordReps,
+    setRecordReps,
+    recordRpe,
+    setRecordRpe,
+    recordHistory,
+    savingRecord,
     lastSavedSummary,
     adminUsers,
     showAdminUsers,
@@ -1145,13 +1150,13 @@ export function useGymDashboardData() {
     handleAddExerciseToRoutine,
     handleRoutineChangeInTracking,
     loadProgressionHistory,
-    handleSaveMarca,
+    handleSaveRecord,
     loadAdminUsers,
     handleOpenRoutineOptions,
     handleOpenExerciseOptions,
-    handleOpenMarcaOptions,
+    handleOpenRecordOptions,
     handleOpenEquipmentOptions,
-    handleSaveMarcaEdit,
+    handleSaveRecordEdit,
     handleSaveRoutineEdit,
     handleRemoveExerciseFromRoutine,
     handleAddExerciseToRoutineInEdit,

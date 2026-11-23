@@ -19,9 +19,9 @@ interface AppInputProps extends TextInputProps {
 }
 
 /**
- * Campo de texto reutilizable con estética "Apex Emerald Gym".
- * Mantiene una jerarquía nativa estable (collapsable={false} y sin re-renderizado en onFocus)
- * para evitar que el teclado se cierre automáticamente en Android/iOS.
+ * Reusable text input styled with "Apex Emerald Gym".
+ * Maintains a stable native view hierarchy (`collapsable={false}` and no re-render on focus)
+ * to prevent the keyboard from closing unexpectedly on Android/iOS.
  */
 export function AppInput({
   label,

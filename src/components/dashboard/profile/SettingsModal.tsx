@@ -45,9 +45,9 @@ const LANGUAGE_OPTIONS: {
 ];
 
 /**
- * Panel modal de Ajustes de la aplicación.
- * Incluye la sección Apariencia (Modo de pantalla + Color de acento) con vista previa
- * en vivo, y la sección Idioma (Español / English / Sistema).
+ * Application Settings modal panel.
+ * Includes the Appearance section (Display Mode + Accent Color) with live preview,
+ * and the Language section (Spanish / English / System).
  */
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   visible,
@@ -110,7 +110,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             style={[styles.handleBar, { backgroundColor: colors.handleBar }]}
           />
 
-          {/* Cabecera */}
+          {/* Header */}
           <View
             style={[
               styles.headerRow,
@@ -150,7 +150,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {/* ==================== SECCIÓN 1: APARIENCIA ==================== */}
+            {/* ==================== SECTION 1: APPEARANCE ==================== */}
             <View style={styles.sectionBlock}>
               <View style={styles.sectionHeader}>
                 <View
@@ -179,7 +179,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </View>
               </View>
 
-              {/* Vista previa en vivo */}
+              {/* Live preview */}
               <View
                 style={[
                   styles.previewStage,
@@ -262,7 +262,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </View>
               </View>
 
-              {/* Control A: Modo de pantalla */}
+              {/* Control A: Display mode */}
               <Text
                 style={[styles.controlLabel, { color: colors.textSecondary }]}
               >
@@ -332,7 +332,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </View>
               )}
 
-              {/* Control B: Color de acento */}
+              {/* Control B: Accent color */}
               <Text
                 style={[
                   styles.controlLabel,
@@ -431,7 +431,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               )}
             </View>
 
-            {/* ==================== SECCIÓN 2: IDIOMA ==================== */}
+            {/* ==================== SECTION 2: LANGUAGE ==================== */}
             <View
               style={[
                 styles.sectionBlock,

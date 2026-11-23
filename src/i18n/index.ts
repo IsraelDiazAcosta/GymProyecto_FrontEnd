@@ -70,7 +70,7 @@ export function detectSystemLanguage(): ResolvedLanguage {
       return "en";
     }
   } catch {
-    // Fallback seguro a español si Intl no está disponible
+    // Safe fallback if Intl is not available
   }
   return "es";
 }
