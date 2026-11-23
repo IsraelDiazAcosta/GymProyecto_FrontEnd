@@ -582,4 +582,12 @@ export const en: TranslationDictionary = {
     "Only gym administrators can create, edit, or delete machines and exercises.",
   "toasts.refreshedTitle": "Data Refreshed",
   "toasts.refreshedMsg": "Catalog, machines, and routines are up to date.",
+
+  // Pagination
+  "pagination.itemsPerPage": "Items per page",
+  "pagination.noResults": "No results to display",
+  "pagination.showingRange": "Showing {{start}}-{{end}} of {{total}}",
+  "pagination.inputHint": "Enter a number ({{min}}-{{max}})",
+  "pagination.prev": "Prev",
+  "pagination.next": "Next",
 };

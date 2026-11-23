@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -12,6 +12,10 @@ import {
 
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon, IconName } from "@/components/ui/GymIcon";
+import {
+  PageSizeSelector,
+  PaginationBar,
+} from "@/components/ui/PaginationControls";
 import { Radius, Spacing } from "@/constants/theme";
 import { useLanguage } from "@/context/LanguageContext";
 import { getEquipmentTypeLabel } from "@/i18n";
@@ -64,6 +68,8 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
   const { language, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("all");
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const favoritesCount = equipmentList.filter((item) => Boolean(item.is_favorite)).length;
 
   const handleTriggerOptions = (item: Equipment) => {
@@ -74,21 +80,43 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
     onEquipmentOptionsPress(item);
   };
 
-  const filteredEquipment = equipmentList.filter((item) => {
-    const matchesSearch =
-      !searchQuery.trim() ||
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description?.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredEquipment = useMemo(
+    () =>
+      equipmentList.filter((item) => {
+        const matchesSearch =
+          !searchQuery.trim() ||
+          item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesType =
-      selectedTypeFilter === "all"
-        ? true
-        : selectedTypeFilter === "favorites"
-          ? Boolean(item.is_favorite)
-          : item.equipment_type === selectedTypeFilter;
-    return matchesSearch && matchesType;
-  });
+        const matchesType =
+          selectedTypeFilter === "all"
+            ? true
+            : selectedTypeFilter === "favorites"
+              ? Boolean(item.is_favorite)
+              : item.equipment_type === selectedTypeFilter;
+        return matchesSearch && matchesType;
+      }),
+    [equipmentList, searchQuery, selectedTypeFilter],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filteredEquipment.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedTypeFilter, pageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedEquipment = useMemo(() => {
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    return filteredEquipment.slice(startIndex, startIndex + pageSize);
+  }, [filteredEquipment, safeCurrentPage, pageSize]);
 
   return (
     <AnimatedCard
@@ -281,6 +309,15 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
         })}
       </ScrollView>
 
+      {/* Selector de elementos por página */}
+      <PageSizeSelector
+        colors={colors}
+        pageSize={pageSize}
+        totalItems={filteredEquipment.length}
+        currentPage={safeCurrentPage}
+        onChangePageSize={setPageSize}
+      />
+
       {/* Listado */}
       {filteredEquipment.length === 0 ? (
         <View
@@ -303,8 +340,9 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
           </Text>
         </View>
       ) : (
-        <View style={styles.listColumn}>
-          {filteredEquipment.map((item, idx) => {
+        <>
+          <View style={styles.listColumn}>
+            {paginatedEquipment.map((item, idx) => {
             const imgUrl = resolveMediaUrl(item.image);
             const isFav = Boolean(item.is_favorite);
             return (
@@ -471,7 +509,15 @@ export const EquipmentSection: React.FC<EquipmentSectionProps> = ({
             </Pressable>
             );
           })}
-        </View>
+          </View>
+
+          <PaginationBar
+            colors={colors}
+            currentPage={safeCurrentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </>
       )}
     </AnimatedCard>
   );

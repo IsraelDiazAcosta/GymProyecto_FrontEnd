@@ -550,6 +550,37 @@ async function request<T>(
   }
 }
 
+async function fetchAllPages<T>(endpoint: string, pageSize = 500): Promise<T[]> {
+  const sep = endpoint.includes("?") ? "&" : "?";
+  let nextEndpoint: string | null = `${endpoint}${sep}page_size=${pageSize}`;
+  const items: T[] = [];
+  let guard = 0;
+
+  while (nextEndpoint && guard < 20) {
+    guard += 1;
+    const res: any = await request(nextEndpoint);
+    if (Array.isArray(res)) {
+      return res as T[];
+    }
+    if (Array.isArray(res?.results)) {
+      items.push(...(res.results as T[]));
+    }
+    if (typeof res?.next === "string" && res.next.length > 0) {
+      const apiPrefix = API_BASE_URL ?? "";
+      if (apiPrefix && res.next.startsWith(apiPrefix)) {
+        nextEndpoint = res.next.slice(apiPrefix.length);
+      } else {
+        const idx = res.next.indexOf("/api/v1");
+        nextEndpoint = idx >= 0 ? res.next.slice(idx + "/api/v1".length) : null;
+      }
+    } else {
+      nextEndpoint = null;
+    }
+  }
+
+  return items;
+}
+
 export const api = {
   // --- AUTH ---
   async login(email: string, password: string): Promise<AuthResponse> {
@@ -598,8 +629,7 @@ export const api = {
 
   // --- CATÁLOGO ---
   async getExercises(): Promise<Exercise[]> {
-    const res: any = await request("/catalog/exercises/");
-    return res.results || res;
+    return fetchAllPages<Exercise>("/catalog/exercises/");
   },
 
   async getExerciseDetail(id: string): Promise<Exercise> {
@@ -607,8 +637,7 @@ export const api = {
   },
 
   async getEquipment(): Promise<Equipment[]> {
-    const res: any = await request("/catalog/equipment/");
-    return res.results || res;
+    return fetchAllPages<Equipment>("/catalog/equipment/");
   },
 
   async getFavoriteEquipment(): Promise<Equipment[]> {
@@ -671,8 +700,7 @@ export const api = {
   },
 
   async getMuscles(): Promise<MuscleGroup[]> {
-    const res: any = await request("/catalog/muscles/");
-    return res.results || res;
+    return fetchAllPages<MuscleGroup>("/catalog/muscles/");
   },
 
   async createExercise(payload: any): Promise<Exercise> {

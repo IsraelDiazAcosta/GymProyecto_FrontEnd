@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
@@ -131,29 +131,6 @@ export function DashboardHeader({
             {isAdmin ? t("header.admin") : t("header.athlete")}
           </Text>
         </View>
-
-        {onRefresh && (
-          <Pressable
-            onPress={onRefresh}
-            disabled={refreshing}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={t("header.refreshLabel")}
-            style={[
-              styles.refreshBtn,
-              {
-                backgroundColor: colors.backgroundElevated,
-                borderColor: colors.borderSubtle,
-              },
-            ]}
-          >
-            {refreshing ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <GymIcon name="refresh-cw" size={14} color={colors.primary} />
-            )}
-          </Pressable>
-        )}
       </View>
     </View>
   );

@@ -83,8 +83,7 @@ export const es = {
   "settings.modeDark": "Oscuro",
   "settings.modeLight": "Claro",
   "settings.modeSystem": "Sistema",
-  "settings.systemModeHint":
-    "Siguiendo el dispositivo (actualmente: {{mode}})",
+  "settings.systemModeHint": "Siguiendo el dispositivo (actualmente: {{mode}})",
   "settings.accentLabel": "Color de acento",
   "settings.resetAppearance":
     "Restablecer valores por defecto (Oscuro · Esmeralda)",
@@ -172,8 +171,7 @@ export const es = {
   "editProfile.bioPlaceholder": "Ej: ganar fuerza en sentadilla",
   "editProfile.errorWeightSubject": "El peso",
   "editProfile.errorHeightSubject": "La estatura",
-  "editProfile.errorMustBePositive":
-    "{{label}} debe ser un número mayor a 0",
+  "editProfile.errorMustBePositive": "{{label}} debe ser un número mayor a 0",
   "editProfile.errorMustBeLessThan1000": "{{label}} debe ser menor a 1000",
   "editProfile.errorHeightRange": "{{label}} debe estar entre 0.50 y 2.80 m",
   "editProfile.errorMaxUsername": "Máximo 50 caracteres",
@@ -205,11 +203,11 @@ export const es = {
   "equipment.brandPlaceholder":
     "Ej: Hammer Strength, Technogym, Life Fitness...",
   "equipment.descLabel": "Descripción Breve (Opcional)",
-  "equipment.descPlaceholder": "Ej: Máquina convergente para pectoral superior...",
+  "equipment.descPlaceholder":
+    "Ej: Máquina convergente para pectoral superior...",
   "equipment.setupLabel": "Guía de Ajuste / Configuración (Opcional)",
   "equipment.setupPlaceholder": "Ej: Ajustar asiento a altura de hombros...",
-  "equipment.photoLabel":
-    "Fotografía de la Máquina (Máx. 1080px, comprimida)",
+  "equipment.photoLabel": "Fotografía de la Máquina (Máx. 1080px, comprimida)",
   "equipment.saveBtn": "Guardar Máquina",
 
   // Catálogo
@@ -266,7 +264,7 @@ export const es = {
   "catalog.stepsHeader": "TÉCNICA E INSTRUCCIONES PASO A PASO",
   "catalog.noInstructions":
     "No se han registrado instrucciones específicas para este ejercicio.",
-  "catalog.closeDetailBtn": "Cerrar Ficha",
+  "catalog.closeDetailBtn": "Cerrar Tarjeta",
 
   // Rutinas
   "routines.subTabMyRoutines": "Mis Rutinas",
@@ -412,7 +410,8 @@ export const es = {
   "tracking.emptyChartText":
     "Registra al menos un levantamiento para visualizar la curva 1RM.",
   "tracking.lastRecordLabel": "Último registro ({{date}})",
-  "tracking.lastRecordValue": "{{weight}} kg × {{reps}} reps ({{oneRm}} kg 1RM)",
+  "tracking.lastRecordValue":
+    "{{weight}} kg × {{reps}} reps ({{oneRm}} kg 1RM)",
   "tracking.deleteSessionLabel": "Eliminar sesión",
 
   // Modales compartidos
@@ -421,8 +420,7 @@ export const es = {
   "modals.typeMarca": "OPCIONES DE MARCA",
   "modals.typeEquipment": "OPCIONES DE MÁQUINA",
   "modals.editSubRoutine": "Modificar nombre, enfoque o ejercicios asignados",
-  "modals.editSubExercise":
-    "Cambiar nombre, grupo muscular, máquina o técnica",
+  "modals.editSubExercise": "Cambiar nombre, grupo muscular, máquina o técnica",
   "modals.editSubEquipment":
     "Modificar nombre, categoría, marca o guía de ajuste",
   "modals.editSubMarca": "Corregir peso levantado, repeticiones o RPE",
@@ -465,8 +463,7 @@ export const es = {
   "modals.editExMuscleDbSub": "Relación directa en base de datos",
   "modals.editExEquipSub": "Toca para cambiar de máquina",
   "modals.editExVideoLabel": "URL del Video Demostrativo",
-  "modals.editExInstructionsLabel":
-    "Instrucciones Paso a Paso (una por línea)",
+  "modals.editExInstructionsLabel": "Instrucciones Paso a Paso (una por línea)",
   "modals.editExInstructionsPlaceholder": "1. Ajustar banco...",
   "modals.editExImageLabel":
     "Imagen del Ejercicio (Propia o hereda de su máquina)",
@@ -504,21 +501,21 @@ export const es = {
   "toasts.defaultInstructions": "Ejecución estándar.",
   "toasts.exercisePublishedTitle": "Ejercicio Publicado",
   "toasts.exercisePublishedMsg":
-    "\"{{name}}\" se guardó en el catálogo con su grupo muscular.",
+    '"{{name}}" se guardó en el catálogo con su grupo muscular.',
   "toasts.publishExerciseError": "Error al publicar ejercicio",
   "toasts.routineNameRequiredMsg":
     "Ingresa el nombre de la rutina (ej. Lunes - Pecho).",
   "toasts.routineDefaultDescription": "Rutina personalizada",
   "toasts.routineCreatedTitle": "Rutina Creada",
   "toasts.routineCreatedWithCountMsg":
-    "\"{{title}}\" creada con {{count}} ejercicio(s).",
-  "toasts.routineCreatedMsg": "\"{{title}}\" se creó y guardó correctamente.",
+    '"{{title}}" creada con {{count}} ejercicio(s).',
+  "toasts.routineCreatedMsg": '"{{title}}" se creó y guardó correctamente.',
   "toasts.createRoutineError": "Error al crear rutina",
   "toasts.selectExerciseTitle": "Selecciona un ejercicio",
   "toasts.selectExerciseMsg": "Elige al menos un ejercicio antes de añadir.",
   "toasts.incompatibleMuscleTitle": "Grupo muscular incompatible",
   "toasts.incompatibleMuscleMsg":
-    "No se permite añadir \"{{name}}\" ({{muscle}}) a una rutina de {{focus}}.",
+    'No se permite añadir "{{name}}" ({{muscle}}) a una rutina de {{focus}}.',
   "toasts.duplicateExerciseTitle": "Ejercicio duplicado",
   "toasts.duplicateExerciseMsg":
     "Este ejercicio ya existe en la rutina seleccionada.",
@@ -549,13 +546,13 @@ export const es = {
     "Se actualizó el registro a {{weight}} kg × {{reps}} reps.",
   "toasts.updateMarcaError": "Error al actualizar marca",
   "toasts.routineUpdatedTitle": "Rutina Actualizada",
-  "toasts.routineUpdatedMsg": "Se guardaron los cambios en \"{{title}}\".",
+  "toasts.routineUpdatedMsg": 'Se guardaron los cambios en "{{title}}".',
   "toasts.updateRoutineError": "Error al actualizar rutina",
   "toasts.exerciseRemovedTitle": "Ejercicio Removido",
-  "toasts.exerciseRemovedMsg": "Se quitó \"{{name}}\" de la rutina.",
+  "toasts.exerciseRemovedMsg": 'Se quitó "{{name}}" de la rutina.',
   "toasts.removeExerciseError": "Error al quitar ejercicio",
   "toasts.exerciseAssignedTitle": "Ejercicio Añadido",
-  "toasts.exerciseAssignedMsg": "\"{{name}}\" asignado a la rutina.",
+  "toasts.exerciseAssignedMsg": '"{{name}}" asignado a la rutina.',
   "toasts.invalidValuesTitle": "Valores Inválidos",
   "toasts.invalidValuesMsg":
     "Series y repeticiones deben ser números enteros positivos.",
@@ -564,34 +561,41 @@ export const es = {
     "Configuración actualizada a {{sets}} series × {{min}}-{{max}} reps.",
   "toasts.updateSetsError": "Error al actualizar series",
   "toasts.exerciseUpdatedTitle": "Ejercicio Actualizado",
-  "toasts.exerciseUpdatedMsg": "Se guardaron los cambios en \"{{name}}\".",
+  "toasts.exerciseUpdatedMsg": 'Se guardaron los cambios en "{{name}}".',
   "toasts.updateExerciseError": "Error al actualizar ejercicio",
   "toasts.equipmentCreatedTitle": "Máquina Registrada",
   "toasts.equipmentCreatedMsg":
-    "\"{{name}}\" se guardó en el inventario del gimnasio.",
+    '"{{name}}" se guardó en el inventario del gimnasio.',
   "toasts.createEquipmentError": "Error al registrar máquina",
   "toasts.equipmentUpdatedTitle": "Máquina Actualizada",
-  "toasts.equipmentUpdatedMsg": "Se guardaron los cambios en \"{{name}}\".",
+  "toasts.equipmentUpdatedMsg": 'Se guardaron los cambios en "{{name}}".',
   "toasts.updateEquipmentError": "Error al actualizar máquina",
   "toasts.favoritesError": "Error en favoritos",
   "toasts.routineDeletedTitle": "Rutina Eliminada",
-  "toasts.routineDeletedMsg":
-    "\"{{title}}\" fue eliminada de la base de datos.",
+  "toasts.routineDeletedMsg": '"{{title}}" fue eliminada de la base de datos.',
   "toasts.marcaDeletedTitle": "Marca Eliminada",
-  "toasts.marcaDeletedMsg": "El registro \"{{title}}\" fue eliminado.",
+  "toasts.marcaDeletedMsg": 'El registro "{{title}}" fue eliminado.',
   "toasts.equipmentDeletedTitle": "Máquina Eliminada",
-  "toasts.equipmentDeletedMsg": "\"{{title}}\" fue eliminada del inventario.",
+  "toasts.equipmentDeletedMsg": '"{{title}}" fue eliminada del inventario.',
   "toasts.exerciseDeletedTitle": "Ejercicio Eliminado",
-  "toasts.exerciseDeletedMsg": "\"{{title}}\" fue eliminado del catálogo.",
+  "toasts.exerciseDeletedMsg": '"{{title}}" fue eliminado del catálogo.',
   "toasts.deleteError": "Error al eliminar",
   "toasts.sessionDeletedTitle": "Sesión Eliminada",
-  "toasts.sessionDeletedMsg": "\"{{title}}\" fue eliminada del historial.",
+  "toasts.sessionDeletedMsg": '"{{title}}" fue eliminada del historial.',
   "toasts.deleteSessionError": "Error al eliminar sesión",
   "toasts.adminOnlyTitle": "Acceso Restringido",
   "toasts.adminOnlyMsg":
     "Solo los administradores del gimnasio pueden crear, editar o eliminar máquinas y ejercicios.",
   "toasts.refreshedTitle": "Datos Actualizados",
   "toasts.refreshedMsg": "Catálogo, máquinas y rutinas sincronizados.",
+
+  // Paginación
+  "pagination.itemsPerPage": "Elementos por página",
+  "pagination.noResults": "Sin resultados para mostrar",
+  "pagination.showingRange": "Mostrando {{start}}-{{end}} de {{total}}",
+  "pagination.inputHint": "Escribe un número ({{min}}-{{max}})",
+  "pagination.prev": "Anterior",
+  "pagination.next": "Siguiente",
 } as const;
 
 export type TranslationKey = keyof typeof es;

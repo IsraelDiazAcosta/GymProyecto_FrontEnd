@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -12,6 +12,10 @@ import {
 
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GymIcon } from "@/components/ui/GymIcon";
+import {
+  PageSizeSelector,
+  PaginationBar,
+} from "@/components/ui/PaginationControls";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -58,6 +62,8 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMuscleFilter, setSelectedMuscleFilter] =
     useState<string>("all");
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   const favoritesCount = useMemo(() => {
     return exercises.filter((ex) => Boolean(ex.is_favorite)).length;
@@ -93,6 +99,24 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
       );
     });
   }, [exercises, searchQuery, selectedMuscleFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredExercises.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedMuscleFilter, pageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedExercises = useMemo(() => {
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    return filteredExercises.slice(startIndex, startIndex + pageSize);
+  }, [filteredExercises, safeCurrentPage, pageSize]);
 
   return (
     <AnimatedCard
@@ -288,6 +312,15 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
         })}
       </ScrollView>
 
+      {/* Selector de elementos por página */}
+      <PageSizeSelector
+        colors={colors}
+        pageSize={pageSize}
+        totalItems={filteredExercises.length}
+        currentPage={safeCurrentPage}
+        onChangePageSize={setPageSize}
+      />
+
       {/* Lista de ejercicios */}
       {filteredExercises.length === 0 ? (
         <View
@@ -318,8 +351,9 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
           </Text>
         </View>
       ) : (
-        <View style={styles.listColumn}>
-          {filteredExercises.map((ex, idx) => {
+        <>
+          <View style={styles.listColumn}>
+            {paginatedExercises.map((ex, idx) => {
             const exImageUrl = resolveExerciseImageUrl(ex, equipmentList);
             const isFav = Boolean(ex.is_favorite);
             return (
@@ -495,7 +529,15 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({
               </Pressable>
             );
           })}
-        </View>
+          </View>
+
+          <PaginationBar
+            colors={colors}
+            currentPage={safeCurrentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </>
       )}
     </AnimatedCard>
   );
