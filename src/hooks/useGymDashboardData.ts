@@ -337,8 +337,12 @@ export function useGymDashboardData() {
       setNewExEquipment(null);
       setNewExMuscle(null);
       setNewExImage(null);
-      const updated = await api.getExercises();
+      const [updated, updatedRoutines] = await Promise.all([
+        api.getExercises(),
+        api.getRoutines().catch(() => routines),
+      ]);
       setExercises(updated);
+      setRoutines(updatedRoutines);
     } catch (e: any) {
       showToast("error", t("toasts.publishExerciseError"), e.message);
     } finally {
@@ -532,8 +536,12 @@ export function useGymDashboardData() {
     }
   };
 
-  const handleSaveRecord = async (): Promise<boolean> => {
-    if (!trackingExerciseId) {
+  const handleSaveRecord = async (
+    overrideExerciseId?: string,
+    sessionId?: string,
+  ): Promise<boolean> => {
+    const targetExerciseId = overrideExerciseId ?? trackingExerciseId;
+    if (!targetExerciseId) {
       showToast(
         "warning",
         t("toasts.selectExerciseForMarcaTitle"),
@@ -566,7 +574,7 @@ export function useGymDashboardData() {
 
     try {
       setSavingRecord(true);
-      const res = await api.saveRecord(trackingExerciseId, w, r, rpe);
+      const res = await api.saveRecord(targetExerciseId, w, r, rpe, sessionId);
       setLastSavedSummary(
         t("toasts.lastSavedSummary", {
           weight: w,
@@ -583,7 +591,9 @@ export function useGymDashboardData() {
           oneRm: res.estimated_1rm,
         }),
       );
-      await loadProgressionHistory(trackingExerciseId);
+      if (trackingExerciseId === targetExerciseId) {
+        await loadProgressionHistory(targetExerciseId);
+      }
       return true;
     } catch (e: any) {
       showToast("error", t("toasts.saveMarcaError"), e.message);
@@ -724,6 +734,29 @@ export function useGymDashboardData() {
     }
   };
 
+  const syncTrackingExerciseAfterRoutineChange = async (
+    updatedRoutines: Routine[],
+    deletedExerciseId?: string,
+  ) => {
+    const activeTrackingRoutine = updatedRoutines.find(
+      (r) => r.id === trackingRoutineId,
+    );
+    const exList = getExercisesOfRoutine(activeTrackingRoutine);
+    const stillValid =
+      Boolean(trackingExerciseId) &&
+      trackingExerciseId !== deletedExerciseId &&
+      exList.some((e) => e.id === trackingExerciseId);
+    if (!stillValid) {
+      if (exList.length > 0) {
+        setTrackingExerciseId(exList[0].id);
+        await loadProgressionHistory(exList[0].id);
+      } else {
+        setTrackingExerciseId("");
+        setRecordHistory([]);
+      }
+    }
+  };
+
   const handleRemoveExerciseFromRoutine = async (
     routineExerciseId: string,
     exerciseName: string,
@@ -733,6 +766,7 @@ export function useGymDashboardData() {
       await api.removeExerciseFromRoutine(routineExerciseId);
       const updated = await api.getRoutines();
       setRoutines(updated);
+      await syncTrackingExerciseAfterRoutineChange(updated);
       if (editModalItem && editModalItem.type === "routine") {
         const updatedRoutine = updated.find(
           (r) => r.id === editModalItem.data.id,
@@ -1057,6 +1091,10 @@ export function useGymDashboardData() {
         ]);
         setExercises(updatedExercises);
         setRoutines(updatedRoutines);
+        await syncTrackingExerciseAfterRoutineChange(
+          updatedRoutines,
+          deleteConfirmItem.id,
+        );
         showToast(
           "success",
           t("toasts.exerciseDeletedTitle"),

@@ -158,6 +158,9 @@ export const en: TranslationDictionary = {
   "profile.emptyChartHint":
     "Log your body weight and sets to visualize the correlation with your 1RM curve.",
   "profile.recentWeightsTitle": "Recent weight entries ({{count}})",
+  "profile.weightRangeError": "Enter a valid weight between 1 and 500 kg.",
+  "profile.weightSaveError": "Could not save body weight log.",
+  "profile.weightSavedTitle": "Weight logged",
 
   // Edit Profile
   "editProfile.usernameLabel": "Username",
@@ -351,6 +354,14 @@ export const en: TranslationDictionary = {
   "tracking.formSubtitle":
     "Select routine, exercise, and enter your set details",
   "tracking.step1Routine": "1. Select Routine",
+  "tracking.activeSessionRoutineStep": "1. Active Session Routine",
+  "tracking.activeSessionLockedHint": "Locked to your active session",
+  "tracking.formSubtitleActive":
+    "Select an exercise from your active routine and enter your set details",
+  "tracking.exerciseNotInSessionMsg":
+    "You can only log sets for exercises belonging to the active session's routine.",
+  "tracking.cannotStartEmptyRoutineMsg":
+    "This routine has no exercises. Add at least one before starting a session.",
   "tracking.step2Exercise": "2. Select Exercise",
   "tracking.noRoutineExercises":
     "This routine has no exercises yet. Add them in the Routines tab.",
@@ -360,6 +371,9 @@ export const en: TranslationDictionary = {
   "tracking.rpeLabel": "RPE (1-10)",
   "tracking.saveMarcaBtn": "Save Set",
   "tracking.historyTitle": "Lift History",
+  "tracking.selectRoutine": "Select Routine",
+  "tracking.noRoutinesForHistory":
+    "Create a routine with exercises to view your lift history.",
   "tracking.selectExercise": "Select Exercise",
   "tracking.noExercisesInRoutine":
     "No exercises available in the selected routine",
@@ -577,6 +591,10 @@ export const en: TranslationDictionary = {
   "toasts.sessionDeletedTitle": "Session Deleted",
   "toasts.sessionDeletedMsg": "\"{{title}}\" was removed from history.",
   "toasts.deleteSessionError": "Error deleting session",
+  "toasts.sessionErrorTitle": "Session error",
+  "toasts.sessionStartError": "Could not start the session.",
+  "toasts.sessionFinishError": "Could not finish the session.",
+  "toasts.sessionCancelError": "Could not cancel the session.",
   "toasts.adminOnlyTitle": "Restricted Access",
   "toasts.adminOnlyMsg":
     "Only gym administrators can create, edit, or delete machines and exercises.",

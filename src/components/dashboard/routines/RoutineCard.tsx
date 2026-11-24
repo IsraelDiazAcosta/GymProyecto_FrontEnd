@@ -44,6 +44,10 @@ export interface RoutineCardProps {
     minReps: number,
     maxReps: number,
   ) => Promise<void>;
+  onRemoveExerciseFromRoutine?: (
+    routineExerciseId: string,
+    exerciseName: string,
+  ) => Promise<void>;
   onOptionsPress?: () => void;
   onDeletePress?: () => void;
   compact?: boolean;
@@ -74,6 +78,7 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
   onCancelAdding,
   onAddExercise,
   onUpdateRoutineExercise,
+  onRemoveExerciseFromRoutine,
   onOptionsPress,
   onDeletePress,
   compact = false,
@@ -88,6 +93,22 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
   const [editMinReps, setEditMinReps] = useState("8");
   const [editMaxReps, setEditMaxReps] = useState("12");
   const [savingInline, setSavingInline] = useState(false);
+  const [removingRoutineExId, setRemovingRoutineExId] = useState<string | null>(
+    null,
+  );
+
+  const handleRemoveExercise = async (ex: RoutineExerciseItem) => {
+    if (!ex.routineExerciseId || !onRemoveExerciseFromRoutine) return;
+    setRemovingRoutineExId(ex.routineExerciseId);
+    try {
+      await onRemoveExerciseFromRoutine(ex.routineExerciseId, ex.name);
+      if (editingRoutineExId === ex.routineExerciseId) {
+        setEditingRoutineExId(null);
+      }
+    } finally {
+      setRemovingRoutineExId(null);
+    }
+  };
 
   const startInlineEdit = (ex: RoutineExerciseItem) => {
     if (!ex.routineExerciseId) return;
@@ -206,7 +227,9 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                   ]}
                 >
                   <GymIcon name="target" size={11} color={colors.primary} />
-                  <Text style={[styles.focusPillText, { color: colors.primary }]}>
+                  <Text
+                    style={[styles.focusPillText, { color: colors.primary }]}
+                  >
                     {getMuscleFocusLabel(language, routineFocus).toUpperCase()}
                   </Text>
                 </View>
@@ -218,7 +241,10 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
                 ]}
               >
                 <Text
-                  style={[styles.countPillText, { color: colors.textSecondary }]}
+                  style={[
+                    styles.countPillText,
+                    { color: colors.textSecondary },
+                  ]}
                 >
                   {routineExercises.length}{" "}
                   {routineExercises.length === 1
@@ -229,343 +255,400 @@ export const RoutineCard: React.FC<RoutineCardProps> = ({
             </View>
           </View>
 
-          {onDeletePress ? (
-            <Pressable
-              onPress={(e) => {
-                e?.stopPropagation?.();
-                onDeletePress();
-              }}
-              hitSlop={10}
-              style={[
-                styles.deleteBtn,
-                {
-                  backgroundColor: colors.dangerGlow,
-                  borderColor: colors.danger + "35",
-                },
-              ]}
+          {(onOptionsPress || onDeletePress) && (
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
             >
-              <GymIcon name="trash" size={17} color={colors.danger} />
-            </Pressable>
-          ) : onOptionsPress ? (
-            <Pressable
-              onPress={onOptionsPress}
-              hitSlop={10}
-              style={[
-                styles.moreBtn,
-                { backgroundColor: colors.backgroundElevated },
-              ]}
-            >
-              <GymIcon
-                name="more-vertical"
-                size={18}
-                color={colors.textSecondary}
-              />
-            </Pressable>
-          ) : null}
+              {onDeletePress && (
+                <Pressable
+                  onPress={(e) => {
+                    e?.stopPropagation?.();
+                    onDeletePress();
+                  }}
+                  hitSlop={10}
+                  style={[
+                    styles.deleteBtn,
+                    {
+                      backgroundColor: colors.dangerGlow,
+                      borderColor: colors.danger + "35",
+                    },
+                  ]}
+                >
+                  <GymIcon name="trash" size={17} color={colors.danger} />
+                </Pressable>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Muscle compatibility alert and expanded content */}
         {!compact && (
           <>
             {incompatibleExercises.length > 0 && (
-          <View
-            style={[
-              styles.warningBanner,
-              {
-                backgroundColor: colors.warningGlow,
-                borderColor: colors.warning,
-              },
-            ]}
-          >
-            <GymIcon name="alert-triangle" size={16} color={colors.warning} />
-            <Text style={[styles.warningText, { color: colors.warning }]}>
-              {t("routines.incompatibleBanner", {
-                count: incompatibleExercises.length,
-                focus: routineFocus
-                  ? getMuscleFocusLabel(language, routineFocus).toUpperCase()
-                  : "",
-                names: incompatibleExercises.map((e) => e.name).join(", "),
-              })}
-            </Text>
-          </View>
-        )}
-
-        {/* Exercises list */}
-        <View style={styles.exerciseList}>
-          {routineExercises.length === 0 ? (
-            <View
-              style={[
-                styles.emptyContainer,
-                {
-                  backgroundColor: colors.backgroundElevated,
-                  borderColor: colors.borderSubtle,
-                },
-              ]}
-            >
-              <GymIcon name="dumbbell" size={18} color={colors.textSecondary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {t("routines.noExercisesAssigned")}
-              </Text>
-            </View>
-          ) : (
-            routineExercises.map((ex, index) => {
-              const isEditingThis =
-                Boolean(ex.routineExerciseId) &&
-                editingRoutineExId === ex.routineExerciseId;
-              return (
               <View
-                key={`${routine.id}-${ex.routineExerciseId || ex.id}-${index}`}
                 style={[
-                  styles.exerciseRow,
+                  styles.warningBanner,
                   {
-                    borderBottomColor: colors.borderSubtle,
-                    borderBottomWidth:
-                      index === routineExercises.length - 1 ? 0 : 1,
-                    flexDirection: "column",
-                    alignItems: "stretch",
+                    backgroundColor: colors.warningGlow,
+                    borderColor: colors.warning,
                   },
                 ]}
               >
-                <View style={styles.exerciseRowMain}>
-                  <View
-                    style={[
-                      styles.indexBadge,
-                      { backgroundColor: colors.primaryGlow },
-                    ]}
+                <GymIcon
+                  name="alert-triangle"
+                  size={16}
+                  color={colors.warning}
+                />
+                <Text style={[styles.warningText, { color: colors.warning }]}>
+                  {t("routines.incompatibleBanner", {
+                    count: incompatibleExercises.length,
+                    focus: routineFocus
+                      ? getMuscleFocusLabel(
+                          language,
+                          routineFocus,
+                        ).toUpperCase()
+                      : "",
+                    names: incompatibleExercises.map((e) => e.name).join(", "),
+                  })}
+                </Text>
+              </View>
+            )}
+
+            {/* Exercises list */}
+            <View style={styles.exerciseList}>
+              {routineExercises.length === 0 ? (
+                <View
+                  style={[
+                    styles.emptyContainer,
+                    {
+                      backgroundColor: colors.backgroundElevated,
+                      borderColor: colors.borderSubtle,
+                    },
+                  ]}
+                >
+                  <GymIcon
+                    name="dumbbell"
+                    size={18}
+                    color={colors.textSecondary}
+                  />
+                  <Text
+                    style={[styles.emptyText, { color: colors.textSecondary }]}
                   >
-                    <Text style={[styles.indexText, { color: colors.primary }]}>
-                      {index + 1}
-                    </Text>
-                  </View>
-
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.exerciseName, { color: colors.text }]}>
-                      {ex.name}
-                    </Text>
-                    <View style={styles.exerciseMetaRow}>
-                      <GymIcon
-                        name="activity"
-                        size={12}
-                        color={colors.textSecondary}
-                      />
-                      <Text
-                        style={[
-                          styles.exerciseMetaText,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {t("routines.setsRepsLine", {
-                          sets: ex.setsCount ?? 4,
-                          min: ex.minReps ?? 8,
-                          max: ex.maxReps ?? 12,
-                        })}
-                      </Text>
-                      {Boolean(ex.equipmentName) && (
-                        <Text
-                          style={[
-                            styles.exerciseEquipText,
-                            { color: colors.primary },
-                          ]}
-                        >
-                          • {ex.equipmentName}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-
-                  {ex.routineExerciseId && onUpdateRoutineExercise && (
-                    <Pressable
-                      onPress={() =>
-                        isEditingThis
-                          ? setEditingRoutineExId(null)
-                          : startInlineEdit(ex)
-                      }
-                      hitSlop={8}
+                    {t("routines.noExercisesAssigned")}
+                  </Text>
+                </View>
+              ) : (
+                routineExercises.map((ex, index) => {
+                  const isEditingThis =
+                    Boolean(ex.routineExerciseId) &&
+                    editingRoutineExId === ex.routineExerciseId;
+                  return (
+                    <View
+                      key={`${routine.id}-${ex.routineExerciseId || ex.id}-${index}`}
                       style={[
-                        styles.inlineEditBtn,
+                        styles.exerciseRow,
                         {
-                          backgroundColor: isEditingThis
-                            ? colors.primary
-                            : colors.backgroundElevated,
-                          borderColor: isEditingThis
-                            ? colors.primary
-                            : colors.borderSubtle,
+                          borderBottomColor: colors.borderSubtle,
+                          borderBottomWidth:
+                            index === routineExercises.length - 1 ? 0 : 1,
+                          flexDirection: "column",
+                          alignItems: "stretch",
                         },
                       ]}
                     >
-                      <GymIcon
-                        name={isEditingThis ? "x" : "edit"}
-                        size={14}
-                        color={
-                          isEditingThis ? colors.onPrimary : colors.primary
-                        }
-                      />
-                    </Pressable>
-                  )}
-                </View>
+                      <View style={styles.exerciseRowMain}>
+                        <View
+                          style={[
+                            styles.indexBadge,
+                            { backgroundColor: colors.primaryGlow },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.indexText,
+                              { color: colors.primary },
+                            ]}
+                          >
+                            {index + 1}
+                          </Text>
+                        </View>
 
-                {isEditingThis && (
-                  <View
-                    style={[
-                      styles.inlineEditPanel,
-                      {
-                        backgroundColor: colors.backgroundElevated,
-                        borderColor: colors.border,
-                      },
-                    ]}
-                  >
-                    <View style={styles.inlineInputsRow}>
-                      <View style={styles.inlineInputCol}>
-                        <Text
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={[
+                              styles.exerciseName,
+                              { color: colors.text },
+                            ]}
+                          >
+                            {ex.name}
+                          </Text>
+                          <View style={styles.exerciseMetaRow}>
+                            <GymIcon
+                              name="activity"
+                              size={12}
+                              color={colors.textSecondary}
+                            />
+                            <Text
+                              style={[
+                                styles.exerciseMetaText,
+                                { color: colors.textSecondary },
+                              ]}
+                            >
+                              {t("routines.setsRepsLine", {
+                                sets: ex.setsCount ?? 4,
+                                min: ex.minReps ?? 8,
+                                max: ex.maxReps ?? 12,
+                              })}
+                            </Text>
+                            {Boolean(ex.equipmentName) && (
+                              <Text
+                                style={[
+                                  styles.exerciseEquipText,
+                                  { color: colors.primary },
+                                ]}
+                              >
+                                • {ex.equipmentName}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+
+                        {ex.routineExerciseId &&
+                          (onUpdateRoutineExercise ||
+                            onRemoveExerciseFromRoutine) && (
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              {onUpdateRoutineExercise && (
+                                <Pressable
+                                  onPress={() =>
+                                    isEditingThis
+                                      ? setEditingRoutineExId(null)
+                                      : startInlineEdit(ex)
+                                  }
+                                  hitSlop={8}
+                                  style={[
+                                    styles.inlineEditBtn,
+                                    {
+                                      backgroundColor: isEditingThis
+                                        ? colors.primary
+                                        : colors.backgroundElevated,
+                                      borderColor: isEditingThis
+                                        ? colors.primary
+                                        : colors.borderSubtle,
+                                    },
+                                  ]}
+                                >
+                                  <GymIcon
+                                    name={isEditingThis ? "x" : "edit"}
+                                    size={14}
+                                    color={
+                                      isEditingThis
+                                        ? colors.onPrimary
+                                        : colors.primary
+                                    }
+                                  />
+                                </Pressable>
+                              )}
+                              {onRemoveExerciseFromRoutine && (
+                                <Pressable
+                                  onPress={() => handleRemoveExercise(ex)}
+                                  disabled={
+                                    removingRoutineExId === ex.routineExerciseId
+                                  }
+                                  hitSlop={8}
+                                  style={[
+                                    styles.inlineEditBtn,
+                                    {
+                                      backgroundColor: colors.dangerGlow,
+                                      borderColor: colors.danger + "35",
+                                      opacity:
+                                        removingRoutineExId ===
+                                        ex.routineExerciseId
+                                          ? 0.45
+                                          : 1,
+                                    },
+                                  ]}
+                                >
+                                  <GymIcon
+                                    name="trash"
+                                    size={14}
+                                    color={colors.danger}
+                                  />
+                                </Pressable>
+                              )}
+                            </View>
+                          )}
+                      </View>
+
+                      {isEditingThis && (
+                        <View
                           style={[
-                            styles.inlineInputLabel,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          {t("routines.seriesCol")}
-                        </Text>
-                        <TextInput
-                          style={[
-                            styles.inlineInput,
+                            styles.inlineEditPanel,
                             {
-                              color: colors.text,
-                              backgroundColor: colors.backgroundElement,
-                              borderColor: colors.borderSubtle,
+                              backgroundColor: colors.backgroundElevated,
+                              borderColor: colors.border,
                             },
                           ]}
-                          placeholderTextColor={colors.textSecondary}
-                          keyboardType="numeric"
-                          value={editSets}
-                          onChangeText={setEditSets}
-                        />
-                      </View>
-                      <View style={styles.inlineInputCol}>
-                        <Text
-                          style={[
-                            styles.inlineInputLabel,
-                            { color: colors.textSecondary },
-                          ]}
                         >
-                          {t("routines.minRepsCol")}
-                        </Text>
-                        <TextInput
-                          style={[
-                            styles.inlineInput,
-                            {
-                              color: colors.text,
-                              backgroundColor: colors.backgroundElement,
-                              borderColor: colors.borderSubtle,
-                            },
-                          ]}
-                          placeholderTextColor={colors.textSecondary}
-                          keyboardType="numeric"
-                          value={editMinReps}
-                          onChangeText={setEditMinReps}
-                        />
-                      </View>
-                      <View style={styles.inlineInputCol}>
-                        <Text
-                          style={[
-                            styles.inlineInputLabel,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          {t("routines.maxRepsCol")}
-                        </Text>
-                        <TextInput
-                          style={[
-                            styles.inlineInput,
-                            {
-                              color: colors.text,
-                              backgroundColor: colors.backgroundElement,
-                              borderColor: colors.borderSubtle,
-                            },
-                          ]}
-                          placeholderTextColor={colors.textSecondary}
-                          keyboardType="numeric"
-                          value={editMaxReps}
-                          onChangeText={setEditMaxReps}
-                        />
-                      </View>
-                      <Pressable
-                        onPress={handleSaveInlineEdit}
-                        disabled={savingInline}
-                        style={[
-                          styles.inlineSaveBtn,
-                          { backgroundColor: colors.primary },
-                        ]}
-                      >
-                        <GymIcon
-                          name="check"
-                          size={16}
-                          color={colors.onPrimary}
-                        />
-                      </Pressable>
+                          <View style={styles.inlineInputsRow}>
+                            <View style={styles.inlineInputCol}>
+                              <Text
+                                style={[
+                                  styles.inlineInputLabel,
+                                  { color: colors.textSecondary },
+                                ]}
+                              >
+                                {t("routines.seriesCol")}
+                              </Text>
+                              <TextInput
+                                style={[
+                                  styles.inlineInput,
+                                  {
+                                    color: colors.text,
+                                    backgroundColor: colors.backgroundElement,
+                                    borderColor: colors.borderSubtle,
+                                  },
+                                ]}
+                                placeholderTextColor={colors.textSecondary}
+                                keyboardType="numeric"
+                                value={editSets}
+                                onChangeText={setEditSets}
+                              />
+                            </View>
+                            <View style={styles.inlineInputCol}>
+                              <Text
+                                style={[
+                                  styles.inlineInputLabel,
+                                  { color: colors.textSecondary },
+                                ]}
+                              >
+                                {t("routines.minRepsCol")}
+                              </Text>
+                              <TextInput
+                                style={[
+                                  styles.inlineInput,
+                                  {
+                                    color: colors.text,
+                                    backgroundColor: colors.backgroundElement,
+                                    borderColor: colors.borderSubtle,
+                                  },
+                                ]}
+                                placeholderTextColor={colors.textSecondary}
+                                keyboardType="numeric"
+                                value={editMinReps}
+                                onChangeText={setEditMinReps}
+                              />
+                            </View>
+                            <View style={styles.inlineInputCol}>
+                              <Text
+                                style={[
+                                  styles.inlineInputLabel,
+                                  { color: colors.textSecondary },
+                                ]}
+                              >
+                                {t("routines.maxRepsCol")}
+                              </Text>
+                              <TextInput
+                                style={[
+                                  styles.inlineInput,
+                                  {
+                                    color: colors.text,
+                                    backgroundColor: colors.backgroundElement,
+                                    borderColor: colors.borderSubtle,
+                                  },
+                                ]}
+                                placeholderTextColor={colors.textSecondary}
+                                keyboardType="numeric"
+                                value={editMaxReps}
+                                onChangeText={setEditMaxReps}
+                              />
+                            </View>
+                            <Pressable
+                              onPress={handleSaveInlineEdit}
+                              disabled={savingInline}
+                              style={[
+                                styles.inlineSaveBtn,
+                                { backgroundColor: colors.primary },
+                              ]}
+                            >
+                              <GymIcon
+                                name="check"
+                                size={16}
+                                color={colors.onPrimary}
+                              />
+                            </Pressable>
+                          </View>
+                        </View>
+                      )}
                     </View>
-                  </View>
-                )}
-              </View>
-              );
-            })
-          )}
-        </View>
+                  );
+                })
+              )}
+            </View>
 
-        {/* Button or form to add exercises */}
-        {!isAdding ? (
-          <Pressable
-            onPress={onStartAdding}
-            style={[
-              styles.addTriggerBtn,
-              {
-                backgroundColor: colors.primaryGlow,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <GymIcon name="plus" size={16} color={colors.primary} />
-            <Text style={[styles.addTriggerText, { color: colors.primary }]}>
-              {t("routines.addToRoutineTrigger")}
-            </Text>
-          </Pressable>
-        ) : (
-          <RoutineAddExerciseForm
-            colors={colors}
-            effectiveSelectedIds={effectiveSelectedIds}
-            selectedExercisesDetails={selectedExercisesDetails}
-            setsCount={setsCount}
-            setSetsCount={setSetsCount}
-            minReps={minReps}
-            setMinReps={setMinReps}
-            maxReps={maxReps}
-            setMaxReps={setMaxReps}
-            onOpenModal={() => setSelectModalVisible(true)}
-            onRemoveSelectedId={handleRemoveSelectedId}
-            onConfirmAdd={onAddExercise}
-            onCancel={onCancelAdding}
-          />
-        )}
+            {/* Button or form to add exercises */}
+            {!isAdding ? (
+              <Pressable
+                onPress={onStartAdding}
+                style={[
+                  styles.addTriggerBtn,
+                  {
+                    backgroundColor: colors.primaryGlow,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <GymIcon name="plus" size={16} color={colors.primary} />
+                <Text
+                  style={[styles.addTriggerText, { color: colors.primary }]}
+                >
+                  {t("routines.addToRoutineTrigger")}
+                </Text>
+              </Pressable>
+            ) : (
+              <RoutineAddExerciseForm
+                colors={colors}
+                effectiveSelectedIds={effectiveSelectedIds}
+                selectedExercisesDetails={selectedExercisesDetails}
+                setsCount={setsCount}
+                setSetsCount={setSetsCount}
+                minReps={minReps}
+                setMinReps={setMinReps}
+                maxReps={maxReps}
+                setMaxReps={setMaxReps}
+                onOpenModal={() => setSelectModalVisible(true)}
+                onRemoveSelectedId={handleRemoveSelectedId}
+                onConfirmAdd={onAddExercise}
+                onCancel={onCancelAdding}
+              />
+            )}
 
-        <SelectExerciseModal
-          visible={selectModalVisible}
-          colors={colors}
-          exercises={exercises}
-          routineFocus={routineFocus}
-          multiSelect={true}
-          selectedExerciseIds={effectiveSelectedIds}
-          onConfirmSelection={(ids) => {
-            if (setSelectedExsToAdd) {
-              setSelectedExsToAdd(ids);
-            }
-            setSelectedExToAdd(ids[0] || "");
-          }}
-          onSelect={(id) => {
-            setSelectedExToAdd(id);
-            if (setSelectedExsToAdd) {
-              setSelectedExsToAdd([id]);
-            }
-          }}
-          onClose={() => setSelectModalVisible(false)}
-        />
+            <SelectExerciseModal
+              visible={selectModalVisible}
+              colors={colors}
+              exercises={exercises}
+              routineFocus={routineFocus}
+              multiSelect={true}
+              selectedExerciseIds={effectiveSelectedIds}
+              onConfirmSelection={(ids) => {
+                if (setSelectedExsToAdd) {
+                  setSelectedExsToAdd(ids);
+                }
+                setSelectedExToAdd(ids[0] || "");
+              }}
+              onSelect={(id) => {
+                setSelectedExToAdd(id);
+                if (setSelectedExsToAdd) {
+                  setSelectedExsToAdd([id]);
+                }
+              }}
+              onClose={() => setSelectModalVisible(false)}
+            />
           </>
         )}
       </Pressable>

@@ -37,6 +37,9 @@ export interface RecordHistoryListProps {
   colors: DashboardColors;
   recordHistory: ProgressionItem[];
   onRecordOptionsPress?: (item: ProgressionItem) => void;
+  routines?: Routine[];
+  selectedRoutineId?: string;
+  onSelectRoutine?: (routineId: string) => void;
   currentRoutineExercises?: RoutineExerciseItem[];
   trackingExerciseId?: string;
   onSelectExercise?: (exerciseId: string) => void;
@@ -50,6 +53,9 @@ export const RecordHistoryList: React.FC<RecordHistoryListProps> = ({
   colors,
   recordHistory,
   onRecordOptionsPress,
+  routines = [],
+  selectedRoutineId = "",
+  onSelectRoutine,
   currentRoutineExercises = [],
   trackingExerciseId = "",
   onSelectExercise,
@@ -88,6 +94,64 @@ export const RecordHistoryList: React.FC<RecordHistoryListProps> = ({
           </Text>
         </View>
       </View>
+
+      <Text style={[styles.stepLabel, { color: colors.textSecondary }]}>
+        {t("tracking.selectRoutine")}
+      </Text>
+      {routines.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+        >
+          {routines.map((r, idx) => {
+            const active = selectedRoutineId === r.id;
+            return (
+              <Pressable
+                key={`${r.id}-${idx}`}
+                onPress={() => onSelectRoutine?.(r.id)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: active
+                      ? colors.primary
+                      : colors.backgroundElevated,
+                    borderColor: active
+                      ? colors.primaryLight
+                      : colors.borderSubtle,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: active ? colors.onPrimary : colors.textSecondary },
+                  ]}
+                >
+                  {r.title || (r as any).name || t("common.routineFallback")}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : (
+        <View
+          style={[
+            styles.emptyNotice,
+            {
+              backgroundColor: colors.backgroundElevated,
+              borderColor: colors.borderSubtle,
+            },
+          ]}
+        >
+          <GymIcon name="info" size={14} color={colors.textSecondary} />
+          <Text
+            style={[styles.emptyNoticeText, { color: colors.textSecondary }]}
+          >
+            {t("tracking.noRoutinesForHistory")}
+          </Text>
+        </View>
+      )}
 
       <Text style={[styles.stepLabel, { color: colors.textSecondary }]}>
         {t("tracking.selectExercise")}

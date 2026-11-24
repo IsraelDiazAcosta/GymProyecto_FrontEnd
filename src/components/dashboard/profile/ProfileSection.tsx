@@ -12,6 +12,7 @@ import {
 import Svg, { Polyline, Circle as SvgCircle } from "react-native-svg";
 
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
+import { ToastType } from "@/components/ui/AnimatedToast";
 import { GymIcon } from "@/components/ui/GymIcon";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
@@ -55,6 +56,7 @@ export interface ProfileSectionProps {
   trainedDayFlags?: number[];
   todayWeekIndex?: number;
   trainedCount?: number;
+  onNotify?: (type: ToastType, title: string, message?: string) => void;
 }
 
 /**
@@ -70,8 +72,9 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   trainedDayFlags = [0, 0, 0, 0, 0, 0, 0],
   todayWeekIndex = 0,
   trainedCount = 0,
+  onNotify,
 }) => {
-  const { user, logout, updateProfile } = useAuth();
+  const { user, logout, refreshProfile } = useAuth();
   const { language, t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [weightLogs, setWeightLogs] = useState<BodyWeightLogItem[]>([]);
@@ -79,6 +82,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const [selectedExId, setSelectedExId] = useState<string>("");
   const [newWeightInput, setNewWeightInput] = useState("");
   const [savingWeightLog, setSavingWeightLog] = useState(false);
+  const [weightError, setWeightError] = useState<string | null>(null);
   const [chartSize, setChartSize] = useState<LayoutRectangle | null>(null);
   const [settingsVisible, setSettingsVisible] = useState(false);
 
@@ -102,15 +106,24 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const handleAddWeightLog = async () => {
     const clean = newWeightInput.trim().replace(",", ".");
     const num = Number(clean);
-    if (!Number.isFinite(num) || num <= 0 || num >= 1000) return;
+    if (!Number.isFinite(num) || num < 1 || num > 500) {
+      const msg = t("profile.weightRangeError");
+      setWeightError(msg);
+      onNotify?.("warning", t("toasts.invalidDataTitle"), msg);
+      return;
+    }
+    setWeightError(null);
     setSavingWeightLog(true);
     try {
       await api.createWeightLog(Number(num.toFixed(2)));
-      await updateProfile({ current_weight: num.toFixed(2) }).catch(
-        () => undefined,
-      );
+      await refreshProfile();
       setNewWeightInput("");
       await loadWeightAnd1RM(selectedExId);
+      onNotify?.("success", t("profile.weightSavedTitle"), `${num.toFixed(2)} kg`);
+    } catch (err: any) {
+      const msg = err?.message || t("profile.weightSaveError");
+      setWeightError(msg);
+      onNotify?.("error", t("toasts.invalidDataTitle"), msg);
     } finally {
       setSavingWeightLog(false);
     }
@@ -482,7 +495,10 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               placeholderTextColor={colors.textSecondary}
               keyboardType="decimal-pad"
               value={newWeightInput}
-              onChangeText={setNewWeightInput}
+              onChangeText={(text) => {
+                setNewWeightInput(text);
+                if (weightError) setWeightError(null);
+              }}
             />
           </View>
           <Pressable
@@ -496,6 +512,12 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             </Text>
           </Pressable>
         </View>
+
+        {weightError && (
+          <Text style={{ color: colors.danger, fontSize: 12, fontWeight: "700" }}>
+            {weightError}
+          </Text>
+        )}
 
         {/* Exercise filter to cross with 1RM */}
         {exercises.length > 0 && (

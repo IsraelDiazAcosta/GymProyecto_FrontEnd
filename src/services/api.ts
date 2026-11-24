@@ -882,11 +882,8 @@ export const api = {
 
   // --- TRACKING & RECORDS ---
   async ensureSession(): Promise<string> {
-    const sessions: any = await request("/tracking/sessions/");
-    const active = (sessions.results || sessions).find(
-      (s: any) => !s.is_completed,
-    );
-    if (active) return active.id;
+    const active = await this.getActiveRoutineSession();
+    if (active?.id) return active.id;
 
     const newSession: any = await request("/tracking/sessions/", {
       method: "POST",
@@ -903,14 +900,15 @@ export const api = {
     weight: number,
     reps: number,
     rpe?: number,
+    sessionId?: string,
   ): Promise<any> {
-    const sessionId = await this.ensureSession();
+    const resolvedSessionId = sessionId || (await this.ensureSession());
 
     // 1. Link exercise to the session
     const logEx: any = await request("/tracking/exercises/", {
       method: "POST",
       body: JSON.stringify({
-        session: sessionId,
+        session: resolvedSessionId,
         exercise: exerciseId,
         order: 1,
       }),

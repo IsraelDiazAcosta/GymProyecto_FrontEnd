@@ -56,6 +56,10 @@ export interface RoutinesSectionProps {
     minReps: number,
     maxReps: number,
   ) => Promise<void>;
+  onRemoveExerciseFromRoutine?: (
+    routineExerciseId: string,
+    exerciseName: string,
+  ) => Promise<void>;
   onOpenRoutineOptions?: (routine: Routine) => void;
   onDeleteRoutine?: (routine: Routine) => void;
   routineSessions: WorkoutSessionItem[];
@@ -99,6 +103,7 @@ export const RoutinesSection: React.FC<RoutinesSectionProps> = ({
   setMaxReps,
   onAddExerciseToRoutine,
   onUpdateRoutineExercise,
+  onRemoveExerciseFromRoutine,
   onOpenRoutineOptions,
   onDeleteRoutine,
   routineSessions,
@@ -239,6 +244,7 @@ export const RoutinesSection: React.FC<RoutinesSectionProps> = ({
           }}
           onAddExercise={() => onAddExerciseToRoutine(selectedRoutineDetail.id)}
           onUpdateRoutineExercise={onUpdateRoutineExercise}
+          onRemoveExerciseFromRoutine={onRemoveExerciseFromRoutine}
           onOptionsPress={() => onOpenRoutineOptions?.(selectedRoutineDetail)}
           onDeleteRoutine={onDeleteRoutine}
           routineSessions={routineSessions}

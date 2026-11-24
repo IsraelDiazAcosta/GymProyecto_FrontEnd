@@ -159,6 +159,9 @@ export const es = {
   "profile.emptyChartHint":
     "Registra tu peso corporal y marcas para visualizar la correlación con tu curva de 1RM.",
   "profile.recentWeightsTitle": "Últimos registros de peso ({{count}})",
+  "profile.weightRangeError": "Ingresa un peso válido entre 1 y 500 kg.",
+  "profile.weightSaveError": "No se pudo guardar el registro de peso.",
+  "profile.weightSavedTitle": "Peso registrado",
 
   // Editar Perfil
   "editProfile.usernameLabel": "Nombre de usuario",
@@ -354,6 +357,14 @@ export const es = {
   "tracking.formSubtitle":
     "Selecciona rutina, ejercicio e ingresa los datos de tu serie",
   "tracking.step1Routine": "1. Selecciona la Rutina",
+  "tracking.activeSessionRoutineStep": "1. Rutina en Sesión Activa",
+  "tracking.activeSessionLockedHint": "Bloqueada a tu sesión en curso",
+  "tracking.formSubtitleActive":
+    "Selecciona un ejercicio de tu rutina activa e ingresa los datos de tu serie",
+  "tracking.exerciseNotInSessionMsg":
+    "Solo puedes registrar marcas de ejercicios que pertenezcan a la rutina de la sesión activa.",
+  "tracking.cannotStartEmptyRoutineMsg":
+    "Esta rutina no tiene ejercicios. Agrega al menos uno antes de iniciar sesión.",
   "tracking.step2Exercise": "2. Selecciona el Ejercicio",
   "tracking.noRoutineExercises":
     "Esta rutina no tiene ejercicios aún. Agrégalos en la pestaña Rutinas.",
@@ -363,6 +374,9 @@ export const es = {
   "tracking.rpeLabel": "RPE (1-10)",
   "tracking.saveMarcaBtn": "Guardar Marca",
   "tracking.historyTitle": "Historial de Levantamientos",
+  "tracking.selectRoutine": "Selecciona la Rutina",
+  "tracking.noRoutinesForHistory":
+    "Crea una rutina con ejercicios para consultar tu historial de levantamientos.",
   "tracking.selectExercise": "Selecciona el Ejercicio",
   "tracking.noExercisesInRoutine":
     "No hay ejercicios disponibles en la rutina seleccionada",
@@ -583,6 +597,10 @@ export const es = {
   "toasts.sessionDeletedTitle": "Sesión Eliminada",
   "toasts.sessionDeletedMsg": '"{{title}}" fue eliminada del historial.',
   "toasts.deleteSessionError": "Error al eliminar sesión",
+  "toasts.sessionErrorTitle": "Error de sesión",
+  "toasts.sessionStartError": "No se pudo iniciar la sesión.",
+  "toasts.sessionFinishError": "No se pudo finalizar la sesión.",
+  "toasts.sessionCancelError": "No se pudo cancelar la sesión.",
   "toasts.adminOnlyTitle": "Acceso Restringido",
   "toasts.adminOnlyMsg":
     "Solo los administradores del gimnasio pueden crear, editar o eliminar máquinas y ejercicios.",

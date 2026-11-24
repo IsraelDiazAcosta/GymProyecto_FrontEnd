@@ -124,8 +124,14 @@ export const MyRoutinesSubTab: React.FC<MyRoutinesSubTabProps> = ({
           onCancelAdding={() => {}}
           onAddExercise={() => {}}
           onUpdateRoutineExercise={onUpdateRoutineExercise}
-          onDeletePress={onDeleteRoutine ? () => onDeleteRoutine(routine) : undefined}
-          onOptionsPress={onOpenRoutineOptions ? () => onOpenRoutineOptions(routine) : undefined}
+          onDeletePress={
+            onDeleteRoutine ? () => onDeleteRoutine(routine) : undefined
+          }
+          onOptionsPress={
+            onOpenRoutineOptions
+              ? () => onOpenRoutineOptions(routine)
+              : undefined
+          }
           compact={true}
           onPress={() => onSelectRoutine(routine.id)}
         />

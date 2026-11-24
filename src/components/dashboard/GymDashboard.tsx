@@ -144,6 +144,7 @@ export const GymDashboard: React.FC = () => {
   >([]);
   const [sessionActionLoading, setSessionActionLoading] = useState(false);
   const [sessionRecordsCount, setSessionRecordsCount] = useState(0);
+  const [sessionExerciseId, setSessionExerciseId] = useState<string>("");
   const [sessionLoggedExerciseIds, setSessionLoggedExerciseIds] = useState<
     string[]
   >([]);
@@ -356,9 +357,19 @@ export const GymDashboard: React.FC = () => {
   }, []);
 
   const handleStartRoutineSession = async (routineId: string) => {
+    const chosenRoutine = vm.routines.find((r) => r.id === routineId);
+    if (chosenRoutine && vm.getExercisesOfRoutine(chosenRoutine).length === 0) {
+      vm.showToast(
+        "warning",
+        t("toasts.invalidDataTitle"),
+        t("tracking.cannotStartEmptyRoutineMsg"),
+      );
+      return;
+    }
     try {
       setSessionActionLoading(true);
       const started = await api.startRoutineSession(routineId);
+      const resolvedRoutineId = getSessionRoutineId(started) || routineId;
       setFinishedSummaryDuration(null);
       setSessionRecordsCount(0);
       setSessionLoggedExerciseIds(extractLoggedExerciseIds(started));
@@ -366,29 +377,31 @@ export const GymDashboard: React.FC = () => {
       setActiveSession(started);
       setElapsedSeconds(computeElapsedSeconds(started));
       setShowSelectRoutineToStart(false);
-      vm.handleRoutineChangeInTracking(routineId);
-    } catch {
-      // Silently ignore transient error
+      vm.handleRoutineChangeInTracking(resolvedRoutineId);
+    } catch (err: any) {
+      vm.showToast(
+        "error",
+        t("toasts.sessionErrorTitle"),
+        err?.message || t("toasts.sessionStartError"),
+      );
+      if (err?.status === 409) {
+        try {
+          const currentActive = await api.getActiveRoutineSession();
+          if (currentActive && currentActive.status === "active") {
+            setActiveSession(currentActive);
+            setElapsedSeconds(computeElapsedSeconds(currentActive));
+            setSessionLoggedExerciseIds(extractLoggedExerciseIds(currentActive));
+            setShowSelectRoutineToStart(false);
+          }
+        } catch {}
+      }
     } finally {
       setSessionActionLoading(false);
     }
   };
 
   const hasRecordedSetInSession =
-    sessionRecordsCount > 0 ||
-    sessionLoggedExerciseIds.length > 0 ||
-    Boolean(
-      activeSession &&
-      activeSession.started_at &&
-      vm.recordHistory.some((m) => {
-        const sessionStart = new Date(activeSession.started_at).getTime();
-        const raw =
-          (m as any).logged_at || (m as any).created_at || (m as any).date;
-        if (!raw) return false;
-        const recordTime = new Date(raw).getTime();
-        return !isNaN(recordTime) && recordTime >= sessionStart - 60000;
-      }),
-    );
+    sessionRecordsCount > 0 || sessionLoggedExerciseIds.length > 0;
 
   const computeMissingExercisesForSession = (
     loggedIds: Set<string>,
@@ -524,8 +537,13 @@ export const GymDashboard: React.FC = () => {
       setShowFinishConfirm(false);
       setFinishedSummaryDuration(finalDuration);
       await loadWeeklyAndHistory();
-    } catch {
-      // Silently ignore transient error
+    } catch (err: any) {
+      setShowFinishConfirm(false);
+      vm.showToast(
+        "error",
+        t("toasts.sessionErrorTitle"),
+        err?.message || t("toasts.sessionFinishError"),
+      );
     } finally {
       setSessionActionLoading(false);
     }
@@ -541,8 +559,12 @@ export const GymDashboard: React.FC = () => {
       setSessionRecordsCount(0);
       setSessionLoggedExerciseIds([]);
       setMissingFinishExercises([]);
-    } catch {
-      // Silently ignore transient error
+    } catch (err: any) {
+      vm.showToast(
+        "error",
+        t("toasts.sessionErrorTitle"),
+        err?.message || t("toasts.sessionCancelError"),
+      );
     } finally {
       setSessionActionLoading(false);
     }
@@ -570,6 +592,33 @@ export const GymDashboard: React.FC = () => {
     (r) => r.id === vm.trackingRoutineId,
   );
   const currentRoutineExercises = vm.getExercisesOfRoutine(currentRoutineObj);
+
+  const activeSessionRoutineId = getSessionRoutineId(activeSession);
+  const activeSessionRoutineObj = activeSessionRoutineId
+    ? vm.routines.find((r) => r.id === activeSessionRoutineId)
+    : undefined;
+  const activeSessionExercises = vm.getExercisesOfRoutine(
+    activeSessionRoutineObj,
+  );
+
+  useEffect(() => {
+    if (!activeSession) {
+      setSessionExerciseId("");
+      return;
+    }
+    const rObj = activeSessionRoutineId
+      ? vm.routines.find((r) => r.id === activeSessionRoutineId)
+      : undefined;
+    const exList = vm.getExercisesOfRoutine(rObj);
+    if (exList.length === 0) {
+      setSessionExerciseId("");
+      return;
+    }
+    setSessionExerciseId((prev) =>
+      exList.some((ex) => ex.id === prev) ? prev : exList[0].id,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSession?.id, activeSessionRoutineId, vm.routines]);
 
   const selectedRoutineSessions = selectedRoutineDetail
     ? routineHistoryList
@@ -679,9 +728,9 @@ export const GymDashboard: React.FC = () => {
               setMaxReps={vm.setMaxReps}
               onAddExerciseToRoutine={vm.handleAddExerciseToRoutine}
               onUpdateRoutineExercise={vm.handleUpdateRoutineExercise}
+              onRemoveExerciseFromRoutine={vm.handleRemoveExerciseFromRoutine}
               onOpenRoutineOptions={vm.handleOpenRoutineOptions}
               onDeleteRoutine={(routine) => {
-                setSelectedRoutineId(null);
                 vm.setDeleteConfirmItem({
                   type: "routine",
                   id: String(routine.id),
@@ -743,15 +792,20 @@ export const GymDashboard: React.FC = () => {
             ) : (
               <RecordFormCard
                 colors={colors}
-                routines={vm.routines}
-                trackingRoutineId={vm.trackingRoutineId}
-                trackingExerciseId={vm.trackingExerciseId}
-                currentRoutineExercises={currentRoutineExercises}
-                onSelectRoutine={vm.handleRoutineChangeInTracking}
-                onSelectExercise={(exerciseId: string) => {
-                  vm.setTrackingExerciseId(exerciseId);
-                  vm.loadProgressionHistory(exerciseId);
-                }}
+                routines={activeSessionRoutineObj ? [activeSessionRoutineObj] : []}
+                trackingRoutineId={activeSessionRoutineId || ""}
+                trackingExerciseId={sessionExerciseId}
+                currentRoutineExercises={activeSessionExercises}
+                onSelectRoutine={() => undefined}
+                onSelectExercise={(exerciseId: string) =>
+                  setSessionExerciseId(exerciseId)
+                }
+                lockedRoutineTitle={
+                  activeSessionRoutineObj?.title ||
+                  activeSession?.routine_title ||
+                  activeSession?.title ||
+                  t("common.routineFallback")
+                }
                 recordWeight={vm.recordWeight}
                 setRecordWeight={vm.setRecordWeight}
                 recordReps={vm.recordReps}
@@ -760,17 +814,31 @@ export const GymDashboard: React.FC = () => {
                 setRecordRpe={vm.setRecordRpe}
                 savingRecord={vm.savingRecord}
                 onSave={async () => {
-                  const savedExerciseId = vm.trackingExerciseId;
-                  const ok = await vm.handleSaveRecord();
+                  if (
+                    !activeSession ||
+                    !activeSessionExercises.some(
+                      (e) => e.id === sessionExerciseId,
+                    )
+                  ) {
+                    vm.showToast(
+                      "warning",
+                      t("toasts.invalidDataTitle"),
+                      t("tracking.exerciseNotInSessionMsg"),
+                    );
+                    return;
+                  }
+                  const savedExerciseId = sessionExerciseId;
+                  const ok = await vm.handleSaveRecord(
+                    savedExerciseId,
+                    activeSession.id,
+                  );
                   if (ok) {
                     setSessionRecordsCount((prev) => prev + 1);
-                    if (savedExerciseId) {
-                      setSessionLoggedExerciseIds((prev) =>
-                        prev.includes(savedExerciseId)
-                          ? prev
-                          : [...prev, savedExerciseId],
-                      );
-                    }
+                    setSessionLoggedExerciseIds((prev) =>
+                      prev.includes(savedExerciseId)
+                        ? prev
+                        : [...prev, savedExerciseId],
+                    );
                   }
                 }}
                 lastSavedSummary={vm.lastSavedSummary}
@@ -781,6 +849,9 @@ export const GymDashboard: React.FC = () => {
               colors={colors}
               recordHistory={vm.recordHistory}
               onRecordOptionsPress={vm.handleOpenRecordOptions}
+              routines={vm.routines}
+              selectedRoutineId={vm.trackingRoutineId}
+              onSelectRoutine={vm.handleRoutineChangeInTracking}
               currentRoutineExercises={currentRoutineExercises}
               trackingExerciseId={vm.trackingExerciseId}
               onSelectExercise={(exerciseId: string) => {
@@ -854,6 +925,7 @@ export const GymDashboard: React.FC = () => {
             trainedDayFlags={trainedDayFlags}
             todayWeekIndex={todayWeekIndex}
             trainedCount={trainedCount}
+            onNotify={vm.showToast}
           />
         )}
       </ScrollView>
@@ -1025,7 +1097,20 @@ export const GymDashboard: React.FC = () => {
         colors={colors}
         itemTitle={vm.deleteConfirmItem?.title || ""}
         itemType={vm.deleteConfirmItem?.type || "routine"}
-        onConfirm={vm.handleConfirmDelete}
+        onConfirm={async () => {
+          const deletedType = vm.deleteConfirmItem?.type;
+          await vm.handleConfirmDelete();
+          if (deletedType === "record" && activeSession?.id) {
+            try {
+              const detail = await api.getWorkoutSessionDetail(
+                activeSession.id,
+              );
+              const loggedIds = extractLoggedExerciseIds(detail);
+              setSessionLoggedExerciseIds(loggedIds);
+              setSessionRecordsCount(detail.total_sets ?? loggedIds.length);
+            } catch {}
+          }
+        }}
         onClose={() => vm.setDeleteConfirmItem(null)}
       />
 

@@ -136,7 +136,10 @@ export const SelectRoutineToStartModal: React.FC<SelectRoutineToStartModalProps>
                   <View
                     style={[
                       styles.routinePickPlay,
-                      { backgroundColor: colors.primaryGlow },
+                      {
+                        backgroundColor: colors.primaryGlow,
+                        opacity: getCount(r) === 0 ? 0.45 : 1,
+                      },
                     ]}
                   >
                     <GymIcon name="play" size={14} color={colors.primary} />

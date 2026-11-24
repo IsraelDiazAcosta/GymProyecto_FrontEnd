@@ -33,6 +33,7 @@ export interface RecordFormCardProps {
   savingRecord: boolean;
   onSave: () => void;
   lastSavedSummary: string | null;
+  lockedRoutineTitle?: string | null;
 }
 
 /**
@@ -56,8 +57,10 @@ export const RecordFormCard: React.FC<RecordFormCardProps> = ({
   savingRecord,
   onSave,
   lastSavedSummary,
+  lockedRoutineTitle,
 }) => {
   const { t } = useLanguage();
+  const isRoutineLocked = Boolean(lockedRoutineTitle);
 
   return (
     <AnimatedCard
@@ -86,49 +89,78 @@ export const RecordFormCard: React.FC<RecordFormCardProps> = ({
             {t("tracking.formTitle")}
           </Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {t("tracking.formSubtitle")}
+            {isRoutineLocked
+              ? t("tracking.formSubtitleActive")
+              : t("tracking.formSubtitle")}
           </Text>
         </View>
       </View>
 
       <Text style={[styles.stepLabel, { color: colors.textSecondary }]}>
-        {t("tracking.step1Routine")}
+        {isRoutineLocked
+          ? t("tracking.activeSessionRoutineStep")
+          : t("tracking.step1Routine")}
       </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
-      >
-        {routines.map((r, idx) => {
-          const active = trackingRoutineId === r.id;
-          return (
-            <Pressable
-              key={`${r.id}-${idx}`}
-              onPress={() => onSelectRoutine(r.id)}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: active
-                    ? colors.primary
-                    : colors.backgroundElevated,
-                  borderColor: active
-                    ? colors.primaryLight
-                    : colors.borderSubtle,
-                },
-              ]}
+      {isRoutineLocked ? (
+        <View
+          style={[
+            styles.lockedRoutineBox,
+            {
+              backgroundColor: colors.primaryGlow,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View style={styles.lockedRoutineHeader}>
+            <GymIcon name="lock" size={14} color={colors.primary} />
+            <Text
+              style={[styles.lockedRoutineText, { color: colors.primary }]}
+              numberOfLines={1}
             >
-              <Text
+              {lockedRoutineTitle}
+            </Text>
+          </View>
+          <Text style={[styles.lockedHintText, { color: colors.textSecondary }]}>
+            {t("tracking.activeSessionLockedHint")}
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+        >
+          {routines.map((r, idx) => {
+            const active = trackingRoutineId === r.id;
+            return (
+              <Pressable
+                key={`${r.id}-${idx}`}
+                onPress={() => onSelectRoutine(r.id)}
                 style={[
-                  styles.chipText,
-                  { color: active ? colors.onPrimary : colors.textSecondary },
+                  styles.chip,
+                  {
+                    backgroundColor: active
+                      ? colors.primary
+                      : colors.backgroundElevated,
+                    borderColor: active
+                      ? colors.primaryLight
+                      : colors.borderSubtle,
+                  },
                 ]}
               >
-                {r.title || (r as any).name || t("common.routineFallback")}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: active ? colors.onPrimary : colors.textSecondary },
+                  ]}
+                >
+                  {r.title || (r as any).name || t("common.routineFallback")}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
 
       <Text style={[styles.stepLabel, { color: colors.textSecondary }]}>
         {t("tracking.step2Exercise")}
@@ -261,6 +293,7 @@ export const RecordFormCard: React.FC<RecordFormCardProps> = ({
         icon="check"
         onPress={onSave}
         loading={savingRecord}
+        disabled={currentRoutineExercises.length === 0 || !trackingExerciseId}
       />
 
       {lastSavedSummary && (
@@ -318,6 +351,27 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.6,
     marginTop: 2,
+  },
+  lockedRoutineBox: {
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 3,
+  },
+  lockedRoutineHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  lockedRoutineText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  lockedHintText: {
+    fontSize: 11,
+    fontWeight: "600",
   },
   chipsRow: {
     gap: 8,

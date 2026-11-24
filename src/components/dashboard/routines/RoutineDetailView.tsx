@@ -32,6 +32,10 @@ export interface RoutineDetailViewProps {
     minReps: number,
     maxReps: number,
   ) => Promise<void>;
+  onRemoveExerciseFromRoutine?: (
+    routineExerciseId: string,
+    exerciseName: string,
+  ) => Promise<void>;
   onOptionsPress?: () => void;
   onDeleteRoutine?: (routine: Routine) => void;
   routineSessions: WorkoutSessionItem[];
@@ -66,6 +70,7 @@ export const RoutineDetailView: React.FC<RoutineDetailViewProps> = ({
   onCancelAdding,
   onAddExercise,
   onUpdateRoutineExercise,
+  onRemoveExerciseFromRoutine,
   onOptionsPress,
   onDeleteRoutine,
   routineSessions,
@@ -114,6 +119,7 @@ export const RoutineDetailView: React.FC<RoutineDetailViewProps> = ({
         onCancelAdding={onCancelAdding}
         onAddExercise={onAddExercise}
         onUpdateRoutineExercise={onUpdateRoutineExercise}
+        onRemoveExerciseFromRoutine={onRemoveExerciseFromRoutine}
         onDeletePress={onDeleteRoutine ? () => onDeleteRoutine(routine) : undefined}
         onOptionsPress={onOptionsPress}
       />
